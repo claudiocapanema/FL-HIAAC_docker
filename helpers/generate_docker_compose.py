@@ -18,6 +18,10 @@ parser.add_argument(
     "--random", action="store_true", help="Randomize client configurations"
 )
 
+parser.add_argument(
+    "--strategy", type=str, default='FedAvg+FP', help="Strategy to use (default: FedAvg)"
+)
+
 
 def create_docker_compose(args):
     # cpus is used to set the number of CPUs available to the container as a fraction of the total number of CPUs on the host machine.
@@ -29,6 +33,12 @@ def create_docker_compose(args):
         {"mem_limit": "5g", "batch_size": 128, "cpus": 2.5, "learning_rate": 0.09},
         # Add or modify the configurations depending on your host machine
     ]
+
+    strategy_name = args.strategy
+    files_dict = {"FedAvg": {"client_file": """client_fedavg.py""".format(""), "server_file": """server_fedavg.py""".format(strategy_name)},
+                   "FedAvg+FP": {"client_file": """client_fedavg_fedpredict.py""".format(""), "server_file": """server_fedavg.py""".format(strategy_name)}}
+    client_file = files_dict[strategy_name]["client_file"]
+    server_file = files_dict[strategy_name]["server_file"]
 
     docker_compose_content = f"""
 services:
@@ -88,7 +98,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: python server.py --number_of_rounds={args.num_rounds}
+    command: python {server_file} --number_of_rounds={args.num_rounds}
     environment:
       FLASK_RUN_PORT: 6000
       DOCKER_HOST_IP: host.docker.internal
@@ -116,7 +126,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: python client.py --server_address=server:8080 --data_percentage={args.data_percentage}  --client_id={i} --total_clients={args.total_clients} --batch_size={config["batch_size"]} --learning_rate={config["learning_rate"]}
+    command: python {client_file} --server_address=server:8080 --data_percentage={args.data_percentage}  --client_id={i} --total_clients={args.total_clients} --batch_size={config["batch_size"]} --learning_rate={config["learning_rate"]}
     deploy:
       resources:
         limits:

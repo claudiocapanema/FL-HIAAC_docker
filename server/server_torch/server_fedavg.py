@@ -20,10 +20,16 @@ parser.add_argument(
     default=10,
     help="Number of FL rounds (default: 100)",
 )
+parser.add_argument(
+    "--fraction_fit",
+    type=float,
+    default=1,
+    help="Fraction of training clients (default: 1)",
+)
 args = parser.parse_args()
 
 
-from model import Net, get_weights
+from model.model import Net, get_weights
 
 
 # Define metric aggregation function
@@ -59,7 +65,7 @@ if __name__ == "__main__":
 
     # Define the strategy
     strategy = FedAvg(
-        fraction_fit=1.0,
+        fraction_fit=args.fraction_fit,
         fraction_evaluate=1.0,
         min_available_clients=2,
         evaluate_metrics_aggregation_fn=weighted_average,
