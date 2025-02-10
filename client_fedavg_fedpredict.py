@@ -97,7 +97,7 @@ class Client(fl.client.NumPyClient):
             num_partitions=self.args.total_clients+1,
             batch_size=self.args.batch_size,
         )
-        logger.info("leu dados")
+        logger.info("""leu dados {}""".format(self.args.client_id))
 
         self.contar = 0
 

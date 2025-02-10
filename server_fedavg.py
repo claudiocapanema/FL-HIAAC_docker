@@ -221,6 +221,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
         )
 
         self.n_trained_clients = len(clients)
+        logging.info("""selecionados {} rodada {}""".format(self.n_trained_clients, server_round))
 
         # Return client/config pairs
         return [(client, fit_ins) for client in clients]
@@ -249,6 +250,8 @@ class FedAvg(flwr.server.strategy.FedAvg):
             num_clients=sample_size, min_num_clients=min_num_clients
         )
 
+        # exit()
+
         # Return client/config pairs
         return [(client, evaluate_ins) for client in clients]
 
@@ -266,6 +269,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
             return None, {}
 
         # Aggregate loss
+        logging.info("""metricas recebidas rodada {}: {}""".format(server_round, results))
         loss_aggregated = weighted_loss_avg(
             [
                 (evaluate_res.num_examples, evaluate_res.loss)
@@ -320,7 +324,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
 
         algo = self.dataset + "_" + self.strategy_name
 
-        result_path = """../results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+        result_path = """/results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
             self.cd,
             self.fraction_new_clients,
             self.round_new_clients,

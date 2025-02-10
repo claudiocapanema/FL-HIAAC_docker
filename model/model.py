@@ -91,18 +91,41 @@ def train(net, trainloader, valloader, epochs, learning_rate, device, client_id,
     optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate, momentum=0.9)
     net.train()
     for _ in range(epochs):
+        loss_total = 0
+        correct = 0
+        y_true = []
+        y_prob = []
         for batch in trainloader:
-            images = batch["img"]
-            labels = batch["label"]
+            images = batch["img"].to(device)
+            labels = batch["label"].to(device)
             optimizer.zero_grad()
-            criterion(net(images.to(device)), labels.to(device)).backward()
+            outputs = net(images)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            loss_total += loss.item() * labels.shape[0]
+            y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(10)))
+            y_prob.append(outputs.detach().cpu().numpy())
+            correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
             optimizer.step()
+    accuracy = correct / len(trainloader.dataset)
+    loss = loss_total / len(trainloader.dataset)
+    y_prob = np.concatenate(y_prob, axis=0)
+    y_true = np.concatenate(y_true, axis=0)
+    y_prob = y_prob.argmax(axis=1)
+    y_true = y_true.argmax(axis=1)
+    balanced_accuracy = float(metrics.balanced_accuracy_score(y_true, y_prob))
+
+    train_metrics = {"Train accuracy": accuracy, "Train balanced accuracy": balanced_accuracy, "Train loss": loss, "Train round (t)": t}
 
     val_loss, test_metrics = test(net, valloader, device, client_id, t)
 
     results = {
         "val_loss": val_loss,
         "val_accuracy": test_metrics["Accuracy"],
+        "val_balanced_accuracy": test_metrics["Balanced accuracy"],
+        "train_loss": train_metrics["Train loss"],
+        "train_accuracy": train_metrics["Train accuracy"],
+        "train_balanced_accuracy": train_metrics["Train balanced accuracy"]
     }
     return results
 
@@ -127,16 +150,15 @@ def test(net, testloader, device, client_id, t):
             loss += criterion(outputs, labels).item()
             correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
     accuracy = correct / len(testloader.dataset)
-    loss = loss / len(testloader)
+    loss = loss / len(testloader.dataset)
     y_prob = np.concatenate(y_prob, axis=0)
     y_true = np.concatenate(y_true, axis=0)
     test_auc = metrics.roc_auc_score(y_true, y_prob, average='micro')
 
     y_prob = y_prob.argmax(axis=1)
     y_true = y_true.argmax(axis=1)
-    logger.info("""saida tru {} prob {}""".format(y_true.shape, y_prob.shape))
     balanced_accuracy = float(metrics.balanced_accuracy_score(y_true, y_prob))
 
     test_metrics = {"Accuracy": accuracy, "Balanced accuracy": balanced_accuracy, "Loss": loss, "Round (t)": t}
-    logging.info("""me teste: {}""".format(test_metrics))
+    # logger.info("""metricas cliente {} valores {}""".format(client_id, test_metrics))
     return loss, test_metrics

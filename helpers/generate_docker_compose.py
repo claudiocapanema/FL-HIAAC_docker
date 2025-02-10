@@ -3,7 +3,7 @@ import random
 
 parser = argparse.ArgumentParser(description="Generated Docker Compose")
 parser.add_argument(
-    "--total_clients", type=int, default=2, help="Total clients to spawn (default: 2)"
+    "--total_clients", type=int, default=10, help="Total clients to spawn (default: 2)"
 )
 parser.add_argument(
     "--number_of_rounds", type=int, default=5, help="Number of FL rounds (default: 100)"
@@ -43,7 +43,7 @@ parser.add_argument(
     "--cd", type=str, default="false"
 )
 parser.add_argument(
-    "--fraction_fit", type=float, default=1
+    "--fraction_fit", type=float, default=0.3
 )
 parser.add_argument(
     "--client_id", type=int, default=1
@@ -159,7 +159,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: python {client_file} --server_address=server:8080 {general_config}
+    command: python {client_file} --server_address=server:8080 --client_id={i} {general_config}
     deploy:
       resources:
         limits:
