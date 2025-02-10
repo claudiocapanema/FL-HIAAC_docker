@@ -29,7 +29,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 
-from model.model import Net, get_weights
+from model.model import CNN, get_weights
 
 
 # Define metric aggregation function
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     start_http_server(8000)
 
     # Initialize Strategy Instance and Start FL Server
-    ndarrays = get_weights(Net())
+    ndarrays = get_weights(CNN())
     parameters = ndarrays_to_parameters(ndarrays)
 
     # Define the strategy

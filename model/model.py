@@ -5,13 +5,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from flwr_datasets import FederatedDataset
-from flwr_datasets.partitioner import IidPartitioner
+from flwr_datasets.partitioner import IidPartitioner, DirichletPartitioner
 from tensorflow.python.ops.metrics_impl import accuracy
 from torch.utils.data import DataLoader
-from torchvision.transforms import Compose, Normalize, ToTensor
+from torchvision.transforms import Compose, Normalize, ToTensor, RandomRotation
 from sklearn import metrics
 from sklearn.preprocessing import label_binarize
 import numpy as np
+import sys
 
 
 import logging
@@ -21,25 +22,85 @@ logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
 
 # Class for the model. In this case, we are using the MobileNetV2 model from Keras
-class Net(nn.Module):
-    """Model (simple CNN adapted from 'PyTorch: A 60 Minute Blitz')"""
+# class CNN(nn.Module):
+#     """Model (simple CNN adapted from 'PyTorch: A 60 Minute Blitz')"""
+#
+#     def __init__(self):
+#         super(CNN, self).__init__()
+#         self.conv1 = nn.Conv2d(3, 6, 5)
+#         self.pool = nn.MaxPool2d(2, 2)
+#         self.conv2 = nn.Conv2d(6, 16, 5)
+#         self.fc1 = nn.Linear(16 * 5 * 5, 120)
+#         self.fc2 = nn.Linear(120, 84)
+#         self.fc3 = nn.Linear(84, 10)
+#
+#     def forward(self, x):
+#         x = self.pool(F.relu(self.conv1(x)))
+#         x = self.pool(F.relu(self.conv2(x)))
+#         x = x.view(-1, 16 * 5 * 5)
+#         x = F.relu(self.fc1(x))
+#         x = F.relu(self.fc2(x))
+#         return self.fc3(x)
 
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
+class CNN(nn.Module):
+    def __init__(self, input_shape=1, mid_dim=256, num_classes=10):
+        try:
+            super(CNN, self).__init__()
+            self.conv1 = nn.Sequential(
+                nn.Conv2d(input_shape,
+                          32,
+                          kernel_size=5,
+                          padding=0,
+                          stride=1,
+                          bias=True),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(kernel_size=(2, 2))
+            )
+            self.conv2 = nn.Sequential(
+                nn.Conv2d(32,
+                          64,
+                          kernel_size=5,
+                          padding=0,
+                          stride=1,
+                          bias=True),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(kernel_size=(2, 2))
+            )
+            self.fc1 = nn.Sequential(
+                nn.Linear(mid_dim*4, 512),
+                nn.ReLU(inplace=True)
+            )
+            self.fc = nn.Linear(512, num_classes)
+        except Exception as e:
+            print("CNN")
+            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
     def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 16 * 5 * 5)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        return self.fc3(x)
+        try:
+            out = self.conv1(x)
+            out = self.conv2(out)
+            out = torch.flatten(out, 1)
+            out = self.fc1(out)
+            out = self.fc(out)
+            return out
+        except Exception as e:
+            print("CNN forward")
+            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+def load_model(model_name, dataset):
+    if model_name == 'CNN':
+        if dataset in ['MNIST']:
+            input_shape = 1
+            mid_dim = 256
+            num_classes = 10
+            logging.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
+        else:
+            input_shape = 3
+            mid_dim = 400
+            num_classes = 10
+        logging.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
+        return CNN(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
+
 
 fds = None
 
@@ -52,52 +113,71 @@ def set_weights(net, parameters):
     state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
     net.load_state_dict(state_dict, strict=True)
 
-def load_data(partition_id: int, num_partitions: int, batch_size: int, data_sampling_percentage: int):
+
+def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions: int, batch_size: int,
+              data_sampling_percentage: int):
     """Load partition CIFAR10 data."""
     # Only initialize `FederatedDataset` once
+    logger.info(
+        """Loading {} data.""".format(dataset_name, partition_id, num_partitions, batch_size, data_sampling_percentage))
     global fds
     if fds is None:
-        partitioner = IidPartitioner(num_partitions=num_partitions)
+        partitioner = DirichletPartitioner(num_partitions=num_partitions, partition_by="label",
+
+                                           alpha=alpha, min_partition_size=10,
+
+                                           self_balancing=True)
         fds = FederatedDataset(
-            dataset="uoft-cs/cifar10",
+            dataset={"CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist"}[dataset_name],
             partitioners={"train": partitioner},
         )
     partition = fds.load_partition(partition_id)
     # Divide data on each node: 80% train, 20% test
     test_size = 1 - data_sampling_percentage
     partition_train_test = partition.train_test_split(test_size=test_size, seed=42)
-    pytorch_transforms = Compose(
-        [ToTensor(), Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
-    )
+
+    pytorch_transforms = {"CIFAR10": Compose(
+        [ToTensor(), Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
+        "MNIST": Compose([ToTensor(), RandomRotation(10),
+                                           Normalize([0.5], [0.5])])}[dataset_name]
+
+    # import torchvision.datasets as datasets
+    # datasets.EMNIST
+    key = {"CIFAR10": "img", "MNIST": "image"}[dataset_name]
 
     def apply_transforms(batch):
         """Apply transforms to the partition from FederatedDataset."""
-        batch["img"] = [pytorch_transforms(img) for img in batch["img"]]
+
+        batch[key] = [pytorch_transforms(img) for img in batch[key]]
+        # logging.info("""bath key: {}""".format(batch[key]))
         return batch
 
-    g = torch.Generator()
-    g.manual_seed(partition_id)
     partition_train_test = partition_train_test.with_transform(apply_transforms)
     trainloader = DataLoader(
-        partition_train_test["train"], batch_size=batch_size, shuffle=True, g=g
+        partition_train_test["train"], batch_size=batch_size, shuffle=True
     )
     testloader = DataLoader(partition_train_test["test"], batch_size=batch_size)
     return trainloader, testloader
 
-def train(net, trainloader, valloader, epochs, learning_rate, device, client_id, t):
+def train(net, trainloader, valloader, epochs, learning_rate, device, client_id, t, dataset_name):
     """Train the model on the training set."""
     net.to(device)  # move model to GPU if available
     criterion = torch.nn.CrossEntropyLoss().to(device)
     optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate, momentum=0.9)
     net.train()
+    key = {"CIFAR10": "img", "MNIST": "image"}[dataset_name]
     for _ in range(epochs):
         loss_total = 0
         correct = 0
         y_true = []
         y_prob = []
         for batch in trainloader:
-            images = batch["img"].to(device)
-            labels = batch["label"].to(device)
+            # logging.info("""dentro {} labels {}""".format(images, labels))
+            images = batch[key]
+            labels = batch["label"]
+            images.to(device)
+            labels.to(device)
+
             optimizer.zero_grad()
             outputs = net(images)
             loss = criterion(outputs, labels)
@@ -117,7 +197,7 @@ def train(net, trainloader, valloader, epochs, learning_rate, device, client_id,
 
     train_metrics = {"Train accuracy": accuracy, "Train balanced accuracy": balanced_accuracy, "Train loss": loss, "Train round (t)": t}
 
-    val_loss, test_metrics = test(net, valloader, device, client_id, t)
+    val_loss, test_metrics = test(net, valloader, device, client_id, t, dataset_name)
 
     results = {
         "val_loss": val_loss,
@@ -130,7 +210,7 @@ def train(net, trainloader, valloader, epochs, learning_rate, device, client_id,
     return results
 
 
-def test(net, testloader, device, client_id, t):
+def test(net, testloader, device, client_id, t, dataset_name):
     """Validate the model on the test set."""
     g = torch.Generator()
     g.manual_seed(t)
@@ -140,10 +220,13 @@ def test(net, testloader, device, client_id, t):
     correct, loss = 0, 0.0
     y_prob = []
     y_true = []
+    key = {"CIFAR10": "img", "MNIST": "image"}[dataset_name]
     with torch.no_grad():
         for batch in testloader:
-            images = batch["img"].to(device)
-            labels = batch["label"].to(device)
+            images = batch[key]
+            labels = batch["label"]
+            images.to(device)
+            labels.to(device)
             y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(10)))
             outputs = net(images)
             y_prob.append(outputs.detach().cpu().numpy())

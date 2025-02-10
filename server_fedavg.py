@@ -8,6 +8,7 @@ from io import BytesIO
 import os
 
 import torch
+import numpy as np
 from prometheus_client import Gauge, start_http_server
 from typing import List, Tuple
 from flwr.common import Context, Metrics, ndarrays_to_parameters
@@ -34,6 +35,7 @@ from flwr.server.client_proxy import ClientProxy
 import flwr
 
 from logging import WARNING
+import random
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
@@ -90,7 +92,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 
-from model.model import Net, get_weights
+from model.model import load_model, get_weights
 
 
 # Define metric aggregation function
@@ -184,10 +186,10 @@ class FedAvg(flwr.server.strategy.FedAvg):
         self.alpha = args.alpha
         self.total_clients = args.total_clients
         self.dataset= args.dataset
-        self.model = args.model
+        self.model_name = args.model
         self.number_of_rounds = args.number_of_rounds
         self.cd = args.cd
-        self.strategy_name = "FedAvg"
+        self.strategy_name = args.strategy
         self.test_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
                                    "# training clients", "training clients and models", "Model size", "Alpha"]
         self.train_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
@@ -204,6 +206,10 @@ class FedAvg(flwr.server.strategy.FedAvg):
     def configure_fit(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> list[tuple[ClientProxy, FitIns]]:
+
+        torch.random.manual_seed(server_round)
+        random.seed(server_round)
+        np.random.seed(server_round)
         """Configure the next round of training."""
         config = {}
         if self.on_fit_config_fn is not None:
@@ -334,7 +340,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
             self.dataset,
             0,
             0,
-            self.model,
+            self.model_name,
             self.fraction_fit,
             self.number_of_rounds,
             self.local_epochs,
@@ -444,7 +450,7 @@ if __name__ == "__main__":
 
     # Initialize Strategy Instance and Start FL Serverstart_fl_server
     torch.random.manual_seed(0)
-    ndarrays = get_weights(Net())
+    ndarrays = get_weights(load_model(args.model, args.dataset))
     parameters = ndarrays_to_parameters(ndarrays)
 
     # Define the strategy

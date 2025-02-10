@@ -4,10 +4,10 @@
 CONTAINER_NAME="fl-hiaac_docker-server"
 
 # Diretório dentro do contêiner que você quer copiar
-CONTAINER_DIR=$/results
+CONTAINER_DIR="results/"
 
 # Diretório de destino na máquina local
-LOCAL_DIR=$/home/claudio/PycharmProjects/FL-HIAAC_docker/
+LOCAL_DIR="results/"
 
 # Verifica se todos os argumentos foram passados
 if [ -z "$CONTAINER_NAME" ] || [ -z "$CONTAINER_DIR" ] || [ -z "$LOCAL_DIR" ]; then
@@ -16,7 +16,7 @@ if [ -z "$CONTAINER_NAME" ] || [ -z "$CONTAINER_DIR" ] || [ -z "$LOCAL_DIR" ]; t
 fi
 
 # Obtém o ID do contêiner com base no nome
-CONTAINER_ID=$(docker ps -q -f "ancestor=$CONTAINER_NAME")
+CONTAINER_ID=$(docker ps -a -q -f "ancestor=$CONTAINER_NAME")
 
 # Verifica se o contêiner foi encontrado
 if [ -z "$CONTAINER_ID" ]; then
@@ -29,7 +29,9 @@ echo "ID do contêiner encontrado: $CONTAINER_ID"
 # Copia a pasta do contêiner para a máquina local
 docker cp "$CONTAINER_ID:$CONTAINER_DIR" "$LOCAL_DIR"
 
-chmod 777 "$LOCAL_DIR"
+sudo chmod -R 777 "results/results/"
+
+echo "aqui" $LOCAL_DIR
 
 # Verifica se a operação de cópia foi bem-sucedida
 if [ $? -eq 0 ]; then

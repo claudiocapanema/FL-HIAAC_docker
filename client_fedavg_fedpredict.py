@@ -5,7 +5,7 @@ import os
 import flwr as fl
 import tensorflow as tf
 
-from model.model import Net, get_weights, load_data, set_weights, test, train
+from model.model import load_model, get_weights, load_data, set_weights, test, train
 import torch
 import copy
 
@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
 
 from flwr_datasets import FederatedDataset
-from flwr_datasets.partitioner import IidPartitioner
+from flwr_datasets.partitioner import IidPartitioner, DirichletPartitioner
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, Normalize, ToTensor
 from fedpredict import fedpredict_client_torch
@@ -86,15 +86,17 @@ fds = None
 class Client(fl.client.NumPyClient):
     def __init__(self, args):
         self.args = args
-        self.model = Net()
-        self.global_model = Net()
+        self.model = load_model(args.model, args.dataset)
+        self.global_model = load_model(args.model, args.dataset)
         logger.info("Preparing data...")
         logger.info("""args do cliente: {}""".format(self.args.client_id))
         self.client_id = args.client_id
-        self.trainloader, self.valloader = self.load_data(
+        self.trainloader, self.valloader = load_data(
+            dataset_name=self.args.dataset,
+            alpha=self.args.alpha,
             data_sampling_percentage=self.args.data_percentage,
             partition_id=self.args.client_id,
-            num_partitions=self.args.total_clients+1,
+            num_partitions=self.args.total_clients + 1,
             batch_size=self.args.batch_size,
         )
         logger.info("""leu dados {}""".format(self.args.client_id))
@@ -122,7 +124,8 @@ class Client(fl.client.NumPyClient):
             self.lr,
             self.device,
             self.client_id,
-            t
+            t,
+            self.args.dataset
         )
         logger.info("fit cliente fim fp")
         return get_weights(self.model), len(self.trainloader.dataset), results
@@ -135,41 +138,10 @@ class Client(fl.client.NumPyClient):
         set_weights(self.global_model, parameters)
         combined_model = fedpredict_client_torch(local_model=self.model, global_model=self.global_model,
                                   t=t, T=100, nt=nt, device=self.device, fc=1, il=1)
-        loss, metrics = test(combined_model, self.valloader, self.device, self.client_id, t)
+        loss, metrics = test(combined_model, self.valloader, self.device, self.client_id, t, self.args.dataset)
         metrics["Model size"] = self.models_size
         logger.info("eval cliente fim fp")
         return loss, len(self.valloader.dataset), metrics
-
-    def load_data(self, partition_id: int, num_partitions: int, batch_size: int, data_sampling_percentage: int):
-        """Load partition CIFAR10 data."""
-        # Only initialize `FederatedDataset` once
-        logger.info("""Loading CIFAR10 data.""".format(partition_id, num_partitions, batch_size, data_sampling_percentage))
-        global fds
-        if fds is None:
-            partitioner = IidPartitioner(num_partitions=num_partitions)
-            fds = FederatedDataset(
-                dataset="uoft-cs/cifar10",
-                partitioners={"train": partitioner},
-            )
-        partition = fds.load_partition(partition_id)
-        # Divide data on each node: 80% train, 20% test
-        test_size = 1 - data_sampling_percentage
-        partition_train_test = partition.train_test_split(test_size=test_size, seed=42)
-        pytorch_transforms = Compose(
-            [ToTensor(), Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
-        )
-
-        def apply_transforms(batch):
-            """Apply transforms to the partition from FederatedDataset."""
-            batch["img"] = [pytorch_transforms(img) for img in batch["img"]]
-            return batch
-
-        partition_train_test = partition_train_test.with_transform(apply_transforms)
-        trainloader = DataLoader(
-            partition_train_test["train"], batch_size=batch_size, shuffle=True
-        )
-        testloader = DataLoader(partition_train_test["test"], batch_size=batch_size)
-        return trainloader, testloader
 
     def _get_models_size(self):
         parameters = [i.detach().cpu().numpy() for i in self.model.parameters()]
