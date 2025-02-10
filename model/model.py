@@ -6,8 +6,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from flwr_datasets import FederatedDataset
 from flwr_datasets.partitioner import IidPartitioner
+from tensorflow.python.ops.metrics_impl import accuracy
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, Normalize, ToTensor
+from sklearn import metrics
+from sklearn.preprocessing import label_binarize
+import numpy as np
 
 
 import logging
@@ -71,14 +75,16 @@ def load_data(partition_id: int, num_partitions: int, batch_size: int, data_samp
         batch["img"] = [pytorch_transforms(img) for img in batch["img"]]
         return batch
 
+    g = torch.Generator()
+    g.manual_seed(partition_id)
     partition_train_test = partition_train_test.with_transform(apply_transforms)
     trainloader = DataLoader(
-        partition_train_test["train"], batch_size=batch_size, shuffle=True
+        partition_train_test["train"], batch_size=batch_size, shuffle=True, g=g
     )
     testloader = DataLoader(partition_train_test["test"], batch_size=batch_size)
     return trainloader, testloader
 
-def train(net, trainloader, valloader, epochs, learning_rate, device):
+def train(net, trainloader, valloader, epochs, learning_rate, device, client_id, t):
     """Train the model on the training set."""
     net.to(device)  # move model to GPU if available
     criterion = torch.nn.CrossEntropyLoss().to(device)
@@ -92,27 +98,45 @@ def train(net, trainloader, valloader, epochs, learning_rate, device):
             criterion(net(images.to(device)), labels.to(device)).backward()
             optimizer.step()
 
-    val_loss, val_acc = test(net, valloader, device)
+    val_loss, test_metrics = test(net, valloader, device, client_id, t)
 
     results = {
         "val_loss": val_loss,
-        "val_accuracy": val_acc,
+        "val_accuracy": test_metrics["Accuracy"],
     }
     return results
 
 
-def test(net, testloader, device):
+def test(net, testloader, device, client_id, t):
     """Validate the model on the test set."""
+    g = torch.Generator()
+    g.manual_seed(t)
+    torch.manual_seed(t)
     net.to(device)  # move model to GPU if available
     criterion = torch.nn.CrossEntropyLoss()
     correct, loss = 0, 0.0
+    y_prob = []
+    y_true = []
     with torch.no_grad():
         for batch in testloader:
             images = batch["img"].to(device)
             labels = batch["label"].to(device)
+            y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(10)))
             outputs = net(images)
+            y_prob.append(outputs.detach().cpu().numpy())
             loss += criterion(outputs, labels).item()
             correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
     accuracy = correct / len(testloader.dataset)
     loss = loss / len(testloader)
-    return loss, accuracy
+    y_prob = np.concatenate(y_prob, axis=0)
+    y_true = np.concatenate(y_true, axis=0)
+    test_auc = metrics.roc_auc_score(y_true, y_prob, average='micro')
+
+    y_prob = y_prob.argmax(axis=1)
+    y_true = y_true.argmax(axis=1)
+    logger.info("""saida tru {} prob {}""".format(y_true.shape, y_prob.shape))
+    balanced_accuracy = float(metrics.balanced_accuracy_score(y_true, y_prob))
+
+    test_metrics = {"Accuracy": accuracy, "Balanced accuracy": balanced_accuracy, "Loss": loss, "Round (t)": t}
+    logging.info("""me teste: {}""".format(test_metrics))
+    return loss, test_metrics

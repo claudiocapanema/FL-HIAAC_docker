@@ -6,7 +6,7 @@ parser.add_argument(
     "--total_clients", type=int, default=2, help="Total clients to spawn (default: 2)"
 )
 parser.add_argument(
-    "--num_rounds", type=int, default=5, help="Number of FL rounds (default: 100)"
+    "--number_of_rounds", type=int, default=5, help="Number of FL rounds (default: 100)"
 )
 parser.add_argument(
     "--data_percentage",
@@ -21,16 +21,46 @@ parser.add_argument(
 parser.add_argument(
     "--strategy", type=str, default='FedAvg+FP', help="Strategy to use (default: FedAvg)"
 )
+parser.add_argument(
+    "--alpha", type=float, default=0.1, help="Dirichlet alpha"
+)
+parser.add_argument(
+    "--round_new_clients", type=float, default=0.1, help=""
+)
+parser.add_argument(
+    "--fraction_new_clients", type=float, default=0.1, help=""
+)
+parser.add_argument(
+    "--local_epochs", type=float, default=1, help=""
+)
+parser.add_argument(
+    "--dataset", type=str, default="CIFAR10"
+)
+parser.add_argument(
+    "--model", type=str, default="CNN"
+)
+parser.add_argument(
+    "--cd", type=str, default="false"
+)
+parser.add_argument(
+    "--fraction_fit", type=float, default=1
+)
+parser.add_argument(
+    "--client_id", type=int, default=1
+)
+parser.add_argument(
+    "--batch_size", type=int, default=32
+)
+parser.add_argument(
+    "--learning_rate", type=float, default=0.001
+)
 
 
 def create_docker_compose(args):
     # cpus is used to set the number of CPUs available to the container as a fraction of the total number of CPUs on the host machine.
     # mem_limit is used to set the memory limit for the container.
     client_configs = [
-        {"mem_limit": "3g", "batch_size": 32, "cpus": 4, "learning_rate": 0.001},
-        {"mem_limit": "6g", "batch_size": 256, "cpus": 1, "learning_rate": 0.05},
-        {"mem_limit": "4g", "batch_size": 64, "cpus": 3, "learning_rate": 0.02},
-        {"mem_limit": "5g", "batch_size": 128, "cpus": 2.5, "learning_rate": 0.09},
+        {"mem_limit": "3g", "batch_size": 32, "cpus": 4, "learning_rate": 0.001} for i in range(args.total_clients)
         # Add or modify the configurations depending on your host machine
     ]
 
@@ -39,6 +69,9 @@ def create_docker_compose(args):
                    "FedAvg+FP": {"client_file": """client_fedavg_fedpredict.py""".format(""), "server_file": """server_fedavg.py""".format(strategy_name)}}
     client_file = files_dict[strategy_name]["client_file"]
     server_file = files_dict[strategy_name]["server_file"]
+
+    general_config = f"--total_clients={args.total_clients} --number_of_rounds={args.number_of_rounds} --data_percentage={args.data_percentage} --strategy={strategy_name} --alpha={args.alpha} --round_new_clients={args.round_new_clients} --fraction_new_clients={args.fraction_new_clients} --model='{args.model}' --cd='{args.cd}' --fraction_fit={args.fraction_fit} --batch_size={args.batch_size} --learning_rate={args.learning_rate}"
+    print("config geral: ", general_config)
 
     docker_compose_content = f"""
 services:
@@ -98,7 +131,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: python {server_file} --number_of_rounds={args.num_rounds}
+    command: python {server_file} {general_config} 
     environment:
       FLASK_RUN_PORT: 6000
       DOCKER_HOST_IP: host.docker.internal
@@ -126,7 +159,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: python {client_file} --server_address=server:8080 --data_percentage={args.data_percentage}  --client_id={i} --total_clients={args.total_clients} --batch_size={config["batch_size"]} --learning_rate={config["learning_rate"]}
+    command: python {client_file} --server_address=server:8080 {general_config}
     deploy:
       resources:
         limits:
