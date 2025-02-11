@@ -113,23 +113,24 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
 if __name__ == "__main__":
     cd = "False"
-    num_clients = 20
-    alphas = [0.1, 1.0, 10.0]
-    dataset = ["EMNIST", "CIFAR10", "GTSRB"]
+    total_clients = 10
+    alphas = [0.1]
+    dataset = ["CIFAR10"]
     # dataset = ["EMNIST", "CIFAR10"]
     # models_names = ["cnn_c"]
-    models_names = ["cnn_a"]
-    join_ratio = 0.3
-    global_rounds = 100
+    model_name = "CNN"
+    fraction_fit = 0.3
+    number_of_rounds = 5
     local_epochs = 1
     fraction_new_clients = 0.3
     round_new_clients = 70
+    train_test = "test"
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedAvgGlobalModelEval",
     #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
-    solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedKD","MultiFedKDWithFedPredict", "MultiFedPer"]
+    solutions = ["FedAvg+FP"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}
@@ -137,21 +138,23 @@ if __name__ == "__main__":
     for solution in solutions:
         for alpha in alphas:
             for dt in dataset:
-                read_path = """../results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
+                algo = dt + "_" + solution
+
+                read_path = """../results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
                     cd,
                     fraction_new_clients,
                     round_new_clients,
-                    num_clients,
-                    [str(alpha)],
+                    total_clients,
                     alpha,
                     alpha,
-                    [str(dt)],
+                    dataset,
                     0,
                     0,
-                    models_names,
-                    join_ratio,
-                    global_rounds,
-                    local_epochs)
+                    model_name,
+                    fraction_fit,
+                    number_of_rounds,
+                    local_epochs,
+                    train_test)
                 read_dataset_order.append(dt)
 
                 read_solutions[solution].append("""{}{}_{}_test_0.csv""".format(read_path, dt, solution))
@@ -160,17 +163,20 @@ if __name__ == "__main__":
         cd,
         fraction_new_clients,
         round_new_clients,
-        num_clients,
+        total_clients,
         [str(alpha)],
         alpha,
         alpha,
         dataset,
         0,
         0,
-        models_names,
-        join_ratio,
-        global_rounds,
+        model_name,
+        fraction_fit,
+        number_of_rounds,
         local_epochs)
+
+    print(read_solutions)
+    exit()
 
     df, hue_order = read_data(read_solutions, read_dataset_order)
     line(df, write_path, x="Round (t)", y="Accuracy (%)", hue="Strategy", style="Version", hue_order=hue_order)
