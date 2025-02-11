@@ -112,7 +112,7 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
 
 if __name__ == "__main__":
-    cd = "False"
+    cd = "false"
     total_clients = 10
     alphas = [0.1]
     dataset = ["CIFAR10"]
@@ -176,9 +176,10 @@ if __name__ == "__main__":
         local_epochs)
 
     print(read_solutions)
-    exit()
 
     df, hue_order = read_data(read_solutions, read_dataset_order)
+    print(df)
+    exit()
     line(df, write_path, x="Round (t)", y="Accuracy (%)", hue="Strategy", style="Version", hue_order=hue_order)
     line(df, write_path, x="Round (t)", y="Accuracy (%)", hue="Strategy", style="Version", hue_order=hue_order)
     line(df, write_path, x="Round (t)", y="Balanced accuracy (%)", hue="Strategy", style="Version", hue_order=hue_order)
