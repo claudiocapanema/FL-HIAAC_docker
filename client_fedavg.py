@@ -100,9 +100,7 @@ class Client(fl.client.NumPyClient):
         )
         logger.info("""leu dados {}""".format(self.args.client_id))
 
-        self.contar = 0
-
-        self.local_epochs = 1
+        self.local_epochs = self.args.local_epochs
         self.lr = self.args.learning_rate
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.lt = 0

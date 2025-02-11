@@ -83,7 +83,7 @@ args = parser.parse_args()
 
 fds = None
 
-class Client(fl.client.NumPyClient):
+class ClientFedAvgFP(fl.client.NumPyClient):
     def __init__(self, args):
         self.args = args
         self.model = load_model(args.model, args.dataset)
@@ -156,7 +156,7 @@ class Client(fl.client.NumPyClient):
 # Function to Start the Client
 def start_fl_client():
     try:
-        client = Client(args).to_client()
+        client = ClientFedAvgFP(args).to_client()
         fl.client.start_client(server_address=args.server_address, client=client)
     except Exception as e:
         logger.error("Error starting FL client: %s", e)

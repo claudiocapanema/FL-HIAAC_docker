@@ -4,14 +4,13 @@ import logging
 import flwr as fl
 
 import csv
-from io import BytesIO
 import os
 
 import torch
 import numpy as np
-from prometheus_client import Gauge, start_http_server
+from prometheus_client import start_http_server
 from typing import List, Tuple
-from flwr.common import Context, Metrics, ndarrays_to_parameters
+from flwr.common import Metrics
 
 from typing import Callable, Optional, Union
 
@@ -19,13 +18,11 @@ from flwr.common import (
     EvaluateIns,
     EvaluateRes,
     FitIns,
-    FitRes,
     MetricsAggregationFn,
     NDArrays,
     Parameters,
     Scalar,
     ndarrays_to_parameters,
-    parameters_to_ndarrays,
 )
 from flwr.common.logger import log
 from flwr.server.client_manager import ClientManager
@@ -222,11 +219,16 @@ class FedAvg(flwr.server.strategy.FedAvg):
         sample_size, min_num_clients = self.num_fit_clients(
             client_manager.num_available()
         )
+
+        n_clients = int(self.total_clients * self.fraction_fit)
+
+        logging.info("""sample clientes {} {} disponiveis {} rodada {} n clients {}""".format(sample_size, min_num_clients, client_manager.num_available(), server_round, n_clients))
         clients = client_manager.sample(
-            num_clients=sample_size, min_num_clients=min_num_clients
+            num_clients=n_clients, min_num_clients=n_clients
         )
 
         self.n_trained_clients = len(clients)
+        self.selected_clients_ids = 0
         logging.info("""selecionados {} rodada {}""".format(self.n_trained_clients, server_round))
 
         # Return client/config pairs
@@ -305,7 +307,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
 
         metrics_aggregated["Fraction fit"] = self.fraction_fit
         metrics_aggregated["# training clients"] = self.n_trained_clients
-        metrics_aggregated["training clients and models"] = 0
+        metrics_aggregated["training clients and models"] = self.selected_clients_ids
         metrics_aggregated["Alpha"] = self.alpha
 
         for metric in metrics_aggregated:
@@ -458,7 +460,7 @@ if __name__ == "__main__":
         args=args,
         fraction_fit=args.fraction_fit,
         fraction_evaluate=1.0,
-        min_available_clients=2,
+        min_available_clients=args.total_clients,
         evaluate_metrics_aggregation_fn=weighted_average,
         initial_parameters=parameters,
     )

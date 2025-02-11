@@ -52,7 +52,7 @@ parser.add_argument(
     "--batch_size", type=int, default=32
 )
 parser.add_argument(
-    "--learning_rate", type=float, default=0.001
+    "--learning_rate", type=float, default=0.01
 )
 
 
@@ -60,7 +60,7 @@ def create_docker_compose(args):
     # cpus is used to set the number of CPUs available to the container as a fraction of the total number of CPUs on the host machine.
     # mem_limit is used to set the memory limit for the container.
     client_configs = [
-        {"mem_limit": "3g", "batch_size": 32, "cpus": 4, "learning_rate": 0.001} for i in range(args.total_clients)
+        {"mem_limit": "3g", "batch_size": 32, "cpus": 4, "learning_rate": 0.01} for i in range(args.total_clients)
         # Add or modify the configurations depending on your host machine
     ]
 
@@ -147,12 +147,24 @@ services:
       - prometheus
       - grafana
 """
+    # client{i}:
+    #     container_name: client{i}
+    #     build:
+    #       context: .
+    #       dockerfile: Dockerfile
+    #     command: python {client_file} --server_address=server:8080 --client_id={i} {general_config}
+    #     deploy:
+    #       resources:
+    #         limits:
+    #           cpus: "{(config['cpus'])}"
+    #           memory: "{config['mem_limit']}"
     # Add client services
     for i in range(1, args.total_clients + 1):
-        if args.random:
-            config = random.choice(client_configs)
-        else:
-            config = client_configs[(i - 1) % len(client_configs)]
+        # if args.random:
+        #     config = random.choice(client_configs)
+        # else:
+        #     config = client_configs[(i - 1) % len(client_configs)]
+        config = ""
         docker_compose_content += f"""
   client{i}:
     container_name: client{i}
@@ -160,11 +172,6 @@ services:
       context: .
       dockerfile: Dockerfile
     command: python {client_file} --server_address=server:8080 --client_id={i} {general_config}
-    deploy:
-      resources:
-        limits:
-          cpus: "{(config['cpus'])}"
-          memory: "{config['mem_limit']}"
     volumes:
       - .:/app
       - /var/run/docker.sock:/var/run/docker.sock
@@ -181,8 +188,25 @@ services:
 
     docker_compose_content += "volumes:\n  grafana-storage:\n"
 
-    with open("docker-compose.yml", "w") as file:
+    filename = f"docker-compose_{strategy_name}_clients_{args.total_clients}_fraction_fit_{args.fraction_fit}_number_of_rounds_{args.number_of_rounds}_dataset_{args.dataset}_model_{args.model}.yml"
+    with open(filename, "w") as file:
         file.write(docker_compose_content)
+
+    import subprocess
+
+    # Caminho para o seu script bash
+    script_up = f"sudo docker compose -f {filename} up --build"
+
+    script_down = f"sudo docker compose -f {filename} down"
+
+    try:
+        # Chamar o script bash usando subprocess
+        subprocess.Popen(script_up, shell=True).wait()
+        subprocess.Popen(script_down, shell=True).wait()
+    except:
+        subprocess.Popen(script_down, shell=True).wait()
+
+
 
 
 if __name__ == "__main__":

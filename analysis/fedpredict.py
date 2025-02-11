@@ -9,22 +9,8 @@ def read_data(read_solutions, read_dataset_order):
 
     df_concat = None
     solution_strategy_version = {
-        "MultiFedAvgWithFedPredict": {"Strategy": "MultiFedAvg", "Version": "FP", "Table": "FedAvg+FP"},
-        "MultiFedAvg": {"Strategy": "MultiFedAvg", "Version": "Original", "Table": "FedAvg"},
-        "MultiFedAvgGlobalModelEval": {"Strategy": "MultiFedAvgGlobalModelEval", "Version": "Original",
-                                       "Table": "FedAvgGlobalModelEval"},
-        "MultiFedAvgGlobalModelEvalWithFedPredict": {"Strategy": "MultiFedAvgGlobalModelEval", "Version": "FP",
-                                                     "Table": "MultiFedAvgGlobalModelEvalWithFedPredict"},
-        "MultiFedPer": {"Strategy": "MultiFedPer", "Version": "Original", "Table": "FedPer"},
-        "MultiFedYogi": {"Strategy": "MultiFedYogi", "Version": "Original", "Table": "FedYogi"},
-        "MultiFedYogiWithFedPredict": {"Strategy": "MultiFedYogi", "Version": "FP", "Table": "FedYogi+FP"},
-        "MultiFedYogiGlobalModelEval": {"Strategy": "MultiFedYogiGlobalModelEval", "Version": "Original",
-                                        "Table": "FedYogiGlobalModelEval"},
-        "MultiFedYogiGlobalModelEvalWithFedPredict": {"Strategy": "MultiFedYogiGlobalModelEval", "Version": "FP",
-                                                      "Table": "FedYogiGlobalModelEvalWithFedPredict"},
-        "MultiFedKD": {"Strategy": "MultiFedKD", "Version": "Original", "Table": "FedKD"},
-        "MultiFedKDWithFedPredict": {"Strategy": "MultiFedKD", "Version": "FP", "Table": "FedKD+FP"},
-        "FedProto": {"Strategy": "FedProto", "Version": "Original", "Table": "FedProto"}}
+        "FedAvg+FP": {"Strategy": "FedAvg", "Version": "FP", "Table": "FedAvg+FP"},
+        "FedAvg": {"Strategy": "FedAvg", "Version": "Original", "Table": "FedAvg"}}
     hue_order = []
     for solution in read_solutions:
 
@@ -37,7 +23,6 @@ def read_data(read_solutions, read_dataset_order):
                 df["Solution"] = np.array([solution] * len(df))
                 df["Accuracy (%)"] = df["Accuracy"] * 100
                 df["Balanced accuracy (%)"] = df["Balanced accuracy"] * 100
-                df["Round (t)"] = df["Round"]
                 df["Dataset"] = np.array([dataset] * len(df))
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))
                 df["Version"] = np.array([solution_strategy_version[solution]["Version"]] * len(df))
@@ -50,8 +35,9 @@ def read_data(read_solutions, read_dataset_order):
                 strategy = solution_strategy_version[solution]["Strategy"]
                 if strategy not in hue_order:
                     hue_order.append(strategy)
-            except:
+            except Exception as e:
                 print("\n######### \nFaltando", paths[i])
+                print(e)
 
     return df_concat, hue_order
 
@@ -59,8 +45,10 @@ def read_data(read_solutions, read_dataset_order):
 def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
     datasets = df["Dataset"].unique().tolist()
+    datasets = ["CIFAR10", "CIFAR10"]
     # datasets = ["ImageNet", "ImageNet"]
     alphas = df["Alpha"].unique().tolist()
+    alphas = [0.1, 0.1]
     df["Strategy"] = np.array([i.replace("Multi", "") for i in df["Strategy"].tolist()])
 
     fig, axs = plt.subplots(len(alphas), len(datasets), sharex='all', figsize=(12, 9))
@@ -113,16 +101,16 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
 if __name__ == "__main__":
     cd = "false"
-    total_clients = 10
+    total_clients = 20
     alphas = [0.1]
     dataset = ["CIFAR10"]
     # dataset = ["EMNIST", "CIFAR10"]
     # models_names = ["cnn_c"]
     model_name = "CNN"
     fraction_fit = 0.3
-    number_of_rounds = 5
+    number_of_rounds = 100
     local_epochs = 1
-    fraction_new_clients = 0.3
+    fraction_new_clients = alphas[0]
     round_new_clients = 70
     train_test = "test"
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg",
@@ -130,7 +118,7 @@ if __name__ == "__main__":
     #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
-    solutions = ["FedAvg+FP"]
+    solutions = ["FedAvg+FP", "FedAvg"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}
@@ -143,11 +131,11 @@ if __name__ == "__main__":
                 read_path = """../results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
                     cd,
                     fraction_new_clients,
-                    round_new_clients,
+                    alpha,
                     total_clients,
                     alpha,
                     alpha,
-                    dataset,
+                    dt,
                     0,
                     0,
                     model_name,
@@ -157,7 +145,7 @@ if __name__ == "__main__":
                     train_test)
                 read_dataset_order.append(dt)
 
-                read_solutions[solution].append("""{}{}_{}_test_0.csv""".format(read_path, dt, solution))
+                read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution))
 
     write_path = """plots/single_model/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
         cd,
@@ -179,7 +167,7 @@ if __name__ == "__main__":
 
     df, hue_order = read_data(read_solutions, read_dataset_order)
     print(df)
-    exit()
+
     line(df, write_path, x="Round (t)", y="Accuracy (%)", hue="Strategy", style="Version", hue_order=hue_order)
     line(df, write_path, x="Round (t)", y="Accuracy (%)", hue="Strategy", style="Version", hue_order=hue_order)
     line(df, write_path, x="Round (t)", y="Balanced accuracy (%)", hue="Strategy", style="Version", hue_order=hue_order)
