@@ -66,7 +66,10 @@ def create_docker_compose(args):
 
     strategy_name = args.strategy
     files_dict = {"FedAvg": {"client_file": """client_fedavg.py""".format(""), "server_file": """server_fedavg.py""".format(strategy_name)},
-                   "FedAvg+FP": {"client_file": """client_fedavg_fedpredict.py""".format(""), "server_file": """server_fedavg.py""".format(strategy_name)}}
+                  "FedYogi": {"client_file": """client_fedavg.py""".format(""),
+                             "server_file": """server_fedyogi.py""".format(strategy_name)},
+                   "FedAvg+FP": {"client_file": """client_fedavg_fedpredict.py""".format(""), "server_file": """server_fedavg.py""".format(strategy_name)},
+                  "FedYogi+FP": {"client_file": """client_fedavg_fedpredict.py""".format(""), "server_file": """server_fedyogi.py""".format(strategy_name)}}
     client_file = files_dict[strategy_name]["client_file"]
     server_file = files_dict[strategy_name]["server_file"]
 
