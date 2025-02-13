@@ -60,7 +60,7 @@ def create_docker_compose(args):
     # cpus is used to set the number of CPUs available to the container as a fraction of the total number of CPUs on the host machine.
     # mem_limit is used to set the memory limit for the container.
     client_configs = [
-        {"mem_limit": "1.1g", "cpus": 1} for i in range(args.total_clients)
+        {"mem_limit": "0.7g", "cpus": 1} for i in range(args.total_clients)
         # Add or modify the configurations depending on your host machine
     ]
 
@@ -69,7 +69,8 @@ def create_docker_compose(args):
                   "FedYogi": {"client_file": """client_fedavg.py""".format(""),
                              "server_file": """server_fedyogi.py""".format(strategy_name)},
                    "FedAvg+FP": {"client_file": """client_fedavg_fedpredict.py""".format(""), "server_file": """server_fedavg.py""".format(strategy_name)},
-                  "FedYogi+FP": {"client_file": """client_fedavg_fedpredict.py""".format(""), "server_file": """server_fedyogi.py""".format(strategy_name)}}
+                  "FedYogi+FP": {"client_file": """client_fedavg_fedpredict.py""".format(""), "server_file": """server_fedyogi.py""".format(strategy_name)},
+                  "FedPer": {"client_file": """client_fedper.py""".format(""), "server_file": """server_fedper.py""".format(strategy_name)}}
     client_file = files_dict[strategy_name]["client_file"]
     server_file = files_dict[strategy_name]["server_file"]
 
@@ -191,8 +192,8 @@ services:
     deploy:
           resources:
             limits:
-              cpus: "{(client_configs['cpus'])}"
-              memory: "{client_configs['mem_limit']}"
+              cpus: "{client_configs[0]['cpus']}"
+              memory: "{client_configs[0]['mem_limit']}"
     volumes:
       - .:/app
       - /var/run/docker.sock:/var/run/docker.sock
