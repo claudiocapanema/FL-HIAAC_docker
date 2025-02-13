@@ -109,12 +109,12 @@ if __name__ == "__main__":
     dataset = ["CIFAR10"]
     # dataset = ["EMNIST", "CIFAR10"]
     # models_names = ["cnn_c"]
-    model_name = "CNN"
+    model_name = "CNN_3"
     fraction_fit = 0.3
     number_of_rounds = 100
     local_epochs = 1
     fraction_new_clients = alphas[0]
-    round_new_clients = 70
+    round_new_clients = 0
     train_test = "test"
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedAvgGlobalModelEval",

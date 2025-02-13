@@ -345,8 +345,8 @@ def train(net, trainloader, valloader, epochs, learning_rate, device, client_id,
             # logging.info("""dentro {} labels {}""".format(images, labels))
             images = batch[key]
             labels = batch["label"]
-            images.to(device)
-            labels.to(device)
+            images = images.to(device)
+            labels = labels.to(device)
 
             optimizer.zero_grad()
             outputs = net(images)
@@ -395,8 +395,8 @@ def test(net, testloader, device, client_id, t, dataset_name):
         for batch in testloader:
             images = batch[key]
             labels = batch["label"]
-            images.to(device)
-            labels.to(device)
+            images = images.to(device)
+            labels = labels.to(device)
             y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(10)))
             outputs = net(images)
             y_prob.append(outputs.detach().cpu().numpy())
