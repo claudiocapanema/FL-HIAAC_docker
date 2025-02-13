@@ -145,7 +145,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: source app/venv/bin/activate && python3 {server_file} {general_config} 
+    command: python3 {server_file} {general_config}
     environment:
       FLASK_RUN_PORT: 6000
       DOCKER_HOST_IP: host.docker.internal
@@ -187,7 +187,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: source /app/venv/bin/activate && python3 {client_file} --server_address=server:8080 --client_id={i} {general_config}
+    command: python3 {client_file} --server_address=server:8080 --client_id={i} {general_config}
     volumes:
       - .:/app
       - /var/run/docker.sock:/var/run/docker.sock
