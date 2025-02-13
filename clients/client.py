@@ -6,7 +6,7 @@ import flwr as fl
 import tensorflow as tf
 from helpers.load_data import load_data
 
-from model.model import CNN, get_weights, load_data, set_weights, test, train
+from model.model import CNN_3, get_weights, load_data, set_weights, test, train
 import torch
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
@@ -43,7 +43,7 @@ args = parser.parse_args()
 class Client(fl.client.NumPyClient):
     def __init__(self, args):
         self.args = args
-        self.net = CNN()
+        self.net = CNN_3()
         logger.info("Preparing data...")
         logger.info("""args do cliente: {}""".format(self.args.client_id))
         # (x_train, y_train), (x_test, y_test) = load_data(

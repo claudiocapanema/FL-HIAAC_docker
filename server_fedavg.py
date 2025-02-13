@@ -49,7 +49,7 @@ parser.add_argument(
 parser.add_argument(
     "--data_percentage",
     type=float,
-    default=0.6,
+    default=0.8,
     help="Portion of client data to use (default: 0.6)",
 )
 parser.add_argument(

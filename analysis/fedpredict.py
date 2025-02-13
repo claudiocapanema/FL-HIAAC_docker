@@ -10,7 +10,10 @@ def read_data(read_solutions, read_dataset_order):
     df_concat = None
     solution_strategy_version = {
         "FedAvg+FP": {"Strategy": "FedAvg", "Version": "FP", "Table": "FedAvg+FP"},
-        "FedAvg": {"Strategy": "FedAvg", "Version": "Original", "Table": "FedAvg"}}
+        "FedAvg": {"Strategy": "FedAvg", "Version": "Original", "Table": "FedAvg"},
+        "FedYogi+FP": {"Strategy": "FedYogi", "Version": "FP", "Table": "FedYogi+FP"},
+        "FedYogi": {"Strategy": "FedYogi", "Version": "Original", "Table": "FedYogi"}
+    }
     hue_order = []
     for solution in read_solutions:
 
@@ -48,7 +51,7 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
     datasets = ["CIFAR10", "CIFAR10"]
     # datasets = ["ImageNet", "ImageNet"]
     alphas = df["Alpha"].unique().tolist()
-    alphas = [0.1, 0.1]
+    alphas = [0.1, 1.0]
     df["Strategy"] = np.array([i.replace("Multi", "") for i in df["Strategy"].tolist()])
 
     fig, axs = plt.subplots(len(alphas), len(datasets), sharex='all', figsize=(12, 9))
@@ -102,7 +105,7 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 if __name__ == "__main__":
     cd = "false"
     total_clients = 20
-    alphas = [0.1]
+    alphas = [0.1, 1.0]
     dataset = ["CIFAR10"]
     # dataset = ["EMNIST", "CIFAR10"]
     # models_names = ["cnn_c"]
@@ -118,7 +121,7 @@ if __name__ == "__main__":
     #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
-    solutions = ["FedAvg+FP", "FedAvg"]
+    solutions = ["FedAvg+FP", "FedYogi+FP", "FedAvg", "FedYogi"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}
@@ -130,8 +133,8 @@ if __name__ == "__main__":
 
                 read_path = """../results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
                     cd,
-                    fraction_new_clients,
-                    alpha,
+                    0.1,
+                    0.1,
                     total_clients,
                     alpha,
                     alpha,
@@ -152,9 +155,9 @@ if __name__ == "__main__":
         fraction_new_clients,
         round_new_clients,
         total_clients,
-        [str(alpha)],
-        alpha,
-        alpha,
+        [str(alphas)],
+        alphas,
+        alphas,
         dataset,
         0,
         0,

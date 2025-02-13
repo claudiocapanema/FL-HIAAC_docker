@@ -11,7 +11,7 @@ parser.add_argument(
 parser.add_argument(
     "--data_percentage",
     type=float,
-    default=0.6,
+    default=0.8,
     help="Portion of client data to use (default: 0.6)",
 )
 parser.add_argument(
@@ -76,6 +76,16 @@ def create_docker_compose(args):
     general_config = f"--total_clients={args.total_clients} --number_of_rounds={args.number_of_rounds} --data_percentage={args.data_percentage} --strategy={strategy_name} --alpha={args.alpha} --round_new_clients={args.round_new_clients} --fraction_new_clients={args.fraction_new_clients} --model='{args.model}' --cd='{args.cd}' --fraction_fit={args.fraction_fit} --batch_size={args.batch_size} --learning_rate={args.learning_rate} --dataset='{args.dataset}'"
     print("config geral: ", general_config)
 
+    # use_cuda:
+    #     image: nvidia/cuda:12.4.0-base-ubuntu22.04
+    #     command: nvidia-smi
+    #     deploy:
+    #       resources:
+    #         reservations:
+    #           devices:
+    #             - driver: nvidia
+    #               count: 1
+    #               capabilities: [gpu]
     docker_compose_content = f"""
 services:
   prometheus:
@@ -134,10 +144,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: python {server_file} {general_config} 
+    runtime: nvidia
+    command: source app/venv/bin/activate && python3 {server_file} {general_config} 
     environment:
       FLASK_RUN_PORT: 6000
       DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
     volumes:
       - .:/app
       - /var/run/docker.sock:/var/run/docker.sock
@@ -174,7 +186,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: python {client_file} --server_address=server:8080 --client_id={i} {general_config}
+    runtime: nvidia
+    command: source /app/venv/bin/activate && python3 {client_file} --server_address=server:8080 --client_id={i} {general_config}
     volumes:
       - .:/app
       - /var/run/docker.sock:/var/run/docker.sock
@@ -186,6 +199,7 @@ services:
       FLASK_RUN_PORT: {6000 + i}
       container_name: client{i}
       DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
     stop_signal: SIGINT
 """
 

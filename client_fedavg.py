@@ -33,7 +33,7 @@ parser.add_argument(
 parser.add_argument(
     "--data_percentage",
     type=float,
-    default=0.6,
+    default=0.8,
     help="Portion of client data to use (default: 0.6)",
 )
 parser.add_argument(
@@ -109,7 +109,7 @@ class Client(fl.client.NumPyClient):
     def fit(self, parameters, config):
         """Train the model with data of this client."""
 
-        logger.info("""fit cliente inicio config {}""".format(config))
+        logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
         t = config['t']
         self.lt = t - self.lt
         set_weights(self.model, parameters)

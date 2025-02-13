@@ -8,7 +8,7 @@ from flwr_datasets import FederatedDataset
 from flwr_datasets.partitioner import IidPartitioner, DirichletPartitioner
 from tensorflow.python.ops.metrics_impl import accuracy
 from torch.utils.data import DataLoader
-from torchvision.transforms import Compose, Normalize, ToTensor, RandomRotation
+from torchvision.transforms import Compose, Resize, RandomHorizontalFlip, RandomAffine, ColorJitter,  Normalize, ToTensor, RandomRotation
 from sklearn import metrics
 from sklearn.preprocessing import label_binarize
 import numpy as np
@@ -87,19 +87,173 @@ class CNN(nn.Module):
             print("CNN forward")
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
+class CNN_3(nn.Module):
+    def __init__(self, input_shape=1, mid_dim=256, num_classes=10):
+        try:
+            super(CNN_3, self).__init__()
+    #         self.conv1 = nn.Sequential(
+    #             nn.Conv2d(input_shape,
+    #                       32,
+    #                       kernel_size=5,
+    #                       padding=0,
+    #                       stride=1,
+    #                       bias=True),
+    #             nn.ReLU(inplace=True),
+    #             nn.MaxPool2d(kernel_size=(2, 2))
+    #         )
+    #         self.conv2 = nn.Sequential(
+    #             nn.Conv2d(32,
+    #                       64,
+    #                       kernel_size=5,
+    #                       padding=0,
+    #                       stride=1,
+    #                       bias=True),
+    #             nn.ReLU(inplace=True),
+    #             nn.MaxPool2d(kernel_size=(2, 2))
+    #         )
+    #         self.fc1 = nn.Sequential(
+    #             nn.Linear(mid_dim*4, 512),
+    #             nn.ReLU(inplace=True)
+    #         )
+    #         self.fc = nn.Linear(512, num_classes)
+    #     except Exception as e:
+    #         print("CNN")
+    #         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+    #
+    # def forward(self, x):
+    #     try:
+    #         out = self.conv1(x)
+    #         out = self.conv2(out)
+    #         out = torch.flatten(out, 1)
+    #         out = self.fc1(out)
+    #         out = self.fc(out)
+    #         return out
+    #     except Exception as e:
+    #         print("CNN forward")
+    #         print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+            self.model = torch.nn.Sequential(
+
+                # queda para asl
+                # nn.Conv2d(input_shape, 32, kernel_size=3, padding=1),
+                # nn.ReLU(),
+                # nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+                # nn.ReLU(),
+                # nn.MaxPool2d(2, 2),  # output: 64 x 16 x 16
+                #
+                # nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+                # nn.ReLU(),
+                # nn.MaxPool2d(2, 2),  # output: 128 x 8 x 8
+                # nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+                # nn.ReLU(),
+                # nn.MaxPool2d(2, 2),  # output: 128 x 8 x 8
+                #
+                # nn.Flatten(),
+                # nn.Linear(mid_dim,512),
+                # nn.ReLU(),
+                # nn.Linear(512, num_classes))
+
+                # nn.Linear(28*28, 392),
+                # nn.ReLU(),
+                # nn.Dropout(0.5),
+                # nn.Linear(392, 196),
+                # nn.ReLU(),
+                # nn.Linear(196, 98),
+                # nn.ReLU(),
+                # nn.Dropout(0.3),
+                # nn.Linear(98, num_classes)
+
+                torch.nn.Conv2d(in_channels=input_shape, out_channels=32, kernel_size=3, padding=1),
+                torch.nn.ReLU(),
+                # Input = 32 x 32 x 32, Output = 32 x 16 x 16
+                torch.nn.MaxPool2d(kernel_size=2),
+
+                # Input = 32 x 16 x 16, Output = 64 x 16 x 16
+                torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
+                torch.nn.ReLU(),
+                # Input = 64 x 16 x 16, Output = 64 x 8 x 8
+                torch.nn.MaxPool2d(kernel_size=2),
+
+                # Input = 64 x 8 x 8, Output = 64 x 8 x 8
+                torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
+                torch.nn.ReLU(),
+                # Input = 64 x 8 x 8, Output = 64 x 4 x 4
+                torch.nn.MaxPool2d(kernel_size=2),
+                torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
+                torch.nn.ReLU(),
+                # Input = 64 x 8 x 8, Output = 64 x 4 x 4
+                torch.nn.MaxPool2d(kernel_size=2),
+
+                torch.nn.Flatten(),
+                torch.nn.Linear(mid_dim * 4 * 4, 512),
+                torch.nn.ReLU(),
+                torch.nn.Linear(512, num_classes)
+            )
+
+        except Exception as e:
+
+            print("CNN_3 init")
+            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+    def forward(self, x):
+        try:
+            return self.model(x)
+        except Exception as e:
+            print("CNN_3 forward")
+            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+
+
 def load_model(model_name, dataset):
     if model_name == 'CNN':
         if dataset in ['MNIST']:
             input_shape = 1
             mid_dim = 256
+            # mid_dim = 4
             num_classes = 10
             logging.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
+        elif dataset in ['EMNIST']:
+            input_shape = 1
+            mid_dim = 256
+            # mid_dim = 4
+            num_classes = 47
+            logging.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
+        elif dataset in ['GTSRB']:
+            input_shape = 1
+            mid_dim = 36
+            # mid_dim = 16
+            num_classes = 43
+            logging.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
         else:
             input_shape = 3
             mid_dim = 400
+            # mid_dim = 16
+            num_classes = 10
+    elif model_name == 'CNN_3':
+        if dataset in ['MNIST']:
+            input_shape = 1
+            # mid_dim = 256
+            mid_dim = 4
+            num_classes = 10
+            logging.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
+        elif dataset in ['EMNIST']:
+            input_shape = 1
+            # mid_dim = 256
+            mid_dim = 4
+            num_classes = 47
+            logging.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
+        elif dataset in ['GTSRB']:
+            input_shape = 1
+            # mid_dim = 36
+            mid_dim = 16
+            num_classes = 43
+            logging.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
+        else:
+            input_shape = 3
+            # mid_dim = 400
+            mid_dim = 16
             num_classes = 10
         logging.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
-        return CNN(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
+        return CNN_3(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
 
 
 fds = None
@@ -128,7 +282,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
 
                                            self_balancing=True)
         fds = FederatedDataset(
-            dataset={"CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist"}[dataset_name],
+            dataset={"EMNIST": "Royc30ne/emnist-balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist", "GTSRB": "bazyl/GTSRB"}[dataset_name],
             partitioners={"train": partitioner},
         )
     partition = fds.load_partition(partition_id)
@@ -139,11 +293,27 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
     pytorch_transforms = {"CIFAR10": Compose(
         [ToTensor(), Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
         "MNIST": Compose([ToTensor(), RandomRotation(10),
-                                           Normalize([0.5], [0.5])])}[dataset_name]
+                                           Normalize([0.5], [0.5])]),
+        "EMNIST": Compose([ToTensor(), RandomRotation(10),
+                          Normalize([0.5], [0.5])]),
+        "GTSRB": Compose(
+                    [
+
+                        Resize((32, 32)),
+                        RandomHorizontalFlip(),  # FLips the image w.r.t horizontal axis
+                        RandomRotation(10),  # Rotates the image to a specified angel
+                        RandomAffine(0, shear=10, scale=(0.8, 1.2)),
+                        # Performs actions like zooms, change shear angles.
+                        ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+                        ToTensor(),
+                        Normalize((0.3337, 0.3064, 0.3171), (0.2672, 0.2564, 0.2629))
+                    ]
+                )
+    }[dataset_name]
 
     # import torchvision.datasets as datasets
     # datasets.EMNIST
-    key = {"CIFAR10": "img", "MNIST": "image"}[dataset_name]
+    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "img"}[dataset_name]
 
     def apply_transforms(batch):
         """Apply transforms to the partition from FederatedDataset."""
@@ -165,7 +335,7 @@ def train(net, trainloader, valloader, epochs, learning_rate, device, client_id,
     criterion = torch.nn.CrossEntropyLoss().to(device)
     optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate, momentum=0.9)
     net.train()
-    key = {"CIFAR10": "img", "MNIST": "image"}[dataset_name]
+    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "img"}[dataset_name]
     for _ in range(epochs):
         loss_total = 0
         correct = 0
@@ -220,7 +390,7 @@ def test(net, testloader, device, client_id, t, dataset_name):
     correct, loss = 0, 0.0
     y_prob = []
     y_true = []
-    key = {"CIFAR10": "img", "MNIST": "image"}[dataset_name]
+    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "img"}[dataset_name]
     with torch.no_grad():
         for batch in testloader:
             images = batch[key]

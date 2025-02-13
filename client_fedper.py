@@ -4,8 +4,9 @@ import os
 
 import flwr as fl
 import tensorflow as tf
+from collections import OrderedDict
 
-from model.model import load_model, get_weights, load_data, set_weights, test, train
+from model.model import test, train
 import torch
 import copy
 
@@ -16,7 +17,7 @@ from flwr_datasets import FederatedDataset
 from flwr_datasets.partitioner import IidPartitioner, DirichletPartitioner
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, Normalize, ToTensor
-from fedpredict import fedpredict_client_torch
+from client_fedavg import Client
 
 # Make TensorFlow log less verbose
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -83,38 +84,26 @@ args = parser.parse_args()
 
 fds = None
 
-class ClientFedAvgFP(fl.client.NumPyClient):
+def get_weights(net):
+    return [val.cpu().numpy() for _, val in net.state_dict().items()][:-2]
+
+
+def set_weights(net, parameters):
+    head = [val.cpu().numpy() for _, val in net.state_dict().items()][-2:]
+    parameters += head
+    params_dict = zip(net.state_dict().keys(), parameters)
+    state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
+    net.load_state_dict(state_dict, strict=True)
+
+class ClientFedPer(Client):
     def __init__(self, args):
-        self.args = args
-        self.model = load_model(args.model, args.dataset)
-        self.global_model = load_model(args.model, args.dataset)
-        logger.info("Preparing data...")
-        logger.info("""args do cliente: {}""".format(self.args.client_id))
-        self.client_id = args.client_id
-        self.trainloader, self.valloader = load_data(
-            dataset_name=self.args.dataset,
-            alpha=self.args.alpha,
-            data_sampling_percentage=self.args.data_percentage,
-            partition_id=self.args.client_id,
-            num_partitions=self.args.total_clients + 1,
-            batch_size=self.args.batch_size,
-        )
-        logger.info("""leu dados {}""".format(self.args.client_id))
-
-        self.contar = 0
-
-        self.local_epochs = 1
-        self.lr = self.args.learning_rate
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.lt = 0
-        self.models_size = self._get_models_size()
+        super().__init__(args)
 
     def fit(self, parameters, config):
         """Train the model with data of this client."""
 
-        logger.info("""fit cliente inicio fp config {}""".format(config))
+        logger.info("""fit cliente inicio fedper config {}""".format(config))
         t = config['t']
-        self.lt = t - self.lt
         set_weights(self.model, parameters)
         results = train(
             self.model,
@@ -127,18 +116,15 @@ class ClientFedAvgFP(fl.client.NumPyClient):
             t,
             self.args.dataset
         )
-        logger.info("fit cliente fim fp")
+        logger.info("fit cliente fim fedper")
         return get_weights(self.model), len(self.trainloader.dataset), results
 
     def evaluate(self, parameters, config):
         """Evaluate the model on the data this client has."""
         logger.info("""eval cliente inicio fp""".format(config))
         t = config["t"]
-        nt = t - self.lt
-        set_weights(self.global_model, parameters)
-        combined_model = fedpredict_client_torch(local_model=self.model, global_model=self.global_model,
-                                  t=t, T=100, nt=nt, device=self.device, fc=1, il=1)
-        loss, metrics = test(combined_model, self.valloader, self.device, self.client_id, t, self.args.dataset)
+        set_weights(self.model, parameters)
+        loss, metrics = test(self.model, self.valloader, self.device, self.client_id, t, self.args.dataset)
         metrics["Model size"] = self.models_size
         logger.info("eval cliente fim fp")
         return loss, len(self.valloader.dataset), metrics
@@ -146,7 +132,7 @@ class ClientFedAvgFP(fl.client.NumPyClient):
     def _get_models_size(self):
         parameters = [i.detach().cpu().numpy() for i in self.model.parameters()]
         size = 0
-        for i in range(len(parameters)):
+        for i in range(len(parameters)-2):
             size += parameters[i].nbytes
         return int(size)
 
@@ -156,7 +142,7 @@ class ClientFedAvgFP(fl.client.NumPyClient):
 # Function to Start the Client
 def start_fl_client():
     try:
-        client = ClientFedAvgFP(args).to_client()
+        client = ClientFedPer(args).to_client()
         fl.client.start_client(server_address=args.server_address, client=client)
     except Exception as e:
         logger.error("Error starting FL client: %s", e)
