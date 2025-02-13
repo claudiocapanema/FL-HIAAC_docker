@@ -114,7 +114,7 @@ class ClientFedAvgFP(fl.client.NumPyClient):
 
         logger.info("""fit cliente inicio fp config {}""".format(config))
         t = config['t']
-        self.lt = t - self.lt
+        self.lt = t
         set_weights(self.model, parameters)
         results = train(
             self.model,

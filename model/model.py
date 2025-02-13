@@ -366,9 +366,9 @@ def train(net, trainloader, valloader, epochs, learning_rate, device, client_id,
     balanced_accuracy = float(metrics.balanced_accuracy_score(y_true, y_prob))
 
     train_metrics = {"Train accuracy": accuracy, "Train balanced accuracy": balanced_accuracy, "Train loss": loss, "Train round (t)": t}
+    logging.info(train_metrics)
 
     val_loss, test_metrics = test(net, valloader, device, client_id, t, dataset_name)
-
     results = {
         "val_loss": val_loss,
         "val_accuracy": test_metrics["Accuracy"],
@@ -386,7 +386,7 @@ def test(net, testloader, device, client_id, t, dataset_name):
     g.manual_seed(t)
     torch.manual_seed(t)
     net.to(device)  # move model to GPU if available
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = torch.nn.CrossEntropyLoss().to(device)
     correct, loss = 0, 0.0
     y_prob = []
     y_true = []

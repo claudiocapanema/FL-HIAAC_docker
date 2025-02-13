@@ -60,7 +60,7 @@ def create_docker_compose(args):
     # cpus is used to set the number of CPUs available to the container as a fraction of the total number of CPUs on the host machine.
     # mem_limit is used to set the memory limit for the container.
     client_configs = [
-        {"mem_limit": "3g", "batch_size": 32, "cpus": 4, "learning_rate": 0.01} for i in range(args.total_clients)
+        {"mem_limit": "1.1g", "cpus": 1} for i in range(args.total_clients)
         # Add or modify the configurations depending on your host machine
     ]
 
@@ -188,6 +188,11 @@ services:
       dockerfile: Dockerfile
     runtime: nvidia
     command: python3 {client_file} --server_address=server:8080 --client_id={i} {general_config}
+    deploy:
+          resources:
+            limits:
+              cpus: "{(client_configs['cpus'])}"
+              memory: "{client_configs['mem_limit']}"
     volumes:
       - .:/app
       - /var/run/docker.sock:/var/run/docker.sock
