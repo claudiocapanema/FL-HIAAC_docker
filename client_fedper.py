@@ -99,36 +99,6 @@ class ClientFedPer(Client):
     def __init__(self, args):
         super().__init__(args)
 
-    def fit(self, parameters, config):
-        """Train the model with data of this client."""
-
-        logger.info("""fit cliente inicio fedper config {}""".format(config))
-        t = config['t']
-        set_weights(self.model, parameters)
-        results = train(
-            self.model,
-            self.trainloader,
-            self.valloader,
-            self.local_epochs,
-            self.lr,
-            self.device,
-            self.client_id,
-            t,
-            self.args.dataset
-        )
-        logger.info("fit cliente fim fedper")
-        return get_weights(self.model), len(self.trainloader.dataset), results
-
-    def evaluate(self, parameters, config):
-        """Evaluate the model on the data this client has."""
-        logger.info("""eval cliente inicio fp""".format(config))
-        t = config["t"]
-        set_weights(self.model, parameters)
-        loss, metrics = test(self.model, self.valloader, self.device, self.client_id, t, self.args.dataset)
-        metrics["Model size"] = self.models_size
-        logger.info("eval cliente fim fp")
-        return loss, len(self.valloader.dataset), metrics
-
     def _get_models_size(self):
         parameters = [i.detach().cpu().numpy() for i in self.model.parameters()]
         size = 0

@@ -282,7 +282,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
 
                                            self_balancing=True)
         fds = FederatedDataset(
-            dataset={"EMNIST": "claudiogsc/emnist", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist", "GTSRB": "bazyl/GTSRB"}[dataset_name],
+            dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist", "GTSRB": "bazyl/GTSRB"}[dataset_name],
             partitioners={"train": partitioner},
         )
     partition = fds.load_partition(partition_id)
@@ -329,7 +329,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
     testloader = DataLoader(partition_train_test["test"], batch_size=batch_size)
     return trainloader, testloader
 
-def train(net, trainloader, valloader, epochs, learning_rate, device, client_id, t, dataset_name):
+def train(net, trainloader, valloader, epochs, learning_rate, device, client_id, t, dataset_name, n_classes):
     """Train the model on the training set."""
     net.to(device)  # move model to GPU if available
     criterion = torch.nn.CrossEntropyLoss().to(device)
@@ -353,7 +353,7 @@ def train(net, trainloader, valloader, epochs, learning_rate, device, client_id,
             loss = criterion(outputs, labels)
             loss.backward()
             loss_total += loss.item() * labels.shape[0]
-            y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(10)))
+            y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
             y_prob.append(outputs.detach().cpu().numpy())
             correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
             optimizer.step()
@@ -368,7 +368,7 @@ def train(net, trainloader, valloader, epochs, learning_rate, device, client_id,
     train_metrics = {"Train accuracy": accuracy, "Train balanced accuracy": balanced_accuracy, "Train loss": loss, "Train round (t)": t}
     logging.info(train_metrics)
 
-    val_loss, test_metrics = test(net, valloader, device, client_id, t, dataset_name)
+    val_loss, test_metrics = test(net, valloader, device, client_id, t, dataset_name, n_classes)
     results = {
         "val_loss": val_loss,
         "val_accuracy": test_metrics["Accuracy"],
@@ -380,7 +380,7 @@ def train(net, trainloader, valloader, epochs, learning_rate, device, client_id,
     return results
 
 
-def test(net, testloader, device, client_id, t, dataset_name):
+def test(net, testloader, device, client_id, t, dataset_name, n_classes):
     """Validate the model on the test set."""
     g = torch.Generator()
     g.manual_seed(t)
@@ -397,7 +397,7 @@ def test(net, testloader, device, client_id, t, dataset_name):
             labels = batch["label"]
             images = images.to(device)
             labels = labels.to(device)
-            y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(10)))
+            y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
             outputs = net(images)
             y_prob.append(outputs.detach().cpu().numpy())
             loss += criterion(outputs, labels).item()

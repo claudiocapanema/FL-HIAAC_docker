@@ -105,6 +105,7 @@ class Client(fl.client.NumPyClient):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.lt = 0
         self.models_size = self._get_models_size()
+        self.n_classes = {"EMNIST": 47, "CIFAR10": 10}[args.dataset]
 
     def fit(self, parameters, config):
         """Train the model with data of this client."""
@@ -122,7 +123,8 @@ class Client(fl.client.NumPyClient):
             self.device,
             self.client_id,
             t,
-            self.args.dataset
+            self.args.dataset,
+            self.n_classes
         )
         logger.info("fit cliente fim")
         return get_weights(self.model), len(self.trainloader.dataset), results
@@ -133,7 +135,7 @@ class Client(fl.client.NumPyClient):
         t = config["t"]
         nt = t - self.lt
         set_weights(self.model, parameters)
-        loss, metrics = test(self.model, self.valloader, self.device, self.client_id, t, self.args.dataset)
+        loss, metrics = test(self.model, self.valloader, self.device, self.client_id, t, self.args.dataset, self.n_classes)
         metrics["Model size"] = self.models_size
         logger.info("eval cliente fim")
         return loss, len(self.valloader.dataset), metrics

@@ -108,6 +108,7 @@ class ClientFedAvgFP(fl.client.NumPyClient):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.lt = 0
         self.models_size = self._get_models_size()
+        self.n_classes = {"EMNIST": 47, "CIFAR10": 10}[args.dataset]
 
     def fit(self, parameters, config):
         """Train the model with data of this client."""
@@ -125,7 +126,8 @@ class ClientFedAvgFP(fl.client.NumPyClient):
             self.device,
             self.client_id,
             t,
-            self.args.dataset
+            self.args.dataset,
+            self.n_classes
         )
         logger.info("fit cliente fim fp")
         return get_weights(self.model), len(self.trainloader.dataset), results
@@ -138,7 +140,7 @@ class ClientFedAvgFP(fl.client.NumPyClient):
         set_weights(self.global_model, parameters)
         combined_model = fedpredict_client_torch(local_model=self.model, global_model=self.global_model,
                                   t=t, T=100, nt=nt, device=self.device, fc=1, il=1)
-        loss, metrics = test(combined_model, self.valloader, self.device, self.client_id, t, self.args.dataset)
+        loss, metrics = test(combined_model, self.valloader, self.device, self.client_id, t, self.args.dataset, self.n_classes)
         metrics["Model size"] = self.models_size
         logger.info("eval cliente fim fp")
         return loss, len(self.valloader.dataset), metrics
