@@ -201,9 +201,163 @@ class CNN_3(nn.Module):
             print("CNN_3 forward")
             print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
+class CNN_3_proto(torch.nn.Module):
+    def __init__(self, input_shape, mid_dim=64, num_classes=10):
+
+        try:
+            super(CNN_3_proto, self).__init__()
+
+                # queda para asl
+                # nn.Conv2d(input_shape, 32, kernel_size=3, padding=1),
+                # nn.ReLU(),
+                # nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+                # nn.ReLU(),
+                # nn.MaxPool2d(2, 2),  # output: 64 x 16 x 16
+                #
+                # nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+                # nn.ReLU(),
+                # nn.MaxPool2d(2, 2),  # output: 128 x 8 x 8
+                # nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+                # nn.ReLU(),
+                # nn.MaxPool2d(2, 2),  # output: 128 x 8 x 8
+                #
+                # nn.Flatten(),
+                # nn.Linear(mid_dim,512),
+                # nn.ReLU(),
+                # nn.Linear(512, num_classes))
+
+                # nn.Linear(28*28, 392),
+                # nn.ReLU(),
+                # nn.Dropout(0.5),
+                # nn.Linear(392, 196),
+                # nn.ReLU(),
+                # nn.Linear(196, 98),
+                # nn.ReLU(),
+                # nn.Dropout(0.3),
+                # nn.Linear(98, num_classes)
+
+            self.conv1 = torch.nn.Sequential(torch.nn.Conv2d(in_channels=input_shape, out_channels=32, kernel_size=3, padding=1),
+            torch.nn.ReLU(),
+            # Input = 32 x 32 x 32, Output = 32 x 16 x 16
+            torch.nn.MaxPool2d(kernel_size=2),
+
+            # Input = 32 x 16 x 16, Output = 64 x 16 x 16
+            torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
+            torch.nn.ReLU(),
+            # Input = 64 x 16 x 16, Output = 64 x 8 x 8
+            torch.nn.MaxPool2d(kernel_size=2),
+
+            # Input = 64 x 8 x 8, Output = 64 x 8 x 8
+            torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
+            torch.nn.ReLU(),
+            # Input = 64 x 8 x 8, Output = 64 x 4 x 4
+            torch.nn.MaxPool2d(kernel_size=2),
+            torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
+
+            torch.nn.ReLU(),
+            # Input = 64 x 8 x 8, Output = 64 x 4 x 4
+            torch.nn.MaxPool2d(kernel_size=2),
+            torch.nn.Flatten(),
+            torch.nn.Linear(mid_dim * 4 * 4, 512))
+
+            self.fc = torch.nn.Linear(512, num_classes)
+
+        except Exception as e:
+            print("CNN_3_proto")
+            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+    def forward(self, x):
+        try:
+            proto = self.conv1(x)
+            out = self.fc(proto)
+            return out, proto
+        except Exception as e:
+            print("CNN_3_proto")
+            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+class CNN_student(nn.Module):
+    def __init__(self, input_shape=1, mid_dim=256, num_classes=10):
+        try:
+            super(CNN_student, self).__init__()
+            self.conv1 = nn.Sequential(
+                nn.Conv2d(input_shape,
+                          32,
+                          kernel_size=3,
+                          padding=0,
+                          stride=1,
+                          bias=True),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(kernel_size=(2, 2)),
+                nn.Flatten(),
+                nn.Linear(mid_dim * 4, 512),
+                nn.ReLU(inplace=True))
+            self.out = nn.Linear(512, num_classes)
+            # self.conv1 = nn.Sequential(
+            #     nn.Conv2d(input_shape,
+            #               32,
+            #               kernel_size=3,
+            #               padding=0,
+            #               stride=1,
+            #               bias=True),
+            #     nn.ReLU(inplace=True),
+            #     nn.MaxPool2d(kernel_size=(2, 2)),
+            #     torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=0),
+            #     torch.nn.ReLU(),
+            #     # Input = 64 x 16 x 16, Output = 64 x 8 x 8
+            #     torch.nn.MaxPool2d(kernel_size=2),
+            #     nn.Flatten(),
+            #     nn.Linear(mid_dim * 4, 512),
+            #     nn.ReLU(inplace=True))
+            self.out = nn.Linear(512, num_classes)
+        except Exception as e:
+            print("CNN student")
+            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+    def forward(self, x):
+        try:
+            proto = self.conv1(x)
+            out = self.out(proto)
+            return out, proto
+        except Exception as e:
+            print("CNN student forward")
+            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+class CNNDistillation(nn.Module):
+    def __init__(self, input_shape=1, mid_dim=256, num_classes=10, dataset='CIFAR10'):
+        try:
+            self.dataset = dataset
+            super(CNNDistillation, self).__init__()
+            self.new_client = False
+            if self.dataset in ['EMNIST', 'MNIST']:
+                # mid_dim = 1568
+                mid_dim = 1352 # CNN 1 pad 1
+                # mid_dim = 400
+            else:
+                # mid_dim = 400
+                mid_dim = 1800 # cnn student 1 cnn
+                # mid_dim = 576 # cnn student 2 cnn
+            self.student = CNN_student(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes)
+            if self.dataset in ['CIFAR10', 'GTSRB']:
+                mid_dim = 16
+            else:
+                mid_dim = 4
+            self.teacher = CNN_3_proto(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes)
+        except Exception as e:
+            print("CNNDistillation")
+            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+
+    def forward(self, x):
+        try:
+            out_student, proto_student = self.student(x)
+            out_teacher, proto_teacher = self.teacher(x)
+            return out_student, proto_student, out_teacher, proto_teacher
+        except Exception as e:
+            print("CNNDistillation forward")
+            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 
-def load_model(model_name, dataset):
+
+def load_model(model_name, dataset, strategy):
     if model_name == 'CNN':
         if dataset in ['MNIST']:
             input_shape = 1
@@ -261,11 +415,19 @@ fds = None
 def get_weights(net):
     return [val.cpu().numpy() for _, val in net.state_dict().items()]
 
+def get_weights_fedkd(net):
+    return [val.cpu().numpy() for _, val in net.student.state_dict().items()]
+
 
 def set_weights(net, parameters):
     params_dict = zip(net.state_dict().keys(), parameters)
     state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
     net.load_state_dict(state_dict, strict=True)
+
+def set_weights_fedkd(net, parameters):
+    params_dict = zip(net.student.state_dict().keys(), parameters)
+    state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
+    net.student.load_state_dict(state_dict, strict=True)
 
 
 def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions: int, batch_size: int,
@@ -329,12 +491,12 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
     testloader = DataLoader(partition_train_test["test"], batch_size=batch_size)
     return trainloader, testloader
 
-def train(net, trainloader, valloader, epochs, learning_rate, device, client_id, t, dataset_name, n_classes):
+def train(model, trainloader, valloader, epochs, learning_rate, device, client_id, t, dataset_name, n_classes):
     """Train the model on the training set."""
-    net.to(device)  # move model to GPU if available
+    model.to(device)  # move model to GPU if available
     criterion = torch.nn.CrossEntropyLoss().to(device)
-    optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate, momentum=0.9)
-    net.train()
+    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
+    model.train()
     key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "img"}[dataset_name]
     for _ in range(epochs):
         loss_total = 0
@@ -349,7 +511,7 @@ def train(net, trainloader, valloader, epochs, learning_rate, device, client_id,
             labels = labels.to(device)
 
             optimizer.zero_grad()
-            outputs = net(images)
+            outputs = model(images)
             loss = criterion(outputs, labels)
             loss.backward()
             loss_total += loss.item() * labels.shape[0]
@@ -368,7 +530,72 @@ def train(net, trainloader, valloader, epochs, learning_rate, device, client_id,
     train_metrics = {"Train accuracy": accuracy, "Train balanced accuracy": balanced_accuracy, "Train loss": loss, "Train round (t)": t}
     logging.info(train_metrics)
 
-    val_loss, test_metrics = test(net, valloader, device, client_id, t, dataset_name, n_classes)
+    val_loss, test_metrics = test(model, valloader, device, client_id, t, dataset_name, n_classes)
+    results = {
+        "val_loss": val_loss,
+        "val_accuracy": test_metrics["Accuracy"],
+        "val_balanced_accuracy": test_metrics["Balanced accuracy"],
+        "train_loss": train_metrics["Train loss"],
+        "train_accuracy": train_metrics["Train accuracy"],
+        "train_balanced_accuracy": train_metrics["Train balanced accuracy"]
+    }
+    return results
+
+def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, client_id, t, dataset_name, n_classes):
+    """Train the model on the training set."""
+    model.to(device)  # move model to GPU if available
+    criterion = torch.nn.CrossEntropyLoss().to(device)
+    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
+    model.train()
+    feature_dim = 512
+    W_h = torch.nn.Linear(feature_dim, feature_dim, bias=False)
+    MSE = torch.nn.MSELoss()
+    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "img"}[dataset_name]
+    for _ in range(epochs):
+        loss_total = 0
+        correct = 0
+        y_true = []
+        y_prob = []
+        for batch in trainloader:
+            # logging.info("""dentro {} labels {}""".format(images, labels))
+            images = batch[key]
+            labels = batch["label"]
+            images = images.to(device)
+            labels = labels.to(device)
+
+            optimizer.zero_grad()
+            output_student, rep_g, output_teacher, rep = model(images)
+            outputs_S1 = F.log_softmax(output_student, dim=1)
+            outputs_S2 = F.log_softmax(output_teacher, dim=1)
+            outputs_T1 = F.softmax(output_student, dim=1)
+            outputs_T2 = F.softmax(output_teacher, dim=1)
+
+            loss_student = criterion(output_student, labels)
+            loss_teacher = criterion(output_teacher, labels)
+            loss = torch.nn.KLDivLoss()(outputs_S1, outputs_T2) / (loss_student + loss_teacher)
+            loss += torch.nn.KLDivLoss()(outputs_S2, outputs_T1) / (loss_student + loss_teacher)
+            L_h = MSE(rep, W_h(rep_g)) / (loss_student + loss_teacher)
+            loss += loss_student + loss_teacher + L_h
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            loss_total += loss.item() * labels.shape[0]
+            y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
+            y_prob.append(outputs.detach().cpu().numpy())
+            correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
+            optimizer.step()
+    accuracy = correct / len(trainloader.dataset)
+    loss = loss_total / len(trainloader.dataset)
+    y_prob = np.concatenate(y_prob, axis=0)
+    y_true = np.concatenate(y_true, axis=0)
+    y_prob = y_prob.argmax(axis=1)
+    y_true = y_true.argmax(axis=1)
+    balanced_accuracy = float(metrics.balanced_accuracy_score(y_true, y_prob))
+
+    train_metrics = {"Train accuracy": accuracy, "Train balanced accuracy": balanced_accuracy, "Train loss": loss, "Train round (t)": t}
+    logging.info(train_metrics)
+
+    val_loss, test_metrics = test(model, valloader, device, client_id, t, dataset_name, n_classes)
     results = {
         "val_loss": val_loss,
         "val_accuracy": test_metrics["Accuracy"],
@@ -380,12 +607,12 @@ def train(net, trainloader, valloader, epochs, learning_rate, device, client_id,
     return results
 
 
-def test(net, testloader, device, client_id, t, dataset_name, n_classes):
+def test(model, testloader, device, client_id, t, dataset_name, n_classes):
     """Validate the model on the test set."""
     g = torch.Generator()
     g.manual_seed(t)
     torch.manual_seed(t)
-    net.to(device)  # move model to GPU if available
+    model.to(device)  # move model to GPU if available
     criterion = torch.nn.CrossEntropyLoss().to(device)
     correct, loss = 0, 0.0
     y_prob = []
@@ -398,7 +625,7 @@ def test(net, testloader, device, client_id, t, dataset_name, n_classes):
             images = images.to(device)
             labels = labels.to(device)
             y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
-            outputs = net(images)
+            outputs = model(images)
             y_prob.append(outputs.detach().cpu().numpy())
             loss += criterion(outputs, labels).item()
             correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
@@ -415,3 +642,50 @@ def test(net, testloader, device, client_id, t, dataset_name, n_classes):
     test_metrics = {"Accuracy": accuracy, "Balanced accuracy": balanced_accuracy, "Loss": loss, "Round (t)": t}
     # logger.info("""metricas cliente {} valores {}""".format(client_id, test_metrics))
     return loss, test_metrics
+
+def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes):
+        try:
+            model.eval()
+            criterion = torch.nn.CrossEntropyLoss().to(device)
+
+            correct = 0
+            loss = 0
+            y_prob = []
+            y_true = []
+
+            predictions = np.array([])
+            labels = np.array([])
+
+            key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "img"}[dataset_name]
+            with torch.no_grad():
+                for batch in testloader:
+                    images = batch[key]
+                    labels = batch["label"]
+                    images = images.to(device)
+                    labels = labels.to(device)
+                    y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
+                    output, proto_student, output_teacher, proto_teacher = model(images)
+                    if model.new_client:
+                        output_teacher = output
+                    y_prob.append(output_teacher.detach().cpu().numpy())
+                    loss += criterion(output_teacher, labels).item()
+                    correct += (torch.max(output_teacher.data, 1)[1] == labels).sum().item()
+                    prediction_teacher = torch.argmax(output_teacher, dim=1)
+                    predictions = np.append(predictions, prediction_teacher)
+
+            accuracy = correct / len(testloader.dataset)
+            loss = loss / len(testloader.dataset)
+            y_prob = np.concatenate(y_prob, axis=0)
+            y_true = np.concatenate(y_true, axis=0)
+            test_auc = metrics.roc_auc_score(y_true, y_prob, average='micro')
+
+            y_prob = y_prob.argmax(axis=1)
+            y_true = y_true.argmax(axis=1)
+            balanced_accuracy = float(metrics.balanced_accuracy_score(y_true, y_prob))
+
+            test_metrics = {"Accuracy": accuracy, "Balanced accuracy": balanced_accuracy, "Loss": loss, "Round (t)": t}
+            # logger.info("""metricas cliente {} valores {}""".format(client_id, test_metrics))
+            return loss, test_metrics
+        except Exception as e:
+            print("test_fedkd")
+            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)

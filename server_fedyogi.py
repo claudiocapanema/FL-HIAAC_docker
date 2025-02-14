@@ -309,7 +309,7 @@ if __name__ == "__main__":
 
     # Initialize Strategy Instance and Start FL Serverstart_fl_server
     torch.random.manual_seed(0)
-    ndarrays = get_weights(load_model(args.model, args.dataset))
+    ndarrays = get_weights(load_model(args.model, args.dataset, args.strategy))
     parameters = ndarrays_to_parameters(ndarrays)
 
     # Define the strategy

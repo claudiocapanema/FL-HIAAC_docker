@@ -49,7 +49,6 @@ def read_data(read_solutions, read_dataset_order):
 def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
     datasets = df["Dataset"].unique().tolist()
-    datasets = ["CIFAR10", "CIFAR10"]
     # datasets = ["ImageNet", "ImageNet"]
     alphas = df["Alpha"].unique().tolist()
     alphas = [0.1, 1.0]
@@ -66,7 +65,7 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
             line_plot(df=df_plot, base_dir=base_dir, ax=axs[i, j],
                       file_name="""solutions_{}""".format(datasets), x_column=x, y_column=y,
                       hue=hue, style=style, ci=ci, title="", tipo=None, y_lim=True, y_max=100)
-            axs[i, j].set_title(r"""Dataset: {}; $\alpha$={}""".format(datasets[j], alphas[i]), fontweight="bold", size=9)
+            axs[i, j].set_title(r"""Dataset: {}; $\alpha$={}""".format(datasets[j], alphas[i]), size=10)
 
             if [i, j] != [0, 1]:
                 axs[i, j].get_legend().remove()
@@ -107,7 +106,7 @@ if __name__ == "__main__":
     cd = "false"
     total_clients = 20
     alphas = [0.1, 1.0]
-    dataset = ["CIFAR10"]
+    dataset = ["EMNIST", "CIFAR10"]
     # dataset = ["EMNIST", "CIFAR10"]
     # models_names = ["cnn_c"]
     model_name = "CNN_3"

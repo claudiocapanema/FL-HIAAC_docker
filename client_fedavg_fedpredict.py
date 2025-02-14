@@ -86,8 +86,8 @@ fds = None
 class ClientFedAvgFP(fl.client.NumPyClient):
     def __init__(self, args):
         self.args = args
-        self.model = load_model(args.model, args.dataset)
-        self.global_model = load_model(args.model, args.dataset)
+        self.model = load_model(args.model, args.dataset, args.strategy)
+        self.global_model = load_model(args.model, args.dataset, args.strategy)
         logger.info("Preparing data...")
         logger.info("""args do cliente: {}""".format(self.args.client_id))
         self.client_id = args.client_id
