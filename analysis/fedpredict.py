@@ -51,10 +51,9 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
     datasets = df["Dataset"].unique().tolist()
     # datasets = ["ImageNet", "ImageNet"]
     alphas = df["Alpha"].unique().tolist()
-    alphas = [0.1, 1.0]
     df["Strategy"] = np.array([i.replace("Multi", "") for i in df["Strategy"].tolist()])
 
-    fig, axs = plt.subplots(len(alphas), len(datasets), sharex='all', figsize=(12, 9))
+    fig, axs = plt.subplots(len(alphas), len(datasets), sharex='all', figsize=(12, 6))
 
     for i in range(len(alphas)):
         for j in range(len(datasets)):
@@ -106,7 +105,7 @@ if __name__ == "__main__":
     cd = "false"
     total_clients = 20
     alphas = [0.1, 1.0]
-    dataset = ["EMNIST", "CIFAR10"]
+    dataset = ["EMNIST", "CIFAR10", "GTSRB"]
     # dataset = ["EMNIST", "CIFAR10"]
     # models_names = ["cnn_c"]
     model_name = "CNN_3"

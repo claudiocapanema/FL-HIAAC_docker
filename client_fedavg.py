@@ -105,7 +105,7 @@ class Client(fl.client.NumPyClient):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.lt = 0
         self.models_size = self._get_models_size()
-        self.n_classes = {"EMNIST": 47, "CIFAR10": 10}[args.dataset]
+        self.n_classes = {"EMNIST": 47, "CIFAR10": 10, "GTSRB": 43}[args.dataset]
 
     def fit(self, parameters, config):
         """Train the model with data of this client."""

@@ -17,6 +17,7 @@ from flwr_datasets.partitioner import IidPartitioner, DirichletPartitioner
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, Normalize, ToTensor
 from fedpredict import fedpredict_client_torch
+from client_fedavg import Client
 
 # Make TensorFlow log less verbose
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -83,32 +84,11 @@ args = parser.parse_args()
 
 fds = None
 
-class ClientFedAvgFP(fl.client.NumPyClient):
+class ClientFedAvgFP(Client):
     def __init__(self, args):
-        self.args = args
-        self.model = load_model(args.model, args.dataset, args.strategy)
+        super(ClientFedAvgFP, self).__init__(args)
         self.global_model = load_model(args.model, args.dataset, args.strategy)
-        logger.info("Preparing data...")
-        logger.info("""args do cliente: {}""".format(self.args.client_id))
-        self.client_id = args.client_id
-        self.trainloader, self.valloader = load_data(
-            dataset_name=self.args.dataset,
-            alpha=self.args.alpha,
-            data_sampling_percentage=self.args.data_percentage,
-            partition_id=self.args.client_id,
-            num_partitions=self.args.total_clients + 1,
-            batch_size=self.args.batch_size,
-        )
-        logger.info("""leu dados {}""".format(self.args.client_id))
-
-        self.contar = 0
-
-        self.local_epochs = 1
-        self.lr = self.args.learning_rate
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.lt = 0
-        self.models_size = self._get_models_size()
-        self.n_classes = {"EMNIST": 47, "CIFAR10": 10}[args.dataset]
 
     def fit(self, parameters, config):
         """Train the model with data of this client."""
@@ -144,13 +124,6 @@ class ClientFedAvgFP(fl.client.NumPyClient):
         metrics["Model size"] = self.models_size
         logger.info("eval cliente fim fp")
         return loss, len(self.valloader.dataset), metrics
-
-    def _get_models_size(self):
-        parameters = [i.detach().cpu().numpy() for i in self.model.parameters()]
-        size = 0
-        for i in range(len(parameters)):
-            size += parameters[i].nbytes
-        return int(size)
 
 
 
