@@ -396,7 +396,7 @@ def load_model(model_name, dataset, strategy):
             num_classes = 47
             logging.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
         elif dataset in ['GTSRB']:
-            input_shape = 1
+            input_shape = 3
             # mid_dim = 36
             mid_dim = 16
             num_classes = 43
@@ -406,7 +406,7 @@ def load_model(model_name, dataset, strategy):
             # mid_dim = 400
             mid_dim = 16
             num_classes = 10
-        logging.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
+            logging.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
         return CNN_3(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
 
 
@@ -444,7 +444,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
 
                                            self_balancing=True)
         fds = FederatedDataset(
-            dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist", "GTSRB": "bazyl/GTSRB"}[dataset_name],
+            dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist", "GTSRB": "tanganke/gtsrb"}[dataset_name],
             partitioners={"train": partitioner},
         )
     partition = fds.load_partition(partition_id)
@@ -475,7 +475,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
 
     # import torchvision.datasets as datasets
     # datasets.EMNIST
-    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "img"}[dataset_name]
+    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
 
     def apply_transforms(batch):
         """Apply transforms to the partition from FederatedDataset."""
@@ -497,7 +497,7 @@ def train(model, trainloader, valloader, epochs, learning_rate, device, client_i
     criterion = torch.nn.CrossEntropyLoss().to(device)
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
     model.train()
-    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "img"}[dataset_name]
+    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
     for _ in range(epochs):
         loss_total = 0
         correct = 0
@@ -512,6 +512,7 @@ def train(model, trainloader, valloader, epochs, learning_rate, device, client_i
 
             optimizer.zero_grad()
             outputs = model(images)
+            # logging.info("""saida: {} true: {}""".format(outputs, labels))
             loss = criterion(outputs, labels)
             loss.backward()
             loss_total += loss.item() * labels.shape[0]
@@ -550,7 +551,7 @@ def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, cl
     feature_dim = 512
     W_h = torch.nn.Linear(feature_dim, feature_dim, bias=False)
     MSE = torch.nn.MSELoss()
-    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "img"}[dataset_name]
+    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
     for _ in range(epochs):
         loss_total = 0
         correct = 0
@@ -617,7 +618,7 @@ def test(model, testloader, device, client_id, t, dataset_name, n_classes):
     correct, loss = 0, 0.0
     y_prob = []
     y_true = []
-    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "img"}[dataset_name]
+    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
     with torch.no_grad():
         for batch in testloader:
             images = batch[key]
@@ -656,7 +657,7 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
             predictions = np.array([])
             labels = np.array([])
 
-            key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "img"}[dataset_name]
+            key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
             with torch.no_grad():
                 for batch in testloader:
                     images = batch[key]

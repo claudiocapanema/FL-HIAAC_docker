@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+from torch.nn.parameter import Parameter
 
 import flwr as fl
 import tensorflow as tf
@@ -91,9 +92,12 @@ def get_weights(net):
 def set_weights(net, parameters):
     head = [val.cpu().numpy() for _, val in net.state_dict().items()][-2:]
     parameters += head
-    params_dict = zip(net.state_dict().keys(), parameters)
-    state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
-    net.load_state_dict(state_dict, strict=True)
+    # params_dict = zip(net.state_dict().keys(), parameters)
+    # state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
+    # net.load_state_dict(state_dict, strict=True)
+    parameters = [Parameter(torch.Tensor(i.tolist())) for i in parameters]
+    for new_param, old_param in zip(parameters, net.parameters()):
+        old_param.data = new_param.data.clone()
 
 class ClientFedPer(Client):
     def __init__(self, args):
