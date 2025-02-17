@@ -407,7 +407,11 @@ def load_model(model_name, dataset, strategy):
             mid_dim = 16
             num_classes = 10
             logging.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
-        return CNN_3(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
+
+        if "FedKD" in strategy:
+            return CNNDistillation(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes)
+        else:
+            return CNN_3(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
 
 
 fds = None
@@ -544,68 +548,74 @@ def train(model, trainloader, valloader, epochs, learning_rate, device, client_i
 
 def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, client_id, t, dataset_name, n_classes):
     """Train the model on the training set."""
-    model.to(device)  # move model to GPU if available
-    criterion = torch.nn.CrossEntropyLoss().to(device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
-    model.train()
-    feature_dim = 512
-    W_h = torch.nn.Linear(feature_dim, feature_dim, bias=False)
-    MSE = torch.nn.MSELoss()
-    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
-    for _ in range(epochs):
-        loss_total = 0
-        correct = 0
-        y_true = []
-        y_prob = []
-        for batch in trainloader:
-            # logging.info("""dentro {} labels {}""".format(images, labels))
-            images = batch[key]
-            labels = batch["label"]
-            images = images.to(device)
-            labels = labels.to(device)
+    try:
+        model.to(device)  # move model to GPU if available
+        # model.teacher.to(device)
+        # model.student.to(device)
+        criterion = torch.nn.CrossEntropyLoss().to(device)
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
+        model.train()
+        feature_dim = 512
+        W_h = torch.nn.Linear(feature_dim, feature_dim, bias=False).to(device)
+        MSE = torch.nn.MSELoss().to(device)
+        key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
+        for _ in range(epochs):
+            loss_total = 0
+            correct = 0
+            y_true = []
+            y_prob = []
+            for batch in trainloader:
+                # logging.info("""dentro {} labels {}""".format(images, labels))
+                images = batch[key]
+                labels = batch["label"]
+                images = images.to(device)
+                labels = labels.to(device)
 
-            optimizer.zero_grad()
-            output_student, rep_g, output_teacher, rep = model(images)
-            outputs_S1 = F.log_softmax(output_student, dim=1)
-            outputs_S2 = F.log_softmax(output_teacher, dim=1)
-            outputs_T1 = F.softmax(output_student, dim=1)
-            outputs_T2 = F.softmax(output_teacher, dim=1)
+                optimizer.zero_grad()
+                output_student, rep_g, output_teacher, rep = model(images)
+                outputs_S1 = F.log_softmax(output_student, dim=1)
+                outputs_S2 = F.log_softmax(output_teacher, dim=1)
+                outputs_T1 = F.softmax(output_student, dim=1)
+                outputs_T2 = F.softmax(output_teacher, dim=1)
 
-            loss_student = criterion(output_student, labels)
-            loss_teacher = criterion(output_teacher, labels)
-            loss = torch.nn.KLDivLoss()(outputs_S1, outputs_T2) / (loss_student + loss_teacher)
-            loss += torch.nn.KLDivLoss()(outputs_S2, outputs_T1) / (loss_student + loss_teacher)
-            L_h = MSE(rep, W_h(rep_g)) / (loss_student + loss_teacher)
-            loss += loss_student + loss_teacher + L_h
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            loss_total += loss.item() * labels.shape[0]
-            y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
-            y_prob.append(outputs.detach().cpu().numpy())
-            correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
-            optimizer.step()
-    accuracy = correct / len(trainloader.dataset)
-    loss = loss_total / len(trainloader.dataset)
-    y_prob = np.concatenate(y_prob, axis=0)
-    y_true = np.concatenate(y_true, axis=0)
-    y_prob = y_prob.argmax(axis=1)
-    y_true = y_true.argmax(axis=1)
-    balanced_accuracy = float(metrics.balanced_accuracy_score(y_true, y_prob))
+                loss_student = criterion(output_student, labels)
+                loss_teacher = criterion(output_teacher, labels)
+                loss_1 = torch.nn.KLDivLoss()(outputs_S1, outputs_T2) / (loss_student + loss_teacher)
+                loss_2 = torch.nn.KLDivLoss()(outputs_S2, outputs_T1) / (loss_student + loss_teacher)
+                L_h = MSE(rep, W_h(rep_g)) / (loss_student + loss_teacher)
+                # loss += loss_student + loss_teacher + L_h
+                loss = loss_teacher + loss_student + L_h + loss_1 + loss_2
+                loss.backward()
+                loss_total += loss.item() * labels.shape[0]
+                y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
+                y_prob.append(output_teacher.detach().cpu().numpy())
+                correct += (torch.max(output_teacher.data, 1)[1] == labels).sum().item()
+                optimizer.step()
+        accuracy = correct / len(trainloader.dataset)
+        loss = loss_total / len(trainloader.dataset)
+        y_prob = np.concatenate(y_prob, axis=0)
+        y_true = np.concatenate(y_true, axis=0)
+        y_prob = y_prob.argmax(axis=1)
+        y_true = y_true.argmax(axis=1)
+        balanced_accuracy = float(metrics.balanced_accuracy_score(y_true, y_prob))
 
-    train_metrics = {"Train accuracy": accuracy, "Train balanced accuracy": balanced_accuracy, "Train loss": loss, "Train round (t)": t}
-    logging.info(train_metrics)
+        train_metrics = {"Train accuracy": accuracy, "Train balanced accuracy": balanced_accuracy, "Train loss": loss, "Train round (t)": t}
+        logging.info(train_metrics)
 
-    val_loss, test_metrics = test(model, valloader, device, client_id, t, dataset_name, n_classes)
-    results = {
-        "val_loss": val_loss,
-        "val_accuracy": test_metrics["Accuracy"],
-        "val_balanced_accuracy": test_metrics["Balanced accuracy"],
-        "train_loss": train_metrics["Train loss"],
-        "train_accuracy": train_metrics["Train accuracy"],
-        "train_balanced_accuracy": train_metrics["Train balanced accuracy"]
-    }
-    return results
+        val_loss, test_metrics = test_fedkd(model, valloader, device, client_id, t, dataset_name, n_classes)
+        results = {
+            "val_loss": val_loss,
+            "val_accuracy": test_metrics["Accuracy"],
+            "val_balanced_accuracy": test_metrics["Balanced accuracy"],
+            "train_loss": train_metrics["Train loss"],
+            "train_accuracy": train_metrics["Train accuracy"],
+            "train_balanced_accuracy": train_metrics["Train balanced accuracy"]
+        }
+        return results
+
+    except Exception as e:
+        logging.error("""Error on train_fedkd""")
+        logging.info('Error on line {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 
 def test(model, testloader, device, client_id, t, dataset_name, n_classes):
@@ -613,6 +623,7 @@ def test(model, testloader, device, client_id, t, dataset_name, n_classes):
     g = torch.Generator()
     g.manual_seed(t)
     torch.manual_seed(t)
+    model.eval()
     model.to(device)  # move model to GPU if available
     criterion = torch.nn.CrossEntropyLoss().to(device)
     correct, loss = 0, 0.0
@@ -634,7 +645,7 @@ def test(model, testloader, device, client_id, t, dataset_name, n_classes):
     loss = loss / len(testloader.dataset)
     y_prob = np.concatenate(y_prob, axis=0)
     y_true = np.concatenate(y_true, axis=0)
-    test_auc = metrics.roc_auc_score(y_true, y_prob, average='micro')
+    # test_auc = metrics.roc_auc_score(y_true, y_prob, average='micro')
 
     y_prob = y_prob.argmax(axis=1)
     y_true = y_true.argmax(axis=1)
@@ -646,6 +657,9 @@ def test(model, testloader, device, client_id, t, dataset_name, n_classes):
 
 def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes):
         try:
+            model.to(device)  # move model to GPU if available
+            # model.teacher.to(device)
+            # model.student.to(device)
             model.eval()
             criterion = torch.nn.CrossEntropyLoss().to(device)
 
@@ -653,9 +667,6 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
             loss = 0
             y_prob = []
             y_true = []
-
-            predictions = np.array([])
-            labels = np.array([])
 
             key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
             with torch.no_grad():
@@ -670,15 +681,13 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
                         output_teacher = output
                     y_prob.append(output_teacher.detach().cpu().numpy())
                     loss += criterion(output_teacher, labels).item()
-                    correct += (torch.max(output_teacher.data, 1)[1] == labels).sum().item()
-                    prediction_teacher = torch.argmax(output_teacher, dim=1)
-                    predictions = np.append(predictions, prediction_teacher)
+                    correct += (torch.sum(torch.argmax(output_teacher, dim=1) == labels)).item()
 
             accuracy = correct / len(testloader.dataset)
             loss = loss / len(testloader.dataset)
             y_prob = np.concatenate(y_prob, axis=0)
             y_true = np.concatenate(y_true, axis=0)
-            test_auc = metrics.roc_auc_score(y_true, y_prob, average='micro')
+            # test_auc = metrics.roc_auc_score(y_true, y_prob, average='micro')
 
             y_prob = y_prob.argmax(axis=1)
             y_true = y_true.argmax(axis=1)
@@ -688,5 +697,5 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
             # logger.info("""metricas cliente {} valores {}""".format(client_id, test_metrics))
             return loss, test_metrics
         except Exception as e:
-            print("test_fedkd")
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+            logging.info("Error test_fedkd")
+            logging.info('Error on line {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

@@ -55,6 +55,7 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
     df["Strategy"] = np.array([i.replace("Multi", "") for i in df["Strategy"].tolist()])
 
     fig, axs = plt.subplots(len(alphas), len(datasets), sharex='all', figsize=(12, 6))
+    hue_order = ["FedAvg", "FedYogi", "FedKD", "FedPer", "FedProto"]
 
     for i in range(len(alphas)):
         for j in range(len(datasets)):
@@ -64,13 +65,13 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
             line_plot(df=df_plot, base_dir=base_dir, ax=axs[i, j],
                       file_name="""solutions_{}""".format(datasets), x_column=x, y_column=y,
-                      hue=hue, style=style, ci=ci, title="", tipo=None, y_lim=True, y_max=100)
+                      hue=hue, hue_order=hue_order, style=style, ci=ci, title="", tipo=None, y_lim=True, y_max=100)
             axs[i, j].set_title(r"""Dataset: {}; $\alpha$={}""".format(datasets[j], alphas[i]), size=10)
 
-            if [i, j] != [0, 1]:
+            if i == 0:
                 axs[i, j].get_legend().remove()
 
-    lines_labels = [axs[0, 0].get_legend_handles_labels()]
+    lines_labels = [axs[1, 0].get_legend_handles_labels()]
     lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
     colors = []
     for i in range(len(lines)):
@@ -85,6 +86,8 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
     handles = [f("o", colors[i]) for i in range(len(hue_order) + 1)]
     handles += [plt.Line2D([], [], linestyle=markers[i], color="k") for i in range(3)]
     for i in range(len(alphas)):
+        if i == 0:
+            continue
         for j in range(len(datasets)):
             axs[i, j].legend(handles, labels, fontsize=7)
 
@@ -121,7 +124,7 @@ if __name__ == "__main__":
     #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
-    solutions = ["FedAvg+FP", "FedYogi+FP", "FedAvg", "FedYogi", "FedPer", "FedKD"]
+    solutions = ["FedAvg+FP", "FedYogi+FP", "FedAvg", "FedYogi", "FedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}

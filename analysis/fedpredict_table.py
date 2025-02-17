@@ -162,7 +162,7 @@ def table(df, write_path, metric, t=None):
         "&  \\", "& - \\").replace(" - " + r"\textbf", " " + r"\textbf").replace("_{dc}", r"_{\text{dc}}").replace(
         "\multirow[t]{" + n_strategies + "}{*}{EMNIST}", "EMNIST").replace(
         "\multirow[t]{" + n_strategies + "}{*}{CIFAR10}", "CIFAR10").replace(
-        "\multirow[t]{" + n_strategies + "}{*}{GTSRB}", "GTSRB").replace("\cline{1-5}", "\hline")
+        "\multirow[t]{" + n_strategies + "}{*}{GTSRB}", "GTSRB").replace("\cline{1-4}", "\hline")
 
     if t is not None:
         filename = """{}latex_round_{}_{}.txt""".format(write_path, t, metric)
@@ -345,7 +345,7 @@ if __name__ == "__main__":
     #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
-    solutions = ["FedAvg+FP", "FedYogi+FP", "FedAvg", "FedYogi", "FedPer"]
+    solutions = ["FedAvg+FP", "FedAvg", "FedYogi+FP", "FedYogi", "FedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}
