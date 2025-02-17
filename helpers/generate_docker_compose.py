@@ -70,7 +70,8 @@ def create_docker_compose(args):
                              "server_file": """server_fedyogi.py""".format(strategy_name)},
                    "FedAvg+FP": {"client_file": """client_fedavg_fedpredict.py""".format(""), "server_file": """server_fedavg.py""".format(strategy_name)},
                   "FedYogi+FP": {"client_file": """client_fedavg_fedpredict.py""".format(""), "server_file": """server_fedyogi.py""".format(strategy_name)},
-                  "FedPer": {"client_file": """client_fedper.py""".format(""), "server_file": """server_fedper.py""".format(strategy_name)}}
+                  "FedPer": {"client_file": """client_fedper.py""".format(""), "server_file": """server_fedper.py""".format(strategy_name)},
+                  "FedKD": {"client_file": """client_fedkd.py""".format(""), "server_file": """server_fedavg.py""".format(strategy_name)}}
     client_file = files_dict[strategy_name]["client_file"]
     server_file = files_dict[strategy_name]["server_file"]
 
@@ -212,6 +213,7 @@ services:
     docker_compose_content += "volumes:\n  grafana-storage:\n"
 
     filename = f"docker-compose_{strategy_name}_clients_{args.total_clients}_fraction_fit_{args.fraction_fit}_number_of_rounds_{args.number_of_rounds}_dataset_{args.dataset}_model_{args.model}.yml"
+    # filename = f"docker-compose.yml"
     with open(filename, "w") as file:
         file.write(docker_compose_content)
 

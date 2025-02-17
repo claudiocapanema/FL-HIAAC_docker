@@ -93,15 +93,12 @@ class ClientFedKD(Client):
     def __init__(self, args):
         super().__init__(args)
         self.lr_loss = torch.nn.MSELoss()
+        self.device = "cpu"
         self.round_of_last_fit = 0
         self.rounds_of_fit = 0
-        self.T = int(args.T)
         self.accuracy_of_last_round_of_fit = 0
         self.start_server = 0
-        self.n_rate = float(args.n_rate)
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.learning_rate, momentum=0.9)
-        self.fedkd_model_filename = """./{}_saved_weights/{}/{}/model.pth""".format(self.strategy_name.lower(),
-                                                                                    self.model_name, self.cid)
+        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr, momentum=0.9)
         feature_dim = 512
         self.W_h = torch.nn.Linear(feature_dim, feature_dim, bias=False)
         self.MSE = torch.nn.MSELoss()
@@ -133,7 +130,7 @@ class ClientFedKD(Client):
         logger.info("""eval cliente inicio""".format(config))
         t = config["t"]
         nt = t - self.lt
-        set_weights_fedkd(self.model, parameters)
+        # set_weights_fedkd(self.model, parameters)
         loss, metrics = test_fedkd(self.model, self.valloader, self.device, self.client_id, t, self.args.dataset, self.n_classes)
         metrics["Model size"] = self.models_size
         logger.info("eval cliente fim")
@@ -143,7 +140,7 @@ class ClientFedKD(Client):
 # Function to Start the Client
 def start_fl_client():
     try:
-        client = Client(args).to_client()
+        client = ClientFedKD(args).to_client()
         fl.client.start_client(server_address=args.server_address, client=client)
     except Exception as e:
         logger.error("Error starting FL client: %s", e)
