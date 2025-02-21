@@ -11,7 +11,7 @@ from flwr.common import (
     Parameters,
     Scalar
 )
-from server.server_fedavg import FedAvg
+from server.server_fedyogi import FedYogi
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 # pylint: disable=line-too-long
-class FedPer(FedAvg):
+class FedYogiFP(FedYogi):
     """Federated Averaging strategy.
 
     Implementation based on https://arxiv.org/abs/1602.05629

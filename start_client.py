@@ -7,6 +7,8 @@ from clients.client_fedavg import Client
 from clients.client_fedavg_fedpredict import ClientFedAvgFP
 from clients.client_fedper import ClientFedPer
 from clients.client_fedkd import ClientFedKD
+from clients.client_fedyogi import ClientFedYogi
+from clients.client_fedyogi_fedpredict import ClientFedYogiFP
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
@@ -76,10 +78,14 @@ args = parser.parse_args()
 
 def get_client(strategy_name):
 
-    if strategy_name in ["FedAvg", "FedYogi+FP"]:
+    if strategy_name in "FedAvg":
         return Client
-    elif strategy_name in ["FedAvg+FP", "FedYogi+FP"]:
+    elif strategy_name == "FedAvg+FP":
         return ClientFedAvgFP
+    elif strategy_name == "FedYogi":
+        return ClientFedYogi
+    elif strategy_name == "FedYogi+FP":
+        return ClientFedYogiFP
     elif strategy_name == "FedPer":
         return ClientFedPer
     elif strategy_name == "FedKD":

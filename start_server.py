@@ -12,7 +12,10 @@ from flwr.common import (
 )
 
 from server.server_fedavg import FedAvg
+from server.server_fedavg_fedpredict import FedAvgFP
 from server.server_fedyogi import FedYogi
+from server.server_fedyogi_fedpredict import FedYogiFP
+from server.server_fedper import FedPer
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
@@ -103,10 +106,16 @@ def start_fl_server(strategy, rounds):
 
 def get_server(strategy_name):
 
-    if strategy_name in ["FedAvg", "FedAvg+FP", "FedPer"]:
+    if strategy_name == "FedAvg":
         return FedAvg
-    elif strategy_name in ["FedYogi", "FedYogi+FP"]:
+    elif strategy_name == "FedAvg+FP":
+        return FedAvgFP
+    elif strategy_name == "FedYogi":
         return FedYogi
+    elif strategy_name == "FedYogiFP":
+        return FedYogiFP
+    elif strategy_name == "FedPer":
+        return FedPer
 
 
 # Main Function
