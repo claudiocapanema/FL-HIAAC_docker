@@ -65,29 +65,12 @@ def create_docker_compose(args):
     ]
 
     strategy_name = args.strategy
-    files_dict = {"FedAvg": {"client_file": """client_fedavg.py""".format(""), "server_file": """server_fedavg.py""".format(strategy_name)},
-                  "FedYogi": {"client_file": """client_fedavg.py""".format(""),
-                             "server_file": """server_fedyogi.py""".format(strategy_name)},
-                   "FedAvg+FP": {"client_file": """client_fedavg_fedpredict.py""".format(""), "server_file": """server_fedavg.py""".format(strategy_name)},
-                  "FedYogi+FP": {"client_file": """client_fedavg_fedpredict.py""".format(""), "server_file": """server_fedyogi.py""".format(strategy_name)},
-                  "FedPer": {"client_file": """client_fedper.py""".format(""), "server_file": """server_fedper.py""".format(strategy_name)},
-                  "FedKD": {"client_file": """client_fedkd.py""".format(""), "server_file": """server_fedavg.py""".format(strategy_name)}}
-    client_file = files_dict[strategy_name]["client_file"]
-    server_file = files_dict[strategy_name]["server_file"]
+    client_file = "start_client.py"
+    server_file = "start_server.py"
 
     general_config = f"--total_clients={args.total_clients} --number_of_rounds={args.number_of_rounds} --data_percentage={args.data_percentage} --strategy={strategy_name} --alpha={args.alpha} --round_new_clients={args.round_new_clients} --fraction_new_clients={args.fraction_new_clients} --model='{args.model}' --cd='{args.cd}' --fraction_fit={args.fraction_fit} --batch_size={args.batch_size} --learning_rate={args.learning_rate} --dataset='{args.dataset}'"
     print("config geral: ", general_config)
 
-    # use_cuda:
-    #     image: nvidia/cuda:12.4.0-base-ubuntu22.04
-    #     command: nvidia-smi
-    #     deploy:
-    #       resources:
-    #         reservations:
-    #           devices:
-    #             - driver: nvidia
-    #               count: 1
-    #               capabilities: [gpu]
     docker_compose_content = f"""
 services:
   prometheus:
@@ -184,6 +167,7 @@ services:
         config = ""
         docker_compose_content += f"""
   client{i}:
+    image: client{i}:latest
     container_name: client{i}
     build:
       context: .
@@ -212,15 +196,15 @@ services:
 
     docker_compose_content += "volumes:\n  grafana-storage:\n"
 
-    filename = f"docker-compose_{strategy_name}_clients_{args.total_clients}_fraction_fit_{args.fraction_fit}_number_of_rounds_{args.number_of_rounds}_dataset_{args.dataset}_model_{args.model}.yml"
-    # filename = f"docker-compose.yml"
+    # filename = f"docker-compose_{strategy_name}_clients_{args.total_clients}_fraction_fit_{args.fraction_fit}_number_of_rounds_{args.number_of_rounds}_dataset_{args.dataset}_model_{args.model}.yml"
+    filename = f"docker-compose.yml"
     with open(filename, "w") as file:
         file.write(docker_compose_content)
 
     import subprocess
 
     # Caminho para o seu script bash
-    script_up = f"sudo docker compose -f {filename} up --build"
+    script_up = f"sudo docker compose -f {filename} up --build && docker image prune -f"
 
     script_down = f"sudo docker compose -f {filename} down"
     subprocess.Popen(script_up, shell=True).wait()

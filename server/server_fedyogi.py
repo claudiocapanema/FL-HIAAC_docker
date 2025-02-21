@@ -17,119 +17,33 @@
 Paper: arxiv.org/abs/2003.00295
 """
 
-
-from typing import Callable, Optional, Union
-
-import numpy as np
-
 from flwr.common import (
     FitRes,
-    MetricsAggregationFn,
-    NDArrays,
-    Parameters,
-    Scalar,
-    ndarrays_to_parameters,
     parameters_to_ndarrays,
 )
-from flwr.server.client_proxy import ClientProxy
 
-from server_fedavg import FedAvg
+from server.server_fedavg import FedAvg
 
-import argparse
 import logging
 
-import flwr as fl
-
-import csv
-import os
-
-import torch
 import numpy as np
-from prometheus_client import start_http_server
 from typing import List, Tuple
 from flwr.common import Metrics
 
 from typing import Callable, Optional, Union
 
 from flwr.common import (
-    EvaluateIns,
-    EvaluateRes,
-    FitIns,
     MetricsAggregationFn,
     NDArrays,
     Parameters,
     Scalar,
     ndarrays_to_parameters,
 )
-from flwr.common.logger import log
-from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
-
-
-import flwr
-
-from logging import WARNING
-import random
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-# pylint: disable=line-too-long
-
-# Parse command line arguments
-parser = argparse.ArgumentParser(description="Flower Server")
-parser.add_argument(
-    "--total_clients", type=int, default=2, help="Total clients to spawn (default: 2)"
-)
-parser.add_argument(
-    "--number_of_rounds", type=int, default=5, help="Number of FL rounds (default: 100)"
-)
-parser.add_argument(
-    "--data_percentage",
-    type=float,
-    default=0.8,
-    help="Portion of client data to use (default: 0.6)",
-)
-parser.add_argument(
-    "--strategy", type=str, default='FedAvg+FP', help="Strategy to use (default: FedAvg)"
-)
-parser.add_argument(
-    "--alpha", type=float, default=0.1, help="Dirichlet alpha"
-)
-parser.add_argument(
-    "--round_new_clients", type=float, default=0.1, help=""
-)
-parser.add_argument(
-    "--fraction_new_clients", type=float, default=0.1, help=""
-)
-parser.add_argument(
-    "--local_epochs", type=float, default=1, help=""
-)
-parser.add_argument(
-    "--dataset", type=str, default="CIFAR10"
-)
-parser.add_argument(
-    "--model", type=str, default=""
-)
-parser.add_argument(
-    "--cd", type=str, default="false"
-)
-parser.add_argument(
-    "--fraction_fit", type=float, default=1
-)
-parser.add_argument(
-    "--batch_size", type=int, default=32
-)
-parser.add_argument(
-    "--learning_rate", type=float, default=0.001
-)
-
-args = parser.parse_args()
-
-
-from model.model import load_model, get_weights
 
 
 # Define metric aggregation function
@@ -290,35 +204,3 @@ class FedYogi(FedAvg):
         self.current_weights = new_weights
 
         return ndarrays_to_parameters(self.current_weights), metrics_aggregated
-
-def start_fl_server(strategy, rounds):
-    try:
-        fl.server.start_server(
-            server_address="0.0.0.0:8080",
-            config=fl.server.ServerConfig(num_rounds=rounds),
-            strategy=strategy,
-        )
-    except Exception as e:
-        logger.error(f"FL Server error: {e}", exc_info=True)
-
-
-# Main Function
-if __name__ == "__main__":
-    # Start Prometheus Metrics Server
-    start_http_server(8000)
-
-    # Initialize Strategy Instance and Start FL Serverstart_fl_server
-    torch.random.manual_seed(0)
-    ndarrays = get_weights(load_model(args.model, args.dataset, args.strategy))
-    parameters = ndarrays_to_parameters(ndarrays)
-
-    # Define the strategy
-    strategy = FedYogi(
-        args=args,
-        fraction_fit=args.fraction_fit,
-        fraction_evaluate=1.0,
-        min_available_clients=args.total_clients,
-        evaluate_metrics_aggregation_fn=weighted_average,
-        initial_parameters=parameters,
-    )
-    start_fl_server(strategy=strategy, rounds=args.number_of_rounds)

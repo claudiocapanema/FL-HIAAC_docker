@@ -55,6 +55,13 @@ Run the training with a single command:
 python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy="FedAvg" --dataset="CIFAR10" --model="CNN_3" --fraction_fit=0.3 --alpha=0.1
 ```
 
+Once you finish your simulation, type the following command:
+
+```bash
+
+docker compose down
+```
+
 On your favourite browser, go to `http://localhost:3000` to see the Graphana dashboard showing system-level and application-level metrics.
 
 To stop all containers, open a new terminal and `cd` into this directory, then run `docker-compose down`. Alternatively, you can do `ctrl+c` on the same terminal and then run `docker-compose down` to ensure everything is terminated.
