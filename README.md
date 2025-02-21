@@ -62,6 +62,12 @@ Once you finish your simulation, type the following command:
 docker compose down
 ```
 
+In case your building is not working, try removing everything first:
+
+```bash
+docker system prune -a --volumes
+```
+
 On your favourite browser, go to `http://localhost:3000` to see the Graphana dashboard showing system-level and application-level metrics.
 
 To stop all containers, open a new terminal and `cd` into this directory, then run `docker-compose down`. Alternatively, you can do `ctrl+c` on the same terminal and then run `docker-compose down` to ensure everything is terminated.
