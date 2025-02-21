@@ -76,9 +76,9 @@ args = parser.parse_args()
 
 def get_client(strategy_name):
 
-    if strategy_name == "FedAvg":
+    if strategy_name in ["FedAvg", "FedYogi+FP"]:
         return Client
-    elif strategy_name == "FedAvgFP":
+    elif strategy_name in ["FedAvg+FP", "FedYogi+FP"]:
         return ClientFedAvgFP
     elif strategy_name == "FedPer":
         return ClientFedPer
