@@ -138,4 +138,5 @@ if __name__ == "__main__":
         evaluate_metrics_aggregation_fn=weighted_average,
         initial_parameters=parameters,
     )
+
     start_fl_server(strategy=strategy, rounds=args.number_of_rounds)

@@ -72,7 +72,6 @@ docker compose down
 ```
 
 In case your building is not working, try removing everything first:
-
 ```bash
 docker system prune -a --volumes
 ```
