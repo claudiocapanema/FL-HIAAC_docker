@@ -112,7 +112,7 @@ def get_server(strategy_name):
         return FedAvgFP
     elif strategy_name == "FedYogi":
         return FedYogi
-    elif strategy_name == "FedYogiFP":
+    elif strategy_name == "FedYogi+FP":
         return FedYogiFP
     elif strategy_name == "FedPer":
         return FedPer

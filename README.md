@@ -55,6 +55,15 @@ Run the training with a single command:
 python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy="FedAvg" --dataset="CIFAR10" --model="CNN_3" --fraction_fit=0.3 --alpha=0.1
 ```
 
+## Saving the results locally:
+
+Save the results/ volume locally:
+
+```bash
+
+bash get_results.sh
+```
+
 Once you finish your simulation, type the following command:
 
 ```bash
