@@ -13,8 +13,6 @@ from clients.client_fedyogi_fedpredict import ClientFedYogiFP
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
 
-# Make TensorFlow log less verbose
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description="Flower client")

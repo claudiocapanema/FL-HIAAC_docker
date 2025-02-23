@@ -2,7 +2,7 @@
 title: Leveraging Flower and Docker for Device Heterogeneity Management in FL
 tags: [deployment, vision, tutorial]
 dataset: [CIFAR-10]
-framework: [Docker, tensorflow]
+framework: [Docker, torch]
 ---
 
 # FL-H.IAAC 
@@ -71,9 +71,25 @@ Once you finish your simulation, type the following command:
 docker compose down
 ```
 
-In case your building is not working, try removing everything first:
+In case your building is not working, try the following steps (one at a time):
 ```bash
+# Remove unused containers
+docker container prune -f
+
+```
+
+When changing strategy it is important to first remove existing images:
+
+```bash
+# Remove images
+docker image prune -a
+
+```
+
+```bash
+# Remove everything (images, containers, networks)
 docker system prune -a --volumes
+
 ```
 
 On your favourite browser, go to `http://localhost:3000` to see the Graphana dashboard showing system-level and application-level metrics.

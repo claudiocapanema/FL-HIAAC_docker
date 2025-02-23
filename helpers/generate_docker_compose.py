@@ -3,10 +3,10 @@ import random
 
 parser = argparse.ArgumentParser(description="Generated Docker Compose")
 parser.add_argument(
-    "--total_clients", type=int, default=10, help="Total clients to spawn (default: 2)"
+    "--total_clients", type=int, default=20, help="Total clients to spawn (default: 2)"
 )
 parser.add_argument(
-    "--number_of_rounds", type=int, default=5, help="Number of FL rounds (default: 100)"
+    "--number_of_rounds", type=int, default=5, help="Number of FL rounds (default: 5)"
 )
 parser.add_argument(
     "--data_percentage",
@@ -19,7 +19,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--strategy", type=str, default='FedAvg+FP', help="Strategy to use (default: FedAvg)"
+    "--strategy", type=str, default='FedAvg', help="Strategy to use (default: FedAvg)"
 )
 parser.add_argument(
     "--alpha", type=float, default=0.1, help="Dirichlet alpha"
@@ -37,7 +37,7 @@ parser.add_argument(
     "--dataset", type=str, default="CIFAR10"
 )
 parser.add_argument(
-    "--model", type=str, default="CNN"
+    "--model", type=str, default="CNN_3"
 )
 parser.add_argument(
     "--cd", type=str, default="false"
@@ -68,7 +68,7 @@ def create_docker_compose(args):
     client_file = "start_client.py"
     server_file = "start_server.py"
 
-    general_config = f"--total_clients={args.total_clients} --number_of_rounds={args.number_of_rounds} --data_percentage={args.data_percentage} --strategy={strategy_name} --alpha={args.alpha} --round_new_clients={args.round_new_clients} --fraction_new_clients={args.fraction_new_clients} --model='{args.model}' --cd='{args.cd}' --fraction_fit={args.fraction_fit} --batch_size={args.batch_size} --learning_rate={args.learning_rate} --dataset='{args.dataset}'"
+    general_config = f"--total_clients={args.total_clients} --number_of_rounds={args.number_of_rounds} --data_percentage={args.data_percentage} --strategy='{strategy_name}' --alpha={args.alpha} --round_new_clients={args.round_new_clients} --fraction_new_clients={args.fraction_new_clients} --model='{args.model}' --cd='{args.cd}' --fraction_fit={args.fraction_fit} --batch_size={args.batch_size} --learning_rate={args.learning_rate} --dataset='{args.dataset}'"
     print("config geral: ", general_config)
 
     docker_compose_content = f"""
@@ -159,6 +159,7 @@ services:
     #           cpus: "{(config['cpus'])}"
     #           memory: "{config['mem_limit']}"
     # Add client services
+    # image: client{i}:latest
     for i in range(1, args.total_clients + 1):
         # if args.random:
         #     config = random.choice(client_configs)
@@ -167,7 +168,6 @@ services:
         config = ""
         docker_compose_content += f"""
   client{i}:
-    image: client{i}:latest
     container_name: client{i}
     build:
       context: .
@@ -212,7 +212,7 @@ services:
         # Chamar o script bash usando subprocess
         subprocess.Popen(script_up, shell=True).wait()
         subprocess.Popen(script_down, shell=True).wait()
-        subprocess.Popen("sudo bash get_results.sh", shell=True).wait()
+        # subprocess.Popen("sudo bash get_results.sh", shell=True).wait()
     except Exception as e:
         # print(e)
         # subprocess.Popen(script_down, shell=True).wait()

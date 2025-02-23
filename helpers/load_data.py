@@ -1,7 +1,6 @@
 import logging
 
 import numpy as np
-import tensorflow as tf
 from flwr_datasets import FederatedDataset
 
 logging.basicConfig(level=logging.INFO)  # Configure logging

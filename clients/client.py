@@ -3,7 +3,6 @@ import logging
 import os
 
 import flwr as fl
-import tensorflow as tf
 from helpers.load_data import load_data
 
 from model.model import CNN_3, get_weights, load_data, set_weights, test, train

@@ -1,4 +1,3 @@
-import tensorflow as tf
 from collections import OrderedDict
 
 import torch
@@ -6,7 +5,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from flwr_datasets import FederatedDataset
 from flwr_datasets.partitioner import IidPartitioner, DirichletPartitioner
-from tensorflow.python.ops.metrics_impl import accuracy
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, Resize, RandomHorizontalFlip, RandomAffine, ColorJitter,  Normalize, ToTensor, RandomRotation
 from sklearn import metrics

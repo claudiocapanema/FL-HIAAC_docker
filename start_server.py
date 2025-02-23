@@ -21,13 +21,12 @@ from server.server_fedper import FedPer
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Parse command line arguments
-parser = argparse.ArgumentParser(description="Flower Server")
+parser = argparse.ArgumentParser(description="Generated Docker Compose")
 parser.add_argument(
-    "--total_clients", type=int, default=2, help="Total clients to spawn (default: 2)"
+    "--total_clients", type=int, default=20, help="Total clients to spawn (default: 2)"
 )
 parser.add_argument(
-    "--number_of_rounds", type=int, default=5, help="Number of FL rounds (default: 100)"
+    "--number_of_rounds", type=int, default=5, help="Number of FL rounds (default: 5)"
 )
 parser.add_argument(
     "--data_percentage",
@@ -36,7 +35,11 @@ parser.add_argument(
     help="Portion of client data to use (default: 0.6)",
 )
 parser.add_argument(
-    "--strategy", type=str, default='FedAvg+FP', help="Strategy to use (default: FedAvg)"
+    "--random", action="store_true", help="Randomize client configurations"
+)
+
+parser.add_argument(
+    "--strategy", type=str, default='FedAvg', help="Strategy to use (default: FedAvg)"
 )
 parser.add_argument(
     "--alpha", type=float, default=0.1, help="Dirichlet alpha"
@@ -54,23 +57,25 @@ parser.add_argument(
     "--dataset", type=str, default="CIFAR10"
 )
 parser.add_argument(
-    "--model", type=str, default=""
+    "--model", type=str, default="CNN_3"
 )
 parser.add_argument(
     "--cd", type=str, default="false"
 )
 parser.add_argument(
-    "--fraction_fit", type=float, default=1
+    "--fraction_fit", type=float, default=0.3
+)
+parser.add_argument(
+    "--client_id", type=int, default=1
 )
 parser.add_argument(
     "--batch_size", type=int, default=32
 )
 parser.add_argument(
-    "--learning_rate", type=float, default=0.001
+    "--learning_rate", type=float, default=0.01
 )
 
 args = parser.parse_args()
-
 
 from model.model import load_model, get_weights
 
@@ -127,7 +132,7 @@ if __name__ == "__main__":
     torch.random.manual_seed(0)
     ndarrays = get_weights(load_model(args.model, args.dataset, args.strategy))
     parameters = ndarrays_to_parameters(ndarrays)
-
+    logger.info(f"argumentos recebidos: {args}")
     # Define the strategy
     strategy_ = get_server(args.strategy)
     strategy = strategy_(
