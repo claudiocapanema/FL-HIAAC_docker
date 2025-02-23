@@ -1,5 +1,4 @@
 import argparse
-import random
 
 parser = argparse.ArgumentParser(description="Generated Docker Compose")
 parser.add_argument(
