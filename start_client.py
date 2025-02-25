@@ -7,6 +7,7 @@ from clients.client_fedavg import Client
 from clients.client_fedavg_fedpredict import ClientFedAvgFP
 from clients.client_fedper import ClientFedPer
 from clients.client_fedkd import ClientFedKD
+from clients.client_fedkd_fedpredict import ClientFedKDFedPredict
 from clients.client_fedyogi import ClientFedYogi
 from clients.client_fedyogi_fedpredict import ClientFedYogiFP
 
@@ -88,6 +89,8 @@ def get_client(strategy_name):
         return ClientFedPer
     elif strategy_name == "FedKD":
         return ClientFedKD
+    elif strategy_name == "FedKD+FP":
+        return ClientFedKDFedPredict
 
 
 # Function to Start the Client

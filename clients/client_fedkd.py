@@ -31,7 +31,6 @@ class ClientFedKD(Client):
         try:
             logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
             t = config['t']
-            self.lt = t - self.lt
             set_weights_fedkd(self.model, parameters)
             results = train_fedkd(
                 self.model,

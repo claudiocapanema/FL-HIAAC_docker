@@ -14,7 +14,8 @@ def read_data(read_solutions, read_dataset_order):
         "FedYogi+FP": {"Strategy": "FedYogi", "Version": "FP", "Table": "FedYogi+FP"},
         "FedYogi": {"Strategy": "FedYogi", "Version": "Original", "Table": "FedYogi"},
         "FedPer": {"Strategy": "FedPer", "Version": "Original", "Table": "FedPer"},
-        "FedKD": {"Strategy": "FedKD", "Version": "Original", "Table": "FedKD"}
+        "FedKD": {"Strategy": "FedKD", "Version": "Original", "Table": "FedKD"},
+        "FedKD+FP": {"Strategy": "FedKD", "Version": "FP", "Table": "FedKD+FP"}
     }
     hue_order = []
     for solution in read_solutions:
@@ -124,7 +125,7 @@ if __name__ == "__main__":
     #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
-    solutions = ["FedAvg+FP", "FedYogi+FP", "FedAvg", "FedYogi", "FedPer"]
+    solutions = ["FedAvg+FP", "FedYogi+FP", "FedAvg", "FedYogi", "FedKD+FP", "FedKD", "FedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}

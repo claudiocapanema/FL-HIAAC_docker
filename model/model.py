@@ -580,8 +580,8 @@ def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, cl
                 loss_teacher = criterion(output_teacher, labels)
                 # loss_1 = torch.nn.KLDivLoss()(outputs_S1, outputs_T2) / (loss_student + loss_teacher)
                 # loss_2 = torch.nn.KLDivLoss()(outputs_S2, outputs_T1) / (loss_student + loss_teacher)
-                L_h = MSE(rep, W_h(rep_g)) / (loss_student + loss_teacher)
-                loss = loss_student + loss_teacher + L_h
+                # L_h = MSE(rep, W_h(rep_g)) / (loss_student + loss_teacher)
+                loss = loss_student + loss_teacher
                 # loss = loss_teacher + loss_student + L_h + loss_1 + loss_2
                 loss.backward()
                 loss_total += loss.item() * labels.shape[0]
@@ -675,8 +675,6 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
                     labels = labels.to(device)
                     y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
                     output, proto_student, output_teacher, proto_teacher = model(images)
-                    if model.new_client:
-                        output_teacher = output
                     y_prob.append(output_teacher.detach().cpu().numpy())
                     loss += criterion(output_teacher, labels).item()
                     correct += (torch.sum(torch.argmax(output_teacher, dim=1) == labels)).item()
@@ -697,3 +695,49 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
         except Exception as e:
             logger.info("Error test_fedkd")
             logger.info('Error on line {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+
+def test_fedkd_fedpredict(lt, model, testloader, device, client_id, t, dataset_name, n_classes):
+    try:
+        model.to(device)  # move model to GPU if available
+        # model.teacher.to(device)
+        # model.student.to(device)
+        model.eval()
+        criterion = torch.nn.CrossEntropyLoss().to(device)
+
+        correct = 0
+        loss = 0
+        y_prob = []
+        y_true = []
+
+        key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
+        with torch.no_grad():
+            for batch in testloader:
+                images = batch[key]
+                labels = batch["label"]
+                images = images.to(device)
+                labels = labels.to(device)
+                y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
+                output, proto_student, output_teacher, proto_teacher = model(images)
+                if lt == 0:
+                    output_teacher = output
+                y_prob.append(output_teacher.detach().cpu().numpy())
+                loss += criterion(output_teacher, labels).item()
+                correct += (torch.sum(torch.argmax(output_teacher, dim=1) == labels)).item()
+
+        accuracy = correct / len(testloader.dataset)
+        loss = loss / len(testloader.dataset)
+        y_prob = np.concatenate(y_prob, axis=0)
+        y_true = np.concatenate(y_true, axis=0)
+        # test_auc = metrics.roc_auc_score(y_true, y_prob, average='micro')
+
+        y_prob = y_prob.argmax(axis=1)
+        y_true = y_true.argmax(axis=1)
+        balanced_accuracy = float(metrics.balanced_accuracy_score(y_true, y_prob))
+
+        test_metrics = {"Accuracy": accuracy, "Balanced accuracy": balanced_accuracy, "Loss": loss, "Round (t)": t}
+        # logger.info("""metricas cliente {} valores {}""".format(client_id, test_metrics))
+        return loss, test_metrics
+    except Exception as e:
+        logger.info("Error test_fedkd")
+        logger.info('Error on line {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

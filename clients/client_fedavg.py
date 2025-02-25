@@ -37,7 +37,6 @@ class Client(fl.client.NumPyClient):
 
         logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
         t = config['t']
-        self.lt = t - self.lt
         set_weights(self.model, parameters)
         results = train(
             self.model,

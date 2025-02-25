@@ -123,6 +123,8 @@ def get_server(strategy_name):
         return FedPer
     elif strategy_name == "FedKD":
         return FedAvg
+    elif strategy_name == "FedKD+FP":
+        return FedAvg
 
 
 # Main Function
