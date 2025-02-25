@@ -77,7 +77,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-from model.model import load_model, get_weights
+from model.model import load_model, get_weights, get_weights_fedkd
 
 
 # Define metric aggregation function
@@ -121,6 +121,8 @@ def get_server(strategy_name):
         return FedYogiFP
     elif strategy_name == "FedPer":
         return FedPer
+    elif strategy_name == "FedKD":
+        return FedAvg
 
 
 # Main Function
@@ -131,6 +133,8 @@ if __name__ == "__main__":
     # Initialize Strategy Instance and Start FL Serverstart_fl_server
     torch.random.manual_seed(0)
     ndarrays = get_weights(load_model(args.model, args.dataset, args.strategy))
+    if args.strategy in ["FedKD", "FedKD+FP"]:
+        ndarrays = get_weights_fedkd(load_model(args.model, args.dataset, args.strategy))
     parameters = ndarrays_to_parameters(ndarrays)
     logger.info(f"argumentos recebidos: {args}")
     # Define the strategy

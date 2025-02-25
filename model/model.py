@@ -190,14 +190,14 @@ class CNN_3(nn.Module):
         except Exception as e:
 
             print("CNN_3 init")
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def forward(self, x):
         try:
             return self.model(x)
         except Exception as e:
             print("CNN_3 forward")
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 class CNN_3_proto(torch.nn.Module):
     def __init__(self, input_shape, mid_dim=64, num_classes=10):
@@ -261,8 +261,8 @@ class CNN_3_proto(torch.nn.Module):
             self.fc = torch.nn.Linear(512, num_classes)
 
         except Exception as e:
-            print("CNN_3_proto")
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+            logger.info("CNN_3_proto")
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def forward(self, x):
         try:
@@ -270,8 +270,8 @@ class CNN_3_proto(torch.nn.Module):
             out = self.fc(proto)
             return out, proto
         except Exception as e:
-            print("CNN_3_proto")
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+            logger.info("CNN_3_proto")
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 class CNN_student(nn.Module):
     def __init__(self, input_shape=1, mid_dim=256, num_classes=10):
@@ -287,9 +287,8 @@ class CNN_student(nn.Module):
                 nn.ReLU(inplace=True),
                 nn.MaxPool2d(kernel_size=(2, 2)),
                 nn.Flatten(),
-                nn.Linear(mid_dim * 4, 512),
-                nn.ReLU(inplace=True))
-            self.out = nn.Linear(512, num_classes)
+                nn.Linear(mid_dim * 4, 512))
+            # self.out = nn.Linear(512, num_classes)
             # self.conv1 = nn.Sequential(
             #     nn.Conv2d(input_shape,
             #               32,
@@ -308,8 +307,8 @@ class CNN_student(nn.Module):
             #     nn.ReLU(inplace=True))
             self.out = nn.Linear(512, num_classes)
         except Exception as e:
-            print("CNN student")
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+            logger.info("CNN student")
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def forward(self, x):
         try:
@@ -317,8 +316,8 @@ class CNN_student(nn.Module):
             out = self.out(proto)
             return out, proto
         except Exception as e:
-            print("CNN student forward")
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+            logger.info("CNN student forward")
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 class CNNDistillation(nn.Module):
     def __init__(self, input_shape=1, mid_dim=256, num_classes=10, dataset='CIFAR10'):
@@ -341,8 +340,8 @@ class CNNDistillation(nn.Module):
                 mid_dim = 4
             self.teacher = CNN_3_proto(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes)
         except Exception as e:
-            print("CNNDistillation")
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+            logger.info("CNNDistillation")
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def forward(self, x):
         try:
@@ -350,8 +349,8 @@ class CNNDistillation(nn.Module):
             out_teacher, proto_teacher = self.teacher(x)
             return out_student, proto_student, out_teacher, proto_teacher
         except Exception as e:
-            print("CNNDistillation forward")
-            print('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+            logger.info("CNNDistillation forward")
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 
 
@@ -362,19 +361,19 @@ def load_model(model_name, dataset, strategy):
             mid_dim = 256
             # mid_dim = 4
             num_classes = 10
-            logging.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
+            logger.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
         elif dataset in ['EMNIST']:
             input_shape = 1
             mid_dim = 256
             # mid_dim = 4
             num_classes = 47
-            logging.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
+            logger.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
         elif dataset in ['GTSRB']:
             input_shape = 1
             mid_dim = 36
             # mid_dim = 16
             num_classes = 43
-            logging.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
+            logger.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
         else:
             input_shape = 3
             mid_dim = 400
@@ -386,28 +385,28 @@ def load_model(model_name, dataset, strategy):
             # mid_dim = 256
             mid_dim = 4
             num_classes = 10
-            logging.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
+            logger.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
         elif dataset in ['EMNIST']:
             input_shape = 1
             # mid_dim = 256
             mid_dim = 4
             num_classes = 47
-            logging.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
+            logger.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
         elif dataset in ['GTSRB']:
             input_shape = 3
             # mid_dim = 36
             mid_dim = 16
             num_classes = 43
-            logging.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
+            logger.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
         else:
             input_shape = 3
             # mid_dim = 400
             mid_dim = 16
             num_classes = 10
-            logging.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
+            logger.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
 
         if "FedKD" in strategy:
-            return CNNDistillation(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes)
+            return CNNDistillation(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes, dataset=dataset)
         else:
             return CNN_3(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
 
@@ -483,7 +482,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
         """Apply transforms to the partition from FederatedDataset."""
 
         batch[key] = [pytorch_transforms(img) for img in batch[key]]
-        # logging.info("""bath key: {}""".format(batch[key]))
+        # logger.info("""bath key: {}""".format(batch[key]))
         return batch
 
     partition_train_test = partition_train_test.with_transform(apply_transforms)
@@ -506,7 +505,7 @@ def train(model, trainloader, valloader, epochs, learning_rate, device, client_i
         y_true = []
         y_prob = []
         for batch in trainloader:
-            # logging.info("""dentro {} labels {}""".format(images, labels))
+            # logger.info("""dentro {} labels {}""".format(images, labels))
             images = batch[key]
             labels = batch["label"]
             images = images.to(device)
@@ -514,7 +513,7 @@ def train(model, trainloader, valloader, epochs, learning_rate, device, client_i
 
             optimizer.zero_grad()
             outputs = model(images)
-            # logging.info("""saida: {} true: {}""".format(outputs, labels))
+            # logger.info("""saida: {} true: {}""".format(outputs, labels))
             loss = criterion(outputs, labels)
             loss.backward()
             loss_total += loss.item() * labels.shape[0]
@@ -531,7 +530,7 @@ def train(model, trainloader, valloader, epochs, learning_rate, device, client_i
     balanced_accuracy = float(metrics.balanced_accuracy_score(y_true, y_prob))
 
     train_metrics = {"Train accuracy": accuracy, "Train balanced accuracy": balanced_accuracy, "Train loss": loss, "Train round (t)": t}
-    logging.info(train_metrics)
+    logger.info(train_metrics)
 
     val_loss, test_metrics = test(model, valloader, device, client_id, t, dataset_name, n_classes)
     results = {
@@ -557,13 +556,14 @@ def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, cl
         W_h = torch.nn.Linear(feature_dim, feature_dim, bias=False).to(device)
         MSE = torch.nn.MSELoss().to(device)
         key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
+        logger.info("""Inicio train_fedkd client {}""".format(client_id))
         for _ in range(epochs):
             loss_total = 0
             correct = 0
             y_true = []
             y_prob = []
             for batch in trainloader:
-                # logging.info("""dentro {} labels {}""".format(images, labels))
+                # logger.info("""dentro {} labels {}""".format(images, labels))
                 images = batch[key]
                 labels = batch["label"]
                 images = images.to(device)
@@ -578,11 +578,11 @@ def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, cl
 
                 loss_student = criterion(output_student, labels)
                 loss_teacher = criterion(output_teacher, labels)
-                loss_1 = torch.nn.KLDivLoss()(outputs_S1, outputs_T2) / (loss_student + loss_teacher)
-                loss_2 = torch.nn.KLDivLoss()(outputs_S2, outputs_T1) / (loss_student + loss_teacher)
+                # loss_1 = torch.nn.KLDivLoss()(outputs_S1, outputs_T2) / (loss_student + loss_teacher)
+                # loss_2 = torch.nn.KLDivLoss()(outputs_S2, outputs_T1) / (loss_student + loss_teacher)
                 L_h = MSE(rep, W_h(rep_g)) / (loss_student + loss_teacher)
-                # loss += loss_student + loss_teacher + L_h
-                loss = loss_teacher + loss_student + L_h + loss_1 + loss_2
+                loss = loss_student + loss_teacher + L_h
+                # loss = loss_teacher + loss_student + L_h + loss_1 + loss_2
                 loss.backward()
                 loss_total += loss.item() * labels.shape[0]
                 y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
@@ -598,7 +598,7 @@ def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, cl
         balanced_accuracy = float(metrics.balanced_accuracy_score(y_true, y_prob))
 
         train_metrics = {"Train accuracy": accuracy, "Train balanced accuracy": balanced_accuracy, "Train loss": loss, "Train round (t)": t}
-        logging.info(train_metrics)
+        logger.info(train_metrics)
 
         val_loss, test_metrics = test_fedkd(model, valloader, device, client_id, t, dataset_name, n_classes)
         results = {
@@ -612,8 +612,8 @@ def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, cl
         return results
 
     except Exception as e:
-        logging.error("""Error on train_fedkd""")
-        logging.info('Error on line {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+        logger.info("""Error on train_fedkd""")
+        logger.info('Error on line {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 
 def test(model, testloader, device, client_id, t, dataset_name, n_classes):
@@ -695,5 +695,5 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
             # logger.info("""metricas cliente {} valores {}""".format(client_id, test_metrics))
             return loss, test_metrics
         except Exception as e:
-            logging.info("Error test_fedkd")
-            logging.info('Error on line {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+            logger.info("Error test_fedkd")
+            logger.info('Error on line {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

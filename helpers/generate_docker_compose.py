@@ -59,7 +59,7 @@ def create_docker_compose(args):
     # cpus is used to set the number of CPUs available to the container as a fraction of the total number of CPUs on the host machine.
     # mem_limit is used to set the memory limit for the container.
     client_configs = [
-        {"mem_limit": "0.7g", "cpus": 1} for i in range(args.total_clients)
+        {"mem_limit": "0.9g", "cpus": 1} for i in range(args.total_clients)
         # Add or modify the configurations depending on your host machine
     ]
 
@@ -210,11 +210,11 @@ services:
     try:
         # Chamar o script bash usando subprocess
         subprocess.Popen(script_up, shell=True).wait()
-        subprocess.Popen(script_down, shell=True).wait()
+        subprocess.Popen("sudo docker compose down", shell=True).wait()
         # subprocess.Popen("sudo bash get_results.sh", shell=True).wait()
     except Exception as e:
         # print(e)
-        # subprocess.Popen(script_down, shell=True).wait()
+        subprocess.Popen("sudo docker compose down", shell=True)
         pass
     print(script_down)
 

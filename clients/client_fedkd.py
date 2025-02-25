@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 
 from clients.client_fedavg import Client
 
@@ -16,7 +17,6 @@ class ClientFedKD(Client):
     def __init__(self, args):
         super().__init__(args)
         self.lr_loss = torch.nn.MSELoss()
-        self.device = "cpu"
         self.round_of_last_fit = 0
         self.rounds_of_fit = 0
         self.accuracy_of_last_round_of_fit = 0
@@ -28,25 +28,30 @@ class ClientFedKD(Client):
 
     def fit(self, parameters, config):
         """Train the model with data of this client."""
+        try:
+            logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
+            t = config['t']
+            self.lt = t - self.lt
+            set_weights_fedkd(self.model, parameters)
+            results = train_fedkd(
+                self.model,
+                self.trainloader,
+                self.valloader,
+                self.local_epochs,
+                self.lr,
+                self.device,
+                self.client_id,
+                t,
+                self.args.dataset,
+                self.n_classes
+            )
+            logger.info("fit cliente fim")
+            return get_weights_fedkd(self.model), len(self.trainloader.dataset), results
 
-        logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
-        t = config['t']
-        self.lt = t - self.lt
-        set_weights_fedkd(self.model, parameters)
-        results = train_fedkd(
-            self.model,
-            self.trainloader,
-            self.valloader,
-            self.local_epochs,
-            self.lr,
-            self.device,
-            self.client_id,
-            t,
-            self.args.dataset,
-            self.n_classes
-        )
-        logger.info("fit cliente fim")
-        return get_weights_fedkd(self.model), len(self.trainloader.dataset), results
+        except Exception as e:
+            logger.info("fit")
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
 
     def evaluate(self, parameters, config):
         """Evaluate the model on the data this client has."""
