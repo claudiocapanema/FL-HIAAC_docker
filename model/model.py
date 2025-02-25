@@ -445,7 +445,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
 
                                            self_balancing=True)
         fds = FederatedDataset(
-            dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist", "GTSRB": "tanganke/gtsrb"}[dataset_name],
+            dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist", "GTSRB": "claudiogsc/GTSRB"}[dataset_name],
             partitioners={"train": partitioner},
         )
     partition = fds.load_partition(partition_id)

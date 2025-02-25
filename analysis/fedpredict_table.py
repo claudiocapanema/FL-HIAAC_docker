@@ -17,7 +17,8 @@ def read_data(read_solutions, read_dataset_order):
         "FedYogi+FP": {"Strategy": "FedYogi", "Version": "FP", "Table": "FedYogi+FP"},
         "FedYogi": {"Strategy": "FedYogi", "Version": "Original", "Table": "FedYogi"},
         "FedPer": {"Strategy": "FedPer", "Version": "Original", "Table": "FedPer"},
-        "FedKD": {"Strategy": "FedKD", "Version": "Original", "Table": "FedKD"}
+        "FedKD": {"Strategy": "FedKD", "Version": "Original", "Table": "FedKD"},
+        "FedKD+FP": {"Strategy": "FedKD", "Version": "FP", "Table": "FedKD+FP"}
     }
     hue_order = []
     for solution in read_solutions:
@@ -164,6 +165,7 @@ def table(df, write_path, metric, t=None):
         "\multirow[t]{" + n_strategies + "}{*}{CIFAR10}", "CIFAR10").replace(
         "\multirow[t]{" + n_strategies + "}{*}{GTSRB}", "GTSRB").replace("\cline{1-4}", "\hline")
 
+    Path(write_path).mkdir(parents=True, exist_ok=True)
     if t is not None:
         filename = """{}latex_round_{}_{}.txt""".format(write_path, t, metric)
     else:
@@ -177,7 +179,7 @@ def table(df, write_path, metric, t=None):
 
 def improvements(df, datasets, metric):
     # , "FedKD+FP": "FedKD"
-    strategies = {"FedAvg+FP": "FedAvg", "FedYogi+FP": "FedYogi"}
+    strategies = {"FedAvg+FP": "FedAvg", "FedYogi+FP": "FedYogi", "FedKD+FP": "FedKD"}
     # strategies = {r"MultiFedAvg+FP": "MultiFedAvg"}
     columns = df.columns.tolist()
     improvements_dict = {'Dataset': [], 'Table': [], 'Original strategy': [], 'Alpha': [], metric: []}
@@ -257,7 +259,7 @@ def accuracy_improvement(df, datasets):
     # reference_solutions = {"MultiFedAvg+FP": "MultiFedAvg", "MultiFedAvgGlobalModelEval+FP": "MultiFedAvgGlobalModelEval"}
     # ,
     #                            "FedKD+FP": "FedKD"
-    reference_solutions = {"FedAvg+FP": "FedAvg", "FedYogi+FP": "FedYogi"}
+    reference_solutions = {"FedAvg+FP": "FedAvg", "FedYogi+FP": "FedYogi", "FedKD+FP": "FedKD"}
 
     print(df_difference)
     # exit()
@@ -330,7 +332,7 @@ if __name__ == "__main__":
     cd = "false"
     total_clients = 20
     alphas = [0.1, 1.0]
-    dataset = ["EMNIST", "CIFAR10", "GTSRB"]
+    dataset = ["EMNIST", "CIFAR10"]
     # dataset = ["EMNIST", "CIFAR10"]
     # models_names = ["cnn_c"]
     model_name = "CNN_3"
@@ -345,7 +347,7 @@ if __name__ == "__main__":
     #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
-    solutions = ["FedAvg+FP", "FedAvg", "FedYogi+FP", "FedYogi", "FedPer"]
+    solutions = ["FedAvg+FP", "FedYogi+FP", "FedAvg", "FedYogi", "FedKD+FP", "FedKD", "FedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}

@@ -55,7 +55,7 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
     alphas = df["Alpha"].unique().tolist()
     df["Strategy"] = np.array([i.replace("Multi", "") for i in df["Strategy"].tolist()])
 
-    fig, axs = plt.subplots(len(alphas), len(datasets), sharex='all', figsize=(12, 6))
+    fig, axs = plt.subplots(len(alphas), 3, sharex='all', figsize=(12, 6))
     hue_order = ["FedAvg", "FedYogi", "FedKD", "FedPer", "FedProto"]
 
     for i in range(len(alphas)):
@@ -69,8 +69,8 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
                       hue=hue, hue_order=hue_order, style=style, ci=ci, title="", tipo=None, y_lim=True, y_max=100)
             axs[i, j].set_title(r"""Dataset: {}; $\alpha$={}""".format(datasets[j], alphas[i]), size=10)
 
-            if i == 0:
-                axs[i, j].get_legend().remove()
+            # if i == 0:
+            axs[i, j].get_legend().remove()
 
     lines_labels = [axs[1, 0].get_legend_handles_labels()]
     lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
@@ -86,11 +86,11 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
     f = lambda m, c: plt.plot([], [], marker=m, color=c, ls="none")[0]
     handles = [f("o", colors[i]) for i in range(len(hue_order) + 1)]
     handles += [plt.Line2D([], [], linestyle=markers[i], color="k") for i in range(3)]
-    for i in range(len(alphas)):
-        if i == 0:
-            continue
-        for j in range(len(datasets)):
-            axs[i, j].legend(handles, labels, fontsize=7)
+    # for i in range(len(alphas)):
+    #     if i == 0:
+    #         continue
+    #     for j in range(len(datasets)):
+    #         axs[i, j].legend(handles, labels, fontsize=7)
 
     # fig.suptitle("", fontsize=16)
 
