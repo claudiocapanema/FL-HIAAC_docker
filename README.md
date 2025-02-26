@@ -164,8 +164,8 @@ In addition to the standard metrics captured by cAdvisor, we have implemented a 
      ```python
      from prometheus_client import Gauge
 
-     accuracy_gauge = Gauge('model_accuracy', 'Current accuracy of the global model')
-     loss_gauge = Gauge('model_loss', 'Current loss of the global model')
+     accuracy_gauge = Gauge('model_accuracy', 'Current accuracy of the global utils')
+     loss_gauge = Gauge('model_loss', 'Current loss of the global utils')
      ```
 
 3. **Exposing Metrics via HTTP Endpoint**:

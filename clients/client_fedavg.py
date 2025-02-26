@@ -2,7 +2,7 @@ import logging
 
 import flwr as fl
 
-from model.model import load_model, get_weights, load_data, set_weights, test, train
+from utils.models_utils import load_model, get_weights, load_data, set_weights, test, train
 import torch
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
@@ -33,7 +33,7 @@ class Client(fl.client.NumPyClient):
         self.n_classes = {"EMNIST": 47, "CIFAR10": 10, "GTSRB": 43}[args.dataset]
 
     def fit(self, parameters, config):
-        """Train the model with data of this client."""
+        """Train the utils with data of this client."""
 
         logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
         t = config['t']
@@ -54,7 +54,7 @@ class Client(fl.client.NumPyClient):
         return get_weights(self.model), len(self.trainloader.dataset), results
 
     def evaluate(self, parameters, config):
-        """Evaluate the model on the data this client has."""
+        """Evaluate the utils on the data this client has."""
         logger.info("""eval cliente inicio""".format(config))
         t = config["t"]
         nt = t - self.lt

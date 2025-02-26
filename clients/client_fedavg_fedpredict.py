@@ -1,7 +1,7 @@
 import logging
 import os
 
-from model.model import load_model, get_weights, set_weights, test, train
+from utils.models_utils import load_model, get_weights, set_weights, test, train
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
@@ -19,7 +19,7 @@ class ClientFedAvgFP(Client):
         self.lt = 0
 
     def fit(self, parameters, config):
-        """Train the model with data of this client."""
+        """Train the utils with data of this client."""
 
         logger.info("""fit cliente inicio fp config {}""".format(config))
         t = config['t']
@@ -41,7 +41,7 @@ class ClientFedAvgFP(Client):
         return get_weights(self.model), len(self.trainloader.dataset), results
 
     def evaluate(self, parameters, config):
-        """Evaluate the model on the data this client has."""
+        """Evaluate the utils on the data this client has."""
         logger.info("""eval cliente inicio fp""".format(config))
         t = config["t"]
         nt = t - self.lt

@@ -92,7 +92,7 @@ class FedYogi(FedAvg):
     accept_failures : bool, optional
         Whether or not accept rounds containing failures. Defaults to True.
     initial_parameters : Parameters
-        Initial global model parameters.
+        Initial global utils parameters.
     fit_metrics_aggregation_fn : Optional[MetricsAggregationFn]
         Metrics aggregation function, optional.
     evaluate_metrics_aggregation_fn: Optional[MetricsAggregationFn]

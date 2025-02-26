@@ -2,7 +2,7 @@ import logging
 import os
 from torch.nn.parameter import Parameter
 
-from model.model import test, train
+from utils.models_utils import test, train
 import torch
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
@@ -32,7 +32,7 @@ class ClientFedPer(Client):
         super().__init__(args)
 
     def fit(self, parameters, config):
-        """Train the model with data of this client."""
+        """Train the utils with data of this client."""
 
         logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
         t = config['t']
@@ -53,7 +53,7 @@ class ClientFedPer(Client):
         return get_weights(self.model), len(self.trainloader.dataset), results
 
     def evaluate(self, parameters, config):
-        """Evaluate the model on the data this client has."""
+        """Evaluate the utils on the data this client has."""
         logger.info("""eval cliente inicio""".format(config))
         t = config["t"]
         nt = t - self.lt

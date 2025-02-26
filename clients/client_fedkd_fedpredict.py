@@ -4,7 +4,7 @@ import sys
 
 from clients.client_fedkd import ClientFedKD
 
-from model.model import get_weights_fedkd, set_weights_fedkd, test_fedkd_fedpredict, train_fedkd
+from utils.models_utils import get_weights_fedkd, set_weights_fedkd, test_fedkd_fedpredict, train_fedkd
 import torch
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
@@ -19,7 +19,7 @@ class ClientFedKDFedPredict(ClientFedKD):
         self.lt = 0
 
     def fit(self, parameters, config):
-        """Train the model with data of this client."""
+        """Train the utils with data of this client."""
         try:
             t = config['t']
             self.lt = t
@@ -31,11 +31,11 @@ class ClientFedKDFedPredict(ClientFedKD):
 
 
     def evaluate(self, parameters, config):
-        """Evaluate the model on the data this client has."""
+        """Evaluate the utils on the data this client has."""
         logger.info("""eval cliente inicio""".format(config))
         t = config["t"]
         nt = t - self.lt
-        # set_weights_fedkd(self.model, parameters)
+        # set_weights_fedkd(self.utils, parameters)
         loss, metrics = test_fedkd_fedpredict(self.lt, self.model, self.valloader, self.device, self.client_id, t, self.args.dataset, self.n_classes)
         metrics["Model size"] = self.models_size
         logger.info("eval cliente fim")

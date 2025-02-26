@@ -5,7 +5,7 @@ import os
 import flwr as fl
 from helpers.load_data import load_data
 
-from model.model import CNN_3, get_weights, load_data, set_weights, test, train
+from utils.models_utils import CNN_3, get_weights, load_data, set_weights, test, train
 import torch
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
@@ -36,7 +36,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-# Create an instance of the model and pass the learning rate as an argument
+# Create an instance of the utils and pass the learning rate as an argument
 
 
 class Client(fl.client.NumPyClient):
@@ -65,7 +65,7 @@ class Client(fl.client.NumPyClient):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     def fit(self, parameters, config):
-        """Train the model with data of this client."""
+        """Train the utils with data of this client."""
         logger.info("fit cliente inicio")
         set_weights(self.net, parameters)
         results = train(
@@ -80,7 +80,7 @@ class Client(fl.client.NumPyClient):
         return get_weights(self.net), len(self.trainloader.dataset), results
 
     def evaluate(self, parameters, config):
-        """Evaluate the model on the data this client has."""
+        """Evaluate the utils on the data this client has."""
         logger.info("eval cliente inicio")
         set_weights(self.net, parameters)
         loss, accuracy = test(self.net, self.valloader, self.device)

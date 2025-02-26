@@ -59,7 +59,7 @@ def create_docker_compose(args):
     # cpus is used to set the number of CPUs available to the container as a fraction of the total number of CPUs on the host machine.
     # mem_limit is used to set the memory limit for the container.
     client_configs = [
-        {"mem_limit": "1.35g", "cpus": 1} for i in range(args.total_clients)
+        {"mem_limit": "1.2g", "cpus": 1} for i in range(args.total_clients)
         # Add or modify the configurations depending on your host machine
     ]
 
@@ -195,7 +195,7 @@ services:
 
     docker_compose_content += "volumes:\n  grafana-storage:\n"
 
-    # filename = f"docker-compose_{strategy_name}_clients_{args.total_clients}_fraction_fit_{args.fraction_fit}_number_of_rounds_{args.number_of_rounds}_dataset_{args.dataset}_model_{args.model}.yml"
+    # filename = f"docker-compose_{strategy_name}_clients_{args.total_clients}_fraction_fit_{args.fraction_fit}_number_of_rounds_{args.number_of_rounds}_dataset_{args.dataset}_model_{args.utils}.yml"
     filename = f"docker-compose.yml"
     with open(filename, "w") as file:
         file.write(docker_compose_content)

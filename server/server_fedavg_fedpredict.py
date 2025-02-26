@@ -48,13 +48,13 @@ class FedAvgFP(FedAvg):
     accept_failures : bool, optional
         Whether or not accept rounds containing failures. Defaults to True.
     initial_parameters : Parameters, optional
-        Initial global model parameters.
+        Initial global utils parameters.
     fit_metrics_aggregation_fn : Optional[MetricsAggregationFn]
         Metrics aggregation function, optional.
     evaluate_metrics_aggregation_fn : Optional[MetricsAggregationFn]
         Metrics aggregation function, optional.
     inplace : bool (default: True)
-        Enable (True) or disable (False) in-place aggregation of model updates.
+        Enable (True) or disable (False) in-place aggregation of utils updates.
     """
 
     # pylint: disable=too-many-arguments,too-many-instance-attributes, line-too-long

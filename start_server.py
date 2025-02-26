@@ -77,7 +77,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-from model.model import load_model, get_weights, get_weights_fedkd
+from utils.models_utils import load_model, get_weights, get_weights_fedkd
 
 
 # Define metric aggregation function
