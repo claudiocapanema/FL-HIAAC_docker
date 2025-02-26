@@ -332,7 +332,7 @@ if __name__ == "__main__":
     cd = "false"
     total_clients = 20
     alphas = [0.1, 1.0]
-    dataset = ["EMNIST", "CIFAR10"]
+    dataset = ["EMNIST", "CIFAR10", "GTSRB"]
     # dataset = ["EMNIST", "CIFAR10"]
     # models_names = ["cnn_c"]
     model_name = "CNN_3"

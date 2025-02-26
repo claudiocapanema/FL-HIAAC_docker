@@ -437,17 +437,17 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
     # Only initialize `FederatedDataset` once
     logger.info(
         """Loading {} data.""".format(dataset_name, partition_id, num_partitions, batch_size, data_sampling_percentage))
-    global fds
-    if fds is None:
-        partitioner = DirichletPartitioner(num_partitions=num_partitions, partition_by="label",
+    # global fds
+    # if fds is None:
+    partitioner = DirichletPartitioner(num_partitions=num_partitions, partition_by="label",
 
-                                           alpha=alpha, min_partition_size=10,
+                                       alpha=alpha, min_partition_size=10,
 
-                                           self_balancing=True)
-        fds = FederatedDataset(
-            dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist", "GTSRB": "claudiogsc/GTSRB"}[dataset_name],
-            partitioners={"train": partitioner},
-        )
+                                       self_balancing=True)
+    fds = FederatedDataset(
+        dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist", "GTSRB": "claudiogsc/GTSRB"}[dataset_name],
+        partitioners={"train": partitioner},
+    )
     partition = fds.load_partition(partition_id)
     # Divide data on each node: 80% train, 20% test
     test_size = 1 - data_sampling_percentage
