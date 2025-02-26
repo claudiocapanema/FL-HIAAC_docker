@@ -10,6 +10,7 @@ from clients.client_fedkd import ClientFedKD
 from clients.client_fedkd_fedpredict import ClientFedKDFedPredict
 from clients.client_fedyogi import ClientFedYogi
 from clients.client_fedyogi_fedpredict import ClientFedYogiFP
+from clients.client_fedavg_mefl import ClientMEFL
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
@@ -87,6 +88,8 @@ def get_client(strategy_name):
         return ClientFedKD
     elif strategy_name == "FedKD+FP":
         return ClientFedKDFedPredict
+    elif strategy_name == "MultiFedAvg":
+        return ClientMEFL
 
 
 # Function to Start the Client

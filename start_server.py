@@ -16,6 +16,7 @@ from server.server_fedavg_fedpredict import FedAvgFP
 from server.server_fedyogi import FedYogi
 from server.server_fedyogi_fedpredict import FedYogiFP
 from server.server_fedper import FedPer
+from server.server_multifedavg import MultiFedAvg
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
@@ -125,6 +126,8 @@ def get_server(strategy_name):
         return FedAvg
     elif strategy_name == "FedKD+FP":
         return FedAvg
+    elif strategy_name == "MultiFedAvg":
+        return MultiFedAvg
 
 
 # Main Function
@@ -134,10 +137,6 @@ if __name__ == "__main__":
 
     # Initialize Strategy Instance and Start FL Serverstart_fl_server
     torch.random.manual_seed(0)
-    ndarrays = get_weights(load_model(args.model, args.dataset, args.strategy))
-    if args.strategy in ["FedKD", "FedKD+FP"]:
-        ndarrays = get_weights_fedkd(load_model(args.model, args.dataset, args.strategy))
-    parameters = ndarrays_to_parameters(ndarrays)
     logger.info(f"argumentos recebidos: {args}")
     # Define the strategy
     strategy_ = get_server(args.strategy)
@@ -147,7 +146,7 @@ if __name__ == "__main__":
         fraction_evaluate=1.0,
         min_available_clients=args.total_clients,
         evaluate_metrics_aggregation_fn=weighted_average,
-        initial_parameters=parameters,
+        initial_parameters=None,
     )
 
     start_fl_server(strategy=strategy, rounds=args.number_of_rounds)
