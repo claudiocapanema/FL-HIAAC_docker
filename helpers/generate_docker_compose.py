@@ -21,7 +21,7 @@ parser.add_argument(
     "--strategy", type=str, default='FedAvg', help="Strategy to use (default: FedAvg)"
 )
 parser.add_argument(
-    "--alpha", type=float, default=0.1, help="Dirichlet alpha"
+    "--alpha", action="append", help="Dirichlet alpha"
 )
 parser.add_argument(
     "--round_new_clients", type=float, default=0.1, help=""
@@ -33,10 +33,10 @@ parser.add_argument(
     "--local_epochs", type=float, default=1, help=""
 )
 parser.add_argument(
-    "--dataset", type=str, default="CIFAR10"
+    "--dataset", action="append", default="CIFAR10"
 )
 parser.add_argument(
-    "--model", type=str, default="CNN_3"
+    "--model", action="append", default="CNN_3"
 )
 parser.add_argument(
     "--cd", type=str, default="false"

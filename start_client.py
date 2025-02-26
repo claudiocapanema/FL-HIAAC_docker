@@ -15,14 +15,12 @@ logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
 
 
-# Parse command line arguments
-parser = argparse.ArgumentParser(description="Flower client")
-
+parser = argparse.ArgumentParser(description="Generated Docker Compose")
 parser.add_argument(
-    "--total_clients", type=int, default=2, help="Total clients to spawn (default: 2)"
+    "--total_clients", type=int, default=20, help="Total clients to spawn (default: 2)"
 )
 parser.add_argument(
-    "--number_of_rounds", type=int, default=5, help="Number of FL rounds (default: 100)"
+    "--number_of_rounds", type=int, default=5, help="Number of FL rounds (default: 5)"
 )
 parser.add_argument(
     "--data_percentage",
@@ -31,10 +29,14 @@ parser.add_argument(
     help="Portion of client data to use (default: 0.6)",
 )
 parser.add_argument(
-    "--strategy", type=str, default='FedAvg+FP', help="Strategy to use (default: FedAvg)"
+    "--random", action="store_true", help="Randomize client configurations"
+)
+
+parser.add_argument(
+    "--strategy", type=str, default='FedAvg', help="Strategy to use (default: FedAvg)"
 )
 parser.add_argument(
-    "--alpha", type=float, default=0.1, help="Dirichlet alpha"
+    "--alpha", action="append", help="Dirichlet alpha"
 )
 parser.add_argument(
     "--round_new_clients", type=float, default=0.1, help=""
@@ -46,19 +48,16 @@ parser.add_argument(
     "--local_epochs", type=float, default=1, help=""
 )
 parser.add_argument(
-    "--dataset", type=str, default="CIFAR10"
+    "--dataset", action="append", default="CIFAR10"
 )
 parser.add_argument(
-    "--model", type=str, default=""
+    "--model", action="append", default="CNN_3"
 )
 parser.add_argument(
     "--cd", type=str, default="false"
 )
 parser.add_argument(
-    "--server_address", type=str, default="server:8080"
-)
-parser.add_argument(
-    "--fraction_fit", type=float, default=1
+    "--fraction_fit", type=float, default=0.3
 )
 parser.add_argument(
     "--client_id", type=int, default=1
@@ -67,11 +66,8 @@ parser.add_argument(
     "--batch_size", type=int, default=32
 )
 parser.add_argument(
-    "--learning_rate", type=float, default=0.001
+    "--learning_rate", type=float, default=0.01
 )
-
-
-
 
 args = parser.parse_args()
 
