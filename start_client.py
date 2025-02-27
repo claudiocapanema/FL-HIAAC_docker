@@ -49,10 +49,10 @@ parser.add_argument(
     "--local_epochs", type=float, default=1, help=""
 )
 parser.add_argument(
-    "--dataset", action="append", default="CIFAR10"
+    "--dataset", action="append"
 )
 parser.add_argument(
-    "--model", action="append", default="CNN_3"
+    "--model", action="append"
 )
 parser.add_argument(
     "--cd", type=str, default="false"
@@ -68,6 +68,9 @@ parser.add_argument(
 )
 parser.add_argument(
     "--learning_rate", type=float, default=0.01
+)
+parser.add_argument(
+    "--server_address", type=str, default="server:8080"
 )
 
 args = parser.parse_args()

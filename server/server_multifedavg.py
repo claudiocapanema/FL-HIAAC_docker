@@ -14,14 +14,18 @@ from flwr.common import (
     EvaluateIns,
     EvaluateRes,
     FitIns,
+    FitRes,
     MetricsAggregationFn,
     NDArrays,
     Parameters,
     Scalar,
+    ndarrays_to_parameters,
+    parameters_to_ndarrays,
 )
 from flwr.common.logger import log
 from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
+from flwr.server.strategy.aggregate import aggregate, aggregate_inplace, weighted_loss_avg
 
 
 import flwr
@@ -121,7 +125,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
         self.local_epochs = args.local_epochs
         self.fraction_new_clients = args.fraction_new_clients
         self.round_new_clients = args.round_new_clients
-        self.alpha = args.alpha
+        self.alpha = [float(i) for i in args.alpha]
         self.total_clients = args.total_clients
         self.dataset = args.dataset
         self.model_name = args.model
@@ -143,7 +147,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
         self.clients_results_test_metrics = {me: {metric: [] for metric in self.test_metrics_names} for me in range(self.ME)}
 
     def configure_fit(
-        self, server_round: int, parameters: Parameters, client_manager: ClientManager
+        self, server_round: int, parameters: dict, client_manager: ClientManager
     ) -> list[tuple[ClientProxy, FitIns]]:
 
         torch.random.manual_seed(server_round)
@@ -179,12 +183,15 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             sc = selected_clients_m[me]
             for client in sc:
                 config = {"t": server_round, "me": me}
-                fit_ins = FitIns(parameters, config)
+                if type(parameters) is dict:
+                    fit_ins = FitIns(parameters[me], config)
+                else:
+                    fit_ins = FitIns(parameters, config)
                 clients_m.append((client, fit_ins))
         return clients_m
 
     def configure_evaluate(
-        self, server_round: int, parameters: Parameters, client_manager: ClientManager
+        self, server_round: int, parameters: dict, client_manager: ClientManager
     ) -> list[tuple[ClientProxy, EvaluateIns]]:
         """Configure the next round of evaluation."""
         # Do not configure federated evaluation if fraction eval is 0.
@@ -210,9 +217,59 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
         for me in range(self.ME):
             for client in clients:
                 config = {"t": server_round, "me": me}
-                evaluate_ins = EvaluateIns(parameters, config)
+                evaluate_ins = EvaluateIns(parameters[me], config)
                 clients_m.append((client, evaluate_ins))
         return clients_m
+
+    def aggregate_fit(
+        self,
+        server_round: int,
+        results: list[tuple[ClientProxy, FitRes]],
+        failures: list[Union[tuple[ClientProxy, FitRes], BaseException]],
+    ) -> tuple[Optional[Parameters], dict[str, Scalar]]:
+        """Aggregate fit results using weighted average."""
+        if not results:
+            return None, {}
+        # Do not aggregate if there are failures and failures are not accepted
+        if not self.accept_failures and failures:
+            return None, {}
+
+        results_mefl = {me: [] for me in range(self.ME)}
+        for i in range(len(results)):
+            _, result = results[i]
+            me = result.metrics["me"]
+            results_mefl[me].append(results[i])
+
+        aggregated_ndarrays_mefl = {me: None for me in range(self.ME)}
+        weights_results_mefl = {me: [] for me in range(self.ME)}
+        parameters_aggregated_mefl = {me: [] for me in range(self.ME)}
+
+        if self.inplace:
+            for me in range(self.ME):
+                # Does in-place weighted average of results
+                aggregated_ndarrays_mefl[me] = aggregate_inplace(results_mefl[me])
+        else:
+            for me in range(self.ME):
+                # Convert results
+                weights_results = [
+                    (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples)
+                    for _, fit_res in results_mefl[me]
+                ]
+                aggregated_ndarrays_mefl[me] = aggregate(weights_results)
+
+        for me in range(self.ME):
+            parameters_aggregated_mefl[me] = ndarrays_to_parameters(aggregated_ndarrays_mefl[me])
+
+        # Aggregate custom metrics if aggregation fn was provided
+        metrics_aggregated_mefl = {me: [] for me in range(self.ME)}
+        for me in range(self.ME):
+            if self.fit_metrics_aggregation_fn:
+                fit_metrics = [(res.num_examples, res.metrics) for _, res in results_mefl[me]]
+                metrics_aggregated_mefl[me] = self.fit_metrics_aggregation_fn(fit_metrics)
+            elif server_round == 1:  # Only log this warning once
+                log(WARNING, "No fit_metrics_aggregation_fn provided")
+
+        return parameters_aggregated_mefl, metrics_aggregated_mefl
 
     def aggregate_evaluate(
         self,
@@ -227,20 +284,31 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
         if not self.accept_failures and failures:
             return None, {}
 
+        results_mefl = {me: [] for me in range(self.ME)}
+        for i in range(len(results)):
+            _, result = results[i]
+            me = result.metrics["me"]
+            results_mefl[me].append(results[i])
+
+
         # Aggregate loss
         logging.info("""metricas recebidas rodada {}: {}""".format(server_round, results))
-        loss_aggregated = weighted_loss_avg(
-            [
-                (evaluate_res.num_examples, evaluate_res.loss)
-                for _, evaluate_res in results
-            ]
-        )
+        loss_aggregated_mefl = {me: 0. for me in range(self.ME)}
+        for me in range(self.ME):
+            loss_aggregated = weighted_loss_avg(
+                [
+                    (evaluate_res.num_examples, evaluate_res.loss)
+                    for _, evaluate_res in results_mefl[me]
+                ]
+            )
+            loss_aggregated_mefl[me] = loss_aggregated
 
         # Aggregate custom metrics if aggregation fn was provided
-        metrics_aggregated = {me: {} for me in range(self.ME)}
+        metrics_aggregated_mefl = {me: {} for me in range(self.ME)}
         if self.evaluate_metrics_aggregation_fn:
-            eval_metrics = [(res.num_examples, res.metrics) for _, res in results]
-            metrics_aggregated = self.evaluate_metrics_aggregation_fn(eval_metrics)
+            for me in range(self.ME):
+                eval_metrics = [(res.num_examples, res.metrics) for _, res in results_mefl[me]]
+                metrics_aggregated_mefl[me] = self.evaluate_metrics_aggregation_fn(eval_metrics)
         elif server_round == 1:  # Only log this warning once
             log(WARNING, "No evaluate_metrics_aggregation_fn provided")
 
@@ -250,17 +318,17 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             mode = "w"
 
         for me in range(self.ME):
-            self.add_metrics(server_round, metrics_aggregated, me)
+            self.add_metrics(server_round, metrics_aggregated_mefl, me)
             self.save_results(mode, me)
 
 
-        return loss_aggregated, metrics_aggregated
+        return loss_aggregated_mefl, metrics_aggregated_mefl
 
     def add_metrics(self, t, metrics_aggregated, me):
 
         metrics_aggregated[me]["Fraction fit"] = self.fraction_fit
         metrics_aggregated[me]["# training clients"] = self.n_trained_clients
-        metrics_aggregated[me]["training clients and models"] = self.selected_clients_ids
+        metrics_aggregated[me]["training clients and models"] = []
         metrics_aggregated[me]["Alpha"] = self.alpha[me]
 
         for metric in metrics_aggregated[me]:

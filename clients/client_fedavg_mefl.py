@@ -11,17 +11,18 @@ logger = logging.getLogger(__name__)  # Create logger for the module
 class ClientMEFL(fl.client.NumPyClient):
     def __init__(self, args):
         self.args = args
-        self.model = [load_model(args.model[me], args.dataset[me], args.strategy) for me in args.model]
+        self.model = [load_model(args.model[me], args.dataset[me], args.strategy) for me in range(len(args.model))]
+        self.alpha = [float(i) for i in args.alpha]
         self.ME = len(self.model)
         logger.info("Preparing data...")
-        logger.info("""args do cliente: {}""".format(self.args.client_id))
+        logger.info("""args do cliente: {} {}""".format(self.args.client_id, self.alpha))
         self.client_id = args.client_id
         self.trainloader = [None] * self.ME
         self.valloader = [None] * self.ME
         for me in range(self.ME):
             self.trainloader[me], self.valloader[me] = load_data(
                 dataset_name=self.args.dataset[me],
-                alpha=self.args.alpha[me],
+                alpha=self.alpha[me],
                 data_sampling_percentage=self.args.data_percentage,
                 partition_id=self.args.client_id,
                 num_partitions=self.args.total_clients + 1,
@@ -43,13 +44,14 @@ class ClientMEFL(fl.client.NumPyClient):
         t = config['t']
         me = config['me']
         self.lt[me] = t - self.lt[me]
-        set_weights(self.model[me], parameters)
+        if t > 1:
+            set_weights(self.model[me], parameters)
         results = train(
             self.model[me],
             self.trainloader[me],
             self.valloader[me],
             self.local_epochs,
-            self.lr[me],
+            self.lr,
             self.device,
             self.client_id,
             t,
