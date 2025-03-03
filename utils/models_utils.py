@@ -44,6 +44,7 @@ def load_model(model_name, dataset, strategy):
             mid_dim = 400
             # mid_dim = 16
             num_classes = 10
+        return CNN(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
     elif model_name == 'CNN_3':
         if dataset in ['MNIST']:
             input_shape = 1

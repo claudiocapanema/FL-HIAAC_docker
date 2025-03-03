@@ -70,7 +70,7 @@ def create_docker_compose(args):
     mefl_string = " "
     ME = len(args.dataset)
     for me  in range(ME):
-        mefl_string += f"--dataset='{args.dataset[me]}' --model='{args.model[me]}' --alpha={float(args.alpha[me])}"
+        mefl_string += f" --dataset='{args.dataset[me]}' --model='{args.model[me]}' --alpha={float(args.alpha[me])} "
 
 
     general_config = f"--total_clients={args.total_clients} --number_of_rounds={args.number_of_rounds} --data_percentage={args.data_percentage} --strategy='{strategy_name}' --round_new_clients={args.round_new_clients} --fraction_new_clients={args.fraction_new_clients} --cd='{args.cd}' --fraction_fit={args.fraction_fit} --batch_size={args.batch_size} --learning_rate={args.learning_rate}" + mefl_string

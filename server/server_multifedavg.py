@@ -2,6 +2,8 @@ import logging
 
 import csv
 import os
+import json
+import pickle
 
 import torch
 import numpy as np
@@ -175,7 +177,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
         selected_clients_m = np.array_split(clients, self.ME)
 
         self.n_trained_clients = len(clients)
-        logging.info("""selecionados {} por modelo {} rodada {}""".format(self.n_trained_clients, selected_clients_m, server_round))
+        logging.info("""selecionados {} por modelo {} rodada {}""".format(self.n_trained_clients, [len(i) for i in selected_clients_m], server_round))
 
         # Return client/config pairs
         clients_m = []
@@ -191,18 +193,33 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
         return clients_m
 
     def configure_evaluate(
-        self, server_round: int, parameters: dict, client_manager: ClientManager
+        self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> list[tuple[ClientProxy, EvaluateIns]]:
         """Configure the next round of evaluation."""
         # Do not configure federated evaluation if fraction eval is 0.
         if self.fraction_evaluate == 0.0:
             return []
 
+        logger.info("""inicio configure evaluate {}""".format(type(parameters)))
         # Parameters and config
         config = {}
         if self.on_evaluate_config_fn is not None:
             # Custom evaluation config function provided
             config = self.on_evaluate_config_fn(server_round)
+
+        dict_ME = {}
+        me = 0
+        if type(parameters) is dict:
+            for key in parameters:
+                parameters_me = parameters_to_ndarrays(parameters[key])
+                dict_ME[str(key)] = parameters_me
+        dict_ME = pickle.dumps(dict_ME)
+
+        config["evaluate_models"] = str([me for me in range(self.ME)])
+        config["t"] = server_round
+        logger.info("""config antes {}""".format(config))
+        config["parameters"] = dict_ME
+        evaluate_ins = EvaluateIns(parameters[0], config)
 
         # Sample clients
         sample_size, min_num_clients = self.num_evaluation_clients(
@@ -212,14 +229,8 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             num_clients=sample_size, min_num_clients=min_num_clients
         )
 
-        # Evaluate the sampled clients for all models
-        clients_m = []
-        for me in range(self.ME):
-            for client in clients:
-                config = {"t": server_round, "me": me}
-                evaluate_ins = EvaluateIns(parameters[me], config)
-                clients_m.append((client, evaluate_ins))
-        return clients_m
+        # Return client/config pairs
+        return [(client, evaluate_ins) for client in clients]
 
     def aggregate_fit(
         self,
@@ -269,6 +280,11 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             elif server_round == 1:  # Only log this warning once
                 log(WARNING, "No fit_metrics_aggregation_fn provided")
 
+        logger.info("""finalizou aggregated fit""")
+
+        self.parameters_aggregated_mefl = parameters_aggregated_mefl
+        self.metrics_aggregated_mefl = metrics_aggregated_mefl
+
         return parameters_aggregated_mefl, metrics_aggregated_mefl
 
     def aggregate_evaluate(
@@ -287,12 +303,12 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
         results_mefl = {me: [] for me in range(self.ME)}
         for i in range(len(results)):
             _, result = results[i]
-            me = result.metrics["me"]
-            results_mefl[me].append(results[i])
+            for me in result.metrics:
+                results_mefl[me].append(result.metrics[me])
 
 
         # Aggregate loss
-        logging.info("""metricas recebidas rodada {}: {}""".format(server_round, results))
+        logging.info("""metricas recebidas rodada {}: {}""".format(server_round, results_mefl))
         loss_aggregated_mefl = {me: 0. for me in range(self.ME)}
         for me in range(self.ME):
             loss_aggregated = weighted_loss_avg(

@@ -1,4 +1,6 @@
 import logging
+import json
+import pickle
 
 import flwr as fl
 
@@ -34,7 +36,9 @@ class ClientMEFL(fl.client.NumPyClient):
         self.lr = self.args.learning_rate
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.lt = [0] * self.ME
+        logger.info("ler model size")
         self.models_size = self._get_models_size()
+        logger.info("leu model size")
         self.n_classes = [{"EMNIST": 47, "CIFAR10": 10, "GTSRB": 43}[dataset] for dataset in self.args.dataset]
 
     def fit(self, parameters, config):
@@ -66,14 +70,22 @@ class ClientMEFL(fl.client.NumPyClient):
         """Evaluate the model on the data this client has."""
         logger.info("""eval cliente inicio""".format(config))
         t = config["t"]
-        me = config["me"]
-        nt = t - self.lt[me]
-        set_weights(self.model[me], parameters)
-        loss, metrics = test(self.model[me], self.valloader[me], self.device, self.client_id, t, self.args.dataset[me], self.n_classes[me])
-        metrics["Model size"] = self.models_size[me]
-        metrics["me"] = me
-        logger.info("eval cliente fim")
-        return loss, len(self.valloader[me].dataset), metrics
+        parameters = pickle.loads(config["parameters"])
+        evaluate_models = json.loads(config["evaluate_models"])
+        tuple_me = {}
+        logger.info("""modelos para cliente avaliar {}""".format(evaluate_models))
+        for me in evaluate_models:
+            me = int(me)
+            me_str = str(me)
+            nt = t - self.lt[me]
+            parameters_me = parameters[me]
+            set_weights(self.model[me], parameters_me)
+            loss, metrics = test(self.model[me], self.valloader[me], self.device, self.client_id, t, self.args.dataset[me], self.n_classes[me])
+            metrics["Model size"] = self.models_size[me]
+            metrics["me"] = me
+            logger.info("""eval cliente fim {}""".format(metrics["me"]))
+            tuple_me[me] = (loss, len(self.valloader[me].dataset), metrics)
+        return loss, len(self.valloader[me].dataset), tuple_me
 
     def _get_models_size(self):
         models_size = []
