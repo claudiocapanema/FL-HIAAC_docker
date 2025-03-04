@@ -45,7 +45,7 @@ Follow this tutorial (`https://docs.nvidia.com/datacenter/cloud-native/container
 
 Docker must be installed and the Docker daemon running on your server. If you don't already have Docker installed, you can get [installation instructions for your specific Linux distribution or macOS from Docker](https://docs.docker.com/engine/install/). Besides Docker, the only extra requirement is having Python installed. You don't need to create a new environment for this example since all dependencies will be installed inside Docker containers automatically.
 
-## Running the Example
+## Running the traditional FL Example
 
 Run the training with a single command:
 
@@ -53,6 +53,17 @@ Run the training with a single command:
 
 # Generate docker compose file and automatically run containers
 python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy="FedAvg" --dataset="CIFAR10" --model="CNN_3" --fraction_fit=0.3 --alpha=0.1
+```
+
+## Running the MEFL Example
+
+In MEFL, the standard solution is the `MultiFedAvg`.
+For each additional task, add the fields `dataset`, `model`, and `alpha`:
+
+```bash
+
+python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=10 --strategy="MultiFedAvg" --dataset="CIFAR10" --dataset="EMNIST" --model="CNN" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=0.1
+
 ```
 
 ## Saving the results locally:
