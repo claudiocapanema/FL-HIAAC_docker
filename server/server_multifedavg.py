@@ -147,6 +147,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
         self.results_test_metrics = {me: {metric: [] for metric in self.test_metrics_names} for me in range(self.ME)}
         self.results_test_metrics_w = {me: {metric: [] for metric in self.test_metrics_names} for me in range(self.ME)}
         self.clients_results_test_metrics = {me: {metric: [] for metric in self.test_metrics_names} for me in range(self.ME)}
+        self.selected_clients_m = []
 
     def configure_fit(
         self, server_round: int, parameters: dict, client_manager: ClientManager
@@ -245,11 +246,16 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
         if not self.accept_failures and failures:
             return None, {}
 
+        self.selected_clients_m = [[] for me in range(self.ME)]
+
         results_mefl = {me: [] for me in range(self.ME)}
         for i in range(len(results)):
             _, result = results[i]
             me = result.metrics["me"]
+            client_id = result.metrics["client_id"]
+            self.selected_clients_m[me].append(client_id)
             results_mefl[me].append(results[i])
+
 
         aggregated_ndarrays_mefl = {me: None for me in range(self.ME)}
         weights_results_mefl = {me: [] for me in range(self.ME)}
@@ -346,7 +352,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
 
         metrics_aggregated[me]["Fraction fit"] = self.fraction_fit
         metrics_aggregated[me]["# training clients"] = self.n_trained_clients
-        metrics_aggregated[me]["training clients and models"] = []
+        metrics_aggregated[me]["training clients and models"] = self.selected_clients_m[me]
         metrics_aggregated[me]["Alpha"] = self.alpha[me]
 
         for metric in metrics_aggregated[me]:

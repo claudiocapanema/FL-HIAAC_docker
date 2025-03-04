@@ -63,6 +63,7 @@ class ClientMEFL(fl.client.NumPyClient):
             self.n_classes[me]
         )
         results["me"] = me
+        results["client_id"] = self.client_id
         logger.info("fit cliente fim")
         return get_weights(self.model[me]), len(self.trainloader[me].dataset), results
 
