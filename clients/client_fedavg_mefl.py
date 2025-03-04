@@ -73,18 +73,19 @@ class ClientMEFL(fl.client.NumPyClient):
         parameters = pickle.loads(config["parameters"])
         evaluate_models = json.loads(config["evaluate_models"])
         tuple_me = {}
-        logger.info("""modelos para cliente avaliar {}""".format(evaluate_models))
+        logger.info("""modelos para cliente avaliar {} {} {}""".format(evaluate_models, type(parameters), parameters.keys()))
         for me in evaluate_models:
             me = int(me)
             me_str = str(me)
             nt = t - self.lt[me]
-            parameters_me = parameters[me]
+            parameters_me = parameters[me_str]
             set_weights(self.model[me], parameters_me)
             loss, metrics = test(self.model[me], self.valloader[me], self.device, self.client_id, t, self.args.dataset[me], self.n_classes[me])
             metrics["Model size"] = self.models_size[me]
+            metrics["Dataset size"] = len(self.valloader[me].dataset)
             metrics["me"] = me
-            logger.info("""eval cliente fim {}""".format(metrics["me"]))
-            tuple_me[me] = (loss, len(self.valloader[me].dataset), metrics)
+            logger.info("""eval cliente fim {} {}""".format(metrics["me"], metrics))
+            tuple_me[me_str] = pickle.dumps((loss, len(self.valloader[me].dataset), metrics))
         return loss, len(self.valloader[me].dataset), tuple_me
 
     def _get_models_size(self):

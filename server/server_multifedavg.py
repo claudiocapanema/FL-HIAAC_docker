@@ -300,31 +300,33 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
         if not self.accept_failures and failures:
             return None, {}
 
+        logger.info("""inicio aggregate evaluate {}""".format(server_round))
+
         results_mefl = {me: [] for me in range(self.ME)}
         for i in range(len(results)):
             _, result = results[i]
             for me in result.metrics:
-                results_mefl[me].append(result.metrics[me])
+                results_mefl[int(me)].append(pickle.loads(result.metrics[str(me)]))
 
 
         # Aggregate loss
         logging.info("""metricas recebidas rodada {}: {}""".format(server_round, results_mefl))
         loss_aggregated_mefl = {me: 0. for me in range(self.ME)}
-        for me in range(self.ME):
+        for me in results_mefl.keys():
             loss_aggregated = weighted_loss_avg(
                 [
-                    (evaluate_res.num_examples, evaluate_res.loss)
-                    for _, evaluate_res in results_mefl[me]
+                    (num_examples, loss)
+                    for loss, num_examples, metrics in results_mefl[me]
                 ]
             )
-            loss_aggregated_mefl[me] = loss_aggregated
+            loss_aggregated_mefl[int(me)] = loss_aggregated
 
         # Aggregate custom metrics if aggregation fn was provided
         metrics_aggregated_mefl = {me: {} for me in range(self.ME)}
         if self.evaluate_metrics_aggregation_fn:
-            for me in range(self.ME):
-                eval_metrics = [(res.num_examples, res.metrics) for _, res in results_mefl[me]]
-                metrics_aggregated_mefl[me] = self.evaluate_metrics_aggregation_fn(eval_metrics)
+            for me in results_mefl.keys():
+                eval_metrics = [(num_examples, metrics) for loss, num_examples, metrics in results_mefl[me]]
+                metrics_aggregated_mefl[int(me)] = self.evaluate_metrics_aggregation_fn(eval_metrics)
         elif server_round == 1:  # Only log this warning once
             log(WARNING, "No evaluate_metrics_aggregation_fn provided")
 
