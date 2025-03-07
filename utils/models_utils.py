@@ -10,7 +10,7 @@ from sklearn import metrics
 from sklearn.preprocessing import label_binarize
 import numpy as np
 import sys
-from utils.models import CNN, CNN_3, CNNDistillation
+from utils.models import CNN, CNN_3, CNNDistillation, GRU, LSTM
 
 
 import logging
@@ -19,62 +19,58 @@ import logging
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
 
-def load_model(model_name, dataset, strategy):
+DATASET_INPUT_MAP = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image", "Gowalla": "sequence", "WISDM-W": "sequence"}
+
+def load_model(model_name, dataset, strategy, device):
+    num_classes = {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'Tiny-ImageNet': 200,
+     'ImageNet100': 15, 'ImageNet': 15, "ImageNet_v2": 15, "Gowalla": 7}[dataset]
     if model_name == 'CNN':
         if dataset in ['MNIST']:
             input_shape = 1
             mid_dim = 256
-            # mid_dim = 4
-            num_classes = 10
             logger.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
         elif dataset in ['EMNIST']:
             input_shape = 1
             mid_dim = 256
-            # mid_dim = 4
-            num_classes = 47
             logger.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
         elif dataset in ['GTSRB']:
             input_shape = 1
             mid_dim = 36
-            # mid_dim = 16
-            num_classes = 43
             logger.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
         else:
             input_shape = 3
             mid_dim = 400
-            # mid_dim = 16
-            num_classes = 10
         return CNN(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
     elif model_name == 'CNN_3':
         if dataset in ['MNIST']:
             input_shape = 1
-            # mid_dim = 256
             mid_dim = 4
-            num_classes = 10
             logger.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
         elif dataset in ['EMNIST']:
             input_shape = 1
-            # mid_dim = 256
             mid_dim = 4
-            num_classes = 47
             logger.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
         elif dataset in ['GTSRB']:
             input_shape = 3
-            # mid_dim = 36
             mid_dim = 16
-            num_classes = 43
             logger.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
         else:
             input_shape = 3
-            # mid_dim = 400
             mid_dim = 16
-            num_classes = 10
             logger.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
 
         if "FedKD" in strategy:
             return CNNDistillation(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes, dataset=dataset)
         else:
             return CNN_3(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
+
+    elif model_name == "gru":
+        if dataset in ["WISDM-W", "WISDM-P"]:
+            return GRU(6, num_layers=1, hidden_size=2, sequence_length=200, num_classes=num_classes)
+
+    elif model_name == "lstm":
+        if dataset in ["Gowalla"]:
+            return LSTM(4, device=device, num_layers=1, hidden_size=1, sequence_length=10, num_classes=num_classes)
 
 
 fds = None
@@ -111,7 +107,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
 
                                        self_balancing=True)
     fds = FederatedDataset(
-        dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist", "GTSRB": "claudiogsc/GTSRB"}[dataset_name],
+        dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist", "GTSRB": "claudiogsc/GTSRB", "Gowalla": "claudiogsc/Gowalla-State-of-Texas"}[dataset_name],
         partitioners={"train": partitioner},
     )
     partition = fds.load_partition(partition_id)
@@ -142,7 +138,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
 
     # import torchvision.datasets as datasets
     # datasets.EMNIST
-    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
+    key = DATASET_INPUT_MAP[dataset_name]
 
     def apply_transforms(batch):
         """Apply transforms to the partition from FederatedDataset."""
@@ -164,7 +160,7 @@ def train(model, trainloader, valloader, epochs, learning_rate, device, client_i
     criterion = torch.nn.CrossEntropyLoss().to(device)
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
     model.train()
-    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
+    key = DATASET_INPUT_MAP[dataset_name]
     for _ in range(epochs):
         loss_total = 0
         correct = 0
@@ -221,7 +217,7 @@ def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, cl
         feature_dim = 512
         W_h = torch.nn.Linear(feature_dim, feature_dim, bias=False).to(device)
         MSE = torch.nn.MSELoss().to(device)
-        key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
+        key = DATASET_INPUT_MAP[dataset_name]
         logger.info("""Inicio train_fedkd client {}""".format(client_id))
         for _ in range(epochs):
             loss_total = 0
@@ -293,7 +289,7 @@ def test(model, testloader, device, client_id, t, dataset_name, n_classes):
     correct, loss = 0, 0.0
     y_prob = []
     y_true = []
-    key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
+    key = DATASET_INPUT_MAP[dataset_name]
     with torch.no_grad():
         for batch in testloader:
             images = batch[key]
@@ -332,7 +328,7 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
             y_prob = []
             y_true = []
 
-            key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
+            key = DATASET_INPUT_MAP[dataset_name]
             with torch.no_grad():
                 for batch in testloader:
                     images = batch[key]
@@ -376,7 +372,7 @@ def test_fedkd_fedpredict(lt, model, testloader, device, client_id, t, dataset_n
         y_prob = []
         y_true = []
 
-        key = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image"}[dataset_name]
+        key = DATASET_INPUT_MAP[dataset_name]
         with torch.no_grad():
             for batch in testloader:
                 images = batch[key]

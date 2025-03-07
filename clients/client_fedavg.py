@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)  # Create logger for the module
 class Client(fl.client.NumPyClient):
     def __init__(self, args):
         self.args = args
-        self.model = load_model(args.model, args.dataset, args.strategy)
+        self.model = load_model(args.model, args.dataset, args.strategy, args.device)
         logger.info("Preparing data...")
         logger.info("""args do cliente: {}""".format(self.args.client_id))
         self.client_id = args.client_id
@@ -30,7 +30,7 @@ class Client(fl.client.NumPyClient):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.lt = 0
         self.models_size = self._get_models_size()
-        self.n_classes = {"EMNIST": 47, "CIFAR10": 10, "GTSRB": 43}[args.dataset]
+        self.n_classes = {"EMNIST": 47, "CIFAR10": 10, "GTSRB": 43, "ImageNet": 15, "WISDM-W": 12, "Gowalla": 7}[args.dataset]
 
     def fit(self, parameters, config):
         """Train the utils with data of this client."""

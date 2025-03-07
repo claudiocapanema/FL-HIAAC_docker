@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)  # Create logger for the module
 class ClientMEFL(fl.client.NumPyClient):
     def __init__(self, args):
         self.args = args
-        self.model = [load_model(args.model[me], args.dataset[me], args.strategy) for me in range(len(args.model))]
+        self.model = [load_model(args.model[me], args.dataset[me], args.strategy, args.device) for me in range(len(args.model))]
         self.alpha = [float(i) for i in args.alpha]
         self.ME = len(self.model)
         logger.info("Preparing data...")

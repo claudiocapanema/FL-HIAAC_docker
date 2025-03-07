@@ -15,7 +15,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 class ClientFedAvgFP(Client):
     def __init__(self, args):
         super(ClientFedAvgFP, self).__init__(args)
-        self.global_model = load_model(args.model, args.dataset, args.strategy)
+        self.global_model = load_model(args.model, args.dataset, args.strategy, args.device)
         self.lt = 0
 
     def fit(self, parameters, config):
