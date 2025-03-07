@@ -107,7 +107,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
 
                                        self_balancing=True)
     fds = FederatedDataset(
-        dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist", "GTSRB": "claudiogsc/GTSRB", "Gowalla": "claudiogsc/Gowalla-State-of-Texas"}[dataset_name],
+        dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist", "GTSRB": "claudiogsc/GTSRB", "Gowalla": "claudiogsc/Gowalla-State-of-Texas", "WISDM-W": "claudiogsc/WISDM-W"}[dataset_name],
         partitioners={"train": partitioner},
     )
     partition = fds.load_partition(partition_id)
