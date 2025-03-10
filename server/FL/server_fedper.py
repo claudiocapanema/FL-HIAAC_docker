@@ -1,8 +1,5 @@
 import logging
 
-from typing import List, Tuple
-from flwr.common import Metrics
-
 from typing import Callable, Optional
 
 from flwr.common import (
@@ -11,7 +8,7 @@ from flwr.common import (
     Parameters,
     Scalar
 )
-from server.server_fedyogi import FedYogi
+from server.FL.server_fedavg import FedAvg
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
@@ -19,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 # pylint: disable=line-too-long
-class FedYogiFP(FedYogi):
+class FedPer(FedAvg):
     """Federated Averaging strategy.
 
     Implementation based on https://arxiv.org/abs/1602.05629

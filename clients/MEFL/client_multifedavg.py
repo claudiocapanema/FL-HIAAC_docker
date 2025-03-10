@@ -10,7 +10,7 @@ import torch
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
 
-class ClientMEFL(fl.client.NumPyClient):
+class ClientMultiFedAvg(fl.client.NumPyClient):
     def __init__(self, args):
         self.args = args
         self.model = [load_model(args.model[me], args.dataset[me], args.strategy, args.device) for me in range(len(args.model))]
@@ -21,6 +21,7 @@ class ClientMEFL(fl.client.NumPyClient):
         self.client_id = args.client_id
         self.trainloader = [None] * self.ME
         self.valloader = [None] * self.ME
+        self.optimizer = [None] * self.ME
         for me in range(self.ME):
             self.trainloader[me], self.valloader[me] = load_data(
                 dataset_name=self.args.dataset[me],
@@ -30,7 +31,8 @@ class ClientMEFL(fl.client.NumPyClient):
                 num_partitions=self.args.total_clients + 1,
                 batch_size=self.args.batch_size,
             )
-        logger.info("""leu dados {}""".format(self.args.client_id))
+            self.optimizer[me] = self._get_optimizer(dataset_name=self.args.dataset[me], me=me)
+            logger.info("""leu dados cid: {} dataset: {} size:  {}""".format(self.args.client_id, self.args.dataset[me], len(self.trainloader[me].dataset)))
 
         self.local_epochs = self.args.local_epochs
         self.lr = self.args.learning_rate
@@ -39,7 +41,10 @@ class ClientMEFL(fl.client.NumPyClient):
         logger.info("ler model size")
         self.models_size = self._get_models_size()
         logger.info("leu model size")
-        self.n_classes = [{"EMNIST": 47, "CIFAR10": 10, "GTSRB": 43}[dataset] for dataset in self.args.dataset]
+        self.n_classes = [
+            {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'Tiny-ImageNet': 200,
+             'ImageNet100': 15, 'ImageNet': 15, "ImageNet_v2": 15, "Gowalla": 7}[dataset] for dataset in
+            self.args.dataset]
 
     def fit(self, parameters, config):
         """Train the model with data of this client."""
@@ -50,10 +55,12 @@ class ClientMEFL(fl.client.NumPyClient):
         self.lt[me] = t - self.lt[me]
         if t > 1:
             set_weights(self.model[me], parameters)
+        self.optimizer[me] = self._get_optimizer(dataset_name=self.args.dataset[me], me=me)
         results = train(
             self.model[me],
             self.trainloader[me],
             self.valloader[me],
+            self.optimizer[me],
             self.local_epochs,
             self.lr,
             self.device,
@@ -99,3 +106,17 @@ class ClientMEFL(fl.client.NumPyClient):
             models_size.append(int(size))
 
         return models_size
+
+    def _get_optimizer(self, dataset_name, me):
+
+        return {
+                'EMNIST': torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9),
+                'MNIST': torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9),
+                'CIFAR10': torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9),
+                'GTSRB': torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9),
+                'WISDM-W': torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9),
+                'WISDM-P': torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9),
+                'ImageNet100': torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9),
+                'ImageNet': torch.optim.Adam(self.model[me].parameters(), lr=0.01),
+                "ImageNet_v2": torch.optim.Adam(self.model[me].parameters(), lr=0.01),
+                "Gowalla": torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9)}[dataset_name]

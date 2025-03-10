@@ -7,16 +7,12 @@ from prometheus_client import start_http_server
 from typing import List, Tuple
 from flwr.common import Metrics
 
-from flwr.common import (
-    ndarrays_to_parameters,
-)
-
-from server.server_fedavg import FedAvg
-from server.server_fedavg_fedpredict import FedAvgFP
-from server.server_fedyogi import FedYogi
-from server.server_fedyogi_fedpredict import FedYogiFP
-from server.server_fedper import FedPer
-from server.server_multifedavg import MultiFedAvg
+from server.FL.server_fedavg import FedAvg
+from server.FL.server_fedavg_fedpredict import FedAvgFP
+from server.FL.server_fedyogi import FedYogi
+from server.FL.server_fedyogi_fedpredict import FedYogiFP
+from server.FL.server_fedper import FedPer
+from server.MEFL.server_multifedavg import MultiFedAvg
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
@@ -77,8 +73,6 @@ parser.add_argument(
 )
 
 args = parser.parse_args()
-
-from utils.models_utils import load_model, get_weights, get_weights_fedkd
 
 
 # Define metric aggregation function

@@ -2,10 +2,9 @@ import logging
 import os
 import sys
 
-from clients.client_fedkd import ClientFedKD
+from clients.FL.client_fedkd import ClientFedKD
 
-from utils.models_utils import get_weights_fedkd, set_weights_fedkd, test_fedkd_fedpredict, train_fedkd
-import torch
+from utils.models_utils import test_fedkd_fedpredict
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
@@ -36,7 +35,7 @@ class ClientFedKDFedPredict(ClientFedKD):
         t = config["t"]
         nt = t - self.lt
         # set_weights_fedkd(self.utils, parameters)
-        loss, metrics = test_fedkd_fedpredict(self.lt, self.model, self.valloader, self.device, self.client_id, t, self.args.dataset, self.n_classes)
+        loss, metrics = test_fedkd_fedpredict(self.lt, self.model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
         metrics["Model size"] = self.models_size
         logger.info("eval cliente fim")
         return loss, len(self.valloader.dataset), metrics

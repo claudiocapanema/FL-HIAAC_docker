@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from flwr_datasets import FederatedDataset
 from flwr_datasets.partitioner import IidPartitioner, DirichletPartitioner
 from torch.utils.data import DataLoader
-from torchvision.transforms import Compose, Resize, RandomHorizontalFlip, RandomAffine, ColorJitter,  Normalize, ToTensor, RandomRotation
+from torchvision.transforms import Compose, Resize, RandomHorizontalFlip, RandomResizedCrop, RandomAffine, ColorJitter,  Normalize, ToTensor, RandomRotation
 from sklearn import metrics
 from sklearn.preprocessing import label_binarize
 import numpy as np
@@ -19,7 +19,7 @@ import logging
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
 
-DATASET_INPUT_MAP = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image", "Gowalla": "sequence", "WISDM-W": "sequence"}
+DATASET_INPUT_MAP = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image", "Gowalla": "sequence", "WISDM-W": "sequence", "ImageNet": "image"}
 
 def load_model(model_name, dataset, strategy, device):
     num_classes = {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'Tiny-ImageNet': 200,
@@ -27,17 +27,20 @@ def load_model(model_name, dataset, strategy, device):
     if model_name == 'CNN':
         if dataset in ['MNIST']:
             input_shape = 1
-            mid_dim = 256
+            mid_dim = 256*4
             logger.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
         elif dataset in ['EMNIST']:
             input_shape = 1
-            mid_dim = 256
+            mid_dim = 256*4
             logger.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
         elif dataset in ['GTSRB']:
-            input_shape = 1
-            mid_dim = 36
+            input_shape = 3
+            mid_dim = 36*4
             logger.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
-        else:
+        elif dataset in ["ImageNet"]:
+            input_shape=3
+            mid_dim=43264
+        elif dataset == "CIFAR10":
             input_shape = 3
             mid_dim = 400
         return CNN(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
@@ -107,7 +110,9 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
 
                                        self_balancing=True)
     fds = FederatedDataset(
-        dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist", "GTSRB": "claudiogsc/GTSRB", "Gowalla": "claudiogsc/Gowalla-State-of-Texas", "WISDM-W": "claudiogsc/WISDM-W"}[dataset_name],
+        dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist",
+                 "GTSRB": "claudiogsc/GTSRB", "Gowalla": "claudiogsc/Gowalla-State-of-Texas",
+                 "WISDM-W": "claudiogsc/WISDM-W", "ImageNet": "claudiogsc/ImageNet-15_household_objects"}[dataset_name],
         partitioners={"train": partitioner},
     )
     partition = fds.load_partition(partition_id)
@@ -115,26 +120,40 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
     test_size = 1 - data_sampling_percentage
     partition_train_test = partition.train_test_split(test_size=test_size, seed=42)
 
-    pytorch_transforms = {"CIFAR10": Compose(
-        [ToTensor(), Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
-        "MNIST": Compose([ToTensor(), RandomRotation(10),
-                                           Normalize([0.5], [0.5])]),
-        "EMNIST": Compose([ToTensor(), RandomRotation(10),
-                          Normalize([0.5], [0.5])]),
-        "GTSRB": Compose(
+    if dataset_name in ["CIFAR10", "MNIST", "EMNIST", "GTSRB", "ImageNet"]:
+        pytorch_transforms = {"CIFAR10": Compose(
+            [ToTensor(), Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
+            "MNIST": Compose([ToTensor(), RandomRotation(10),
+                                               Normalize([0.5], [0.5])]),
+            "EMNIST": Compose([ToTensor(), RandomRotation(10),
+                              Normalize([0.5], [0.5])]),
+            "GTSRB": Compose(
+                        [
+
+                            Resize((32, 32)),
+                            RandomHorizontalFlip(),  # FLips the image w.r.t horizontal axis
+                            RandomRotation(10),  # Rotates the image to a specified angel
+                            RandomAffine(0, shear=10, scale=(0.8, 1.2)),
+                            # Performs actions like zooms, change shear angles.
+                            ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+                            ToTensor(),
+                            Normalize((0.3337, 0.3064, 0.3171), (0.2672, 0.2564, 0.2629))
+                        ]
+                    ),
+            "ImageNet": Compose(
                     [
 
-                        Resize((32, 32)),
-                        RandomHorizontalFlip(),  # FLips the image w.r.t horizontal axis
-                        RandomRotation(10),  # Rotates the image to a specified angel
-                        RandomAffine(0, shear=10, scale=(0.8, 1.2)),
-                        # Performs actions like zooms, change shear angles.
-                        ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+                        RandomResizedCrop(64),
+                        RandomHorizontalFlip(),
                         ToTensor(),
-                        Normalize((0.3337, 0.3064, 0.3171), (0.2672, 0.2564, 0.2629))
+                        Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+                        # transforms.Resize((32, 32)),
+                        # transforms.ToTensor(),
+                        # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                     ]
                 )
-    }[dataset_name]
+        }[dataset_name]
 
     # import torchvision.datasets as datasets
     # datasets.EMNIST
@@ -147,18 +166,18 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
         # logger.info("""bath key: {}""".format(batch[key]))
         return batch
 
-    partition_train_test = partition_train_test.with_transform(apply_transforms)
+    if dataset_name in ["CIFAR10", "MNIST", "EMNIST", "GTSRB", "ImageNet"]:
+        partition_train_test = partition_train_test.with_transform(apply_transforms)
     trainloader = DataLoader(
         partition_train_test["train"], batch_size=batch_size, shuffle=True
     )
     testloader = DataLoader(partition_train_test["test"], batch_size=batch_size)
     return trainloader, testloader
 
-def train(model, trainloader, valloader, epochs, learning_rate, device, client_id, t, dataset_name, n_classes):
+def train(model, trainloader, valloader, optimizer, epochs, learning_rate, device, client_id, t, dataset_name, n_classes):
     """Train the utils on the training set."""
     model.to(device)  # move utils to GPU if available
     criterion = torch.nn.CrossEntropyLoss().to(device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
     model.train()
     key = DATASET_INPUT_MAP[dataset_name]
     for _ in range(epochs):

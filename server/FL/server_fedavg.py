@@ -121,10 +121,10 @@ class FedAvg(flwr.server.strategy.FedAvg):
         self.local_epochs = args.local_epochs
         self.fraction_new_clients = args.fraction_new_clients
         self.round_new_clients = args.round_new_clients
-        self.alpha = args.alpha
+        self.alpha = args.alpha[0]
         self.total_clients = args.total_clients
-        self.dataset= args.dataset
-        self.model_name = args.model
+        self.dataset = args.dataset[0]
+        self.model_name = args.model[0]
         self.number_of_rounds = args.number_of_rounds
         self.cd = args.cd
         self.strategy_name = args.strategy

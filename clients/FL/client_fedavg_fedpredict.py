@@ -7,7 +7,7 @@ logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
 
 from fedpredict import fedpredict_client_torch
-from clients.client_fedavg import Client
+from clients.FL.client_fedavg import Client
 
 # Make TensorFlow log less verbose
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -15,7 +15,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 class ClientFedAvgFP(Client):
     def __init__(self, args):
         super(ClientFedAvgFP, self).__init__(args)
-        self.global_model = load_model(args.model, args.dataset, args.strategy, args.device)
+        self.global_model = load_model(self.model, self.dataset, args.strategy, args.device)
         self.lt = 0
 
     def fit(self, parameters, config):
@@ -34,7 +34,7 @@ class ClientFedAvgFP(Client):
             self.device,
             self.client_id,
             t,
-            self.args.dataset,
+            self.dataset,
             self.n_classes
         )
         logger.info("fit cliente fim fp")
@@ -48,7 +48,7 @@ class ClientFedAvgFP(Client):
         set_weights(self.global_model, parameters)
         combined_model = fedpredict_client_torch(local_model=self.model, global_model=self.global_model,
                                   t=t, T=100, nt=nt, device=self.device, fc=1, il=1)
-        loss, metrics = test(combined_model, self.valloader, self.device, self.client_id, t, self.args.dataset, self.n_classes)
+        loss, metrics = test(combined_model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
         metrics["Model size"] = self.models_size
         logger.info("eval cliente fim fp")
         return loss, len(self.valloader.dataset), metrics

@@ -22,7 +22,7 @@ from flwr.common import (
     parameters_to_ndarrays,
 )
 
-from server.server_fedavg import FedAvg
+from server.FL.server_fedavg import FedAvg
 
 import logging
 

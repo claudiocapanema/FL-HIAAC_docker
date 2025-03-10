@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 
-from clients.client_fedavg import Client
+from clients.FL.client_fedavg import Client
 
 from utils.models_utils import get_weights_fedkd, set_weights_fedkd, test_fedkd, train_fedkd
 import torch
@@ -41,7 +41,7 @@ class ClientFedKD(Client):
                 self.device,
                 self.client_id,
                 t,
-                self.args.dataset,
+                self.dataset,
                 self.n_classes
             )
             logger.info("fit cliente fim")
@@ -58,7 +58,7 @@ class ClientFedKD(Client):
         t = config["t"]
         nt = t - self.lt
         # set_weights_fedkd(self.utils, parameters)
-        loss, metrics = test_fedkd(self.model, self.valloader, self.device, self.client_id, t, self.args.dataset, self.n_classes)
+        loss, metrics = test_fedkd(self.model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
         metrics["Model size"] = self.models_size
         logger.info("eval cliente fim")
         return loss, len(self.valloader.dataset), metrics

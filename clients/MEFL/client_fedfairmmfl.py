@@ -1,12 +1,10 @@
 import logging
 
-import flwr as fl
-
-from clients.client_fedavg import Client
+from clients.MEFL.client_multifedavg import ClientMultiFedAvg
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
 
-class ClientFedYogi(Client):
+class ClientFedFairMMFL(ClientMultiFedAvg):
     def __init__(self, args):
-        super().__init__(args)
+        super(ClientFedFairMMFL, self).__init__(args)

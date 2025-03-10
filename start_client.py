@@ -1,16 +1,15 @@
 import argparse
 import logging
-import os
 
 import flwr as fl
-from clients.client_fedavg import Client
-from clients.client_fedavg_fedpredict import ClientFedAvgFP
-from clients.client_fedper import ClientFedPer
-from clients.client_fedkd import ClientFedKD
-from clients.client_fedkd_fedpredict import ClientFedKDFedPredict
-from clients.client_fedyogi import ClientFedYogi
-from clients.client_fedyogi_fedpredict import ClientFedYogiFP
-from clients.client_fedavg_mefl import ClientMEFL
+from clients.FL.client_fedavg import Client
+from clients.FL.client_fedavg_fedpredict import ClientFedAvgFP
+from clients.FL.client_fedper import ClientFedPer
+from clients.FL.client_fedkd import ClientFedKD
+from clients.FL.client_fedkd_fedpredict import ClientFedKDFedPredict
+from clients.FL.client_fedyogi import ClientFedYogi
+from clients.FL.client_fedyogi_fedpredict import ClientFedYogiFP
+from clients.MEFL.client_multifedavg import ClientMultiFedAvg
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
@@ -73,6 +72,10 @@ parser.add_argument(
     "--server_address", type=str, default="server:8080"
 )
 
+parser.add_argument(
+    "--device", type=str, default="cuda"
+)
+
 args = parser.parse_args()
 
 def get_client(strategy_name):
@@ -92,7 +95,7 @@ def get_client(strategy_name):
     elif strategy_name == "FedKD+FP":
         return ClientFedKDFedPredict
     elif strategy_name == "MultiFedAvg":
-        return ClientMEFL
+        return ClientMultiFedAvg
 
 
 # Function to Start the Client

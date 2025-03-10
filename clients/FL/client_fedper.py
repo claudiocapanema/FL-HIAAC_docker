@@ -1,36 +1,35 @@
 import logging
+import os
+from torch.nn.parameter import Parameter
 
-import flwr as fl
-
-from utils.models_utils import load_model, get_weights, load_data, set_weights, test, train
+from utils.models_utils import test, train
 import torch
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
 
-class Client(fl.client.NumPyClient):
-    def __init__(self, args):
-        self.args = args
-        self.model = load_model(args.model, args.dataset, args.strategy, args.device)
-        logger.info("Preparing data...")
-        logger.info("""args do cliente: {}""".format(self.args.client_id))
-        self.client_id = args.client_id
-        self.trainloader, self.valloader = load_data(
-            dataset_name=self.args.dataset,
-            alpha=self.args.alpha,
-            data_sampling_percentage=self.args.data_percentage,
-            partition_id=self.args.client_id,
-            num_partitions=self.args.total_clients + 1,
-            batch_size=self.args.batch_size,
-        )
-        logger.info("""leu dados {}""".format(self.args.client_id))
+from clients.FL.client_fedavg import Client
 
-        self.local_epochs = self.args.local_epochs
-        self.lr = self.args.learning_rate
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.lt = 0
-        self.models_size = self._get_models_size()
-        self.n_classes = {"EMNIST": 47, "CIFAR10": 10, "GTSRB": 43, "ImageNet": 15, "WISDM-W": 12, "Gowalla": 7}[args.dataset]
+# Make TensorFlow log less verbose
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
+def get_weights(net):
+    return [val.cpu().numpy() for _, val in net.state_dict().items()][:-2]
+
+
+def set_weights(net, parameters):
+    head = [val.cpu().numpy() for _, val in net.state_dict().items()][-2:]
+    parameters += head
+    # params_dict = zip(net.state_dict().keys(), parameters)
+    # state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
+    # net.load_state_dict(state_dict, strict=True)
+    parameters = [Parameter(torch.Tensor(i.tolist())) for i in parameters]
+    for new_param, old_param in zip(parameters, net.parameters()):
+        old_param.data = new_param.data.clone()
+
+class ClientFedPer(Client):
+    def __init__(self, args):
+        super().__init__(args)
 
     def fit(self, parameters, config):
         """Train the utils with data of this client."""
@@ -47,7 +46,7 @@ class Client(fl.client.NumPyClient):
             self.device,
             self.client_id,
             t,
-            self.args.dataset,
+            self.dataset,
             self.n_classes
         )
         logger.info("fit cliente fim")
@@ -59,7 +58,7 @@ class Client(fl.client.NumPyClient):
         t = config["t"]
         nt = t - self.lt
         set_weights(self.model, parameters)
-        loss, metrics = test(self.model, self.valloader, self.device, self.client_id, t, self.args.dataset, self.n_classes)
+        loss, metrics = test(self.model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
         metrics["Model size"] = self.models_size
         logger.info("eval cliente fim")
         return loss, len(self.valloader.dataset), metrics
@@ -67,6 +66,6 @@ class Client(fl.client.NumPyClient):
     def _get_models_size(self):
         parameters = [i.detach().cpu().numpy() for i in self.model.parameters()]
         size = 0
-        for i in range(len(parameters)):
+        for i in range(len(parameters)-2):
             size += parameters[i].nbytes
         return int(size)
