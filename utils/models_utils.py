@@ -39,10 +39,10 @@ def load_model(model_name, dataset, strategy, device):
             logger.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
         elif dataset in ["ImageNet"]:
             input_shape=3
-            mid_dim=43264
+            mid_dim=10816
         elif dataset == "CIFAR10":
             input_shape = 3
-            mid_dim = 400
+            mid_dim = 400*4
         return CNN(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
     elif model_name == 'CNN_3':
         if dataset in ['MNIST']:

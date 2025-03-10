@@ -44,6 +44,7 @@ logger = logging.getLogger(__name__)  # Create logger for the module
 class CNN(nn.Module):
     def __init__(self, input_shape=1, mid_dim=256, num_classes=10):
         try:
+            self.mid_dim = mid_dim
             super(CNN, self).__init__()
             self.conv1 = nn.Sequential(
                 nn.Conv2d(input_shape,
@@ -83,7 +84,7 @@ class CNN(nn.Module):
             out = self.fc(out)
             return out
         except Exception as e:
-            logger.info("CNN forward")
+            logger.info("""CNN forward {}""".format(self.mid_dim))
             logger.info('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
 
 class CNN_3(nn.Module):
