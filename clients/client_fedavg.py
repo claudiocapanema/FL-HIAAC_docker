@@ -13,7 +13,7 @@ class Client(fl.client.NumPyClient):
         self.args = args
         self.model = load_model(args.model, args.dataset, args.strategy)
         logger.info("Preparing data...")
-        logger.info("""args do cliente: {}""".format(self.args.client_id))
+        logger.info("""args do cliente: {} {}""".format(self.args.client_id, self.model))
         self.client_id = args.client_id
         self.trainloader, self.valloader = load_data(
             dataset_name=self.args.dataset,
