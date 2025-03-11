@@ -5,7 +5,7 @@ dataset: [CIFAR-10]
 framework: [Docker, torch]
 ---
 
-# FL-H.IAAC 
+# FL-H.IAAC
 
 <p align="center">
   <img src="https://flower.ai/_next/image/?url=%2F_next%2Fstatic%2Fmedia%2Fflower_white_border.c2012e70.png&w=640&q=75" width="140px" alt="Flower Website" />
@@ -14,7 +14,16 @@ framework: [Docker, torch]
 
 ## Introduction
 
-This project uses the Flower environment executes via docker. It is configured to simulate device heterogeneity. Additionally, it is configured to allow client containers to run the GPU. This project is based on a Flower official tutorial.
+This project uses the Flower framework for Federated Learning (FL) simulation. It is executed via docker to enable realistic distributed simulation. 
+
+### Highlights
+
+FL-H.IAAC highlights are presented as follows:
+- Reproductibility: run experiments with only one command.
+- Data heterogeneity: simulate non-IID data across devices.
+- System heterogeneity: simulate devices with heterogeneous resources.
+- MEFL: support for Multi-model Federated Learning.
+- GPU usage: it is configured to use GPU when available.
 
 ## Enabling containers to access GPU
 
