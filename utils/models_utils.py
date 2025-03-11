@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from flwr_datasets import FederatedDataset
 from flwr_datasets.partitioner import IidPartitioner, DirichletPartitioner
 from torch.utils.data import DataLoader
-from torchvision.transforms import Compose, Resize, RandomHorizontalFlip, RandomResizedCrop, RandomAffine, ColorJitter,  Normalize, ToTensor, RandomRotation
+from torchvision.transforms import Compose, Resize, RandomHorizontalFlip, RandomResizedCrop, RandomAffine, ColorJitter,  Normalize, ToTensor, RandomRotation, Lambda
 from sklearn import metrics
 from sklearn.preprocessing import label_binarize
 import numpy as np
@@ -129,7 +129,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
         test_size = 1 - data_sampling_percentage
         partition_train_test = partition.train_test_split(test_size=test_size, seed=42)
 
-        if dataset_name in ["CIFAR10", "MNIST", "EMNIST", "GTSRB", "ImageNet"]:
+        if dataset_name in ["CIFAR10", "MNIST", "EMNIST", "GTSRB", "ImageNet", "WISDM-W", "Gowalla"]:
             pytorch_transforms = {"CIFAR10": Compose(
                 [ToTensor(), Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
                 "MNIST": Compose([ToTensor(), RandomRotation(10),
@@ -161,7 +161,10 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
                             # transforms.ToTensor(),
                             # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                         ]
-                    )
+                    ),
+                "WISDM-W": Lambda(lambda x: torch.from_numpy(np.array(x, dtype=np.float32))),
+                "Gowalla": Lambda(lambda x: torch.from_numpy(np.array(x, dtype=np.float32))),
+
             }[dataset_name]
 
         # import torchvision.datasets as datasets
@@ -175,7 +178,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
             # logger.info("""bath key: {}""".format(batch[key]))
             return batch
 
-        if dataset_name in ["CIFAR10", "MNIST", "EMNIST", "GTSRB", "ImageNet"]:
+        if dataset_name in ["CIFAR10", "MNIST", "EMNIST", "GTSRB", "ImageNet", "WISDM-W", "Gowalla"]:
             partition_train_test = partition_train_test.with_transform(apply_transforms)
         trainloader = DataLoader(
             partition_train_test["train"], batch_size=batch_size, shuffle=True
@@ -201,16 +204,14 @@ def train(model, trainloader, valloader, optimizer, epochs, learning_rate, devic
             y_prob = []
             for batch in trainloader:
                 # logger.info("""dentro {} labels {}""".format(images, labels))
-                images = batch[key]
+                x = batch[key]
                 labels = batch["label"]
                 # logger.info("""tamanho images {} tamanho labels {}""".format(images.shape, labels.shape))
-                if dataset_name in ["WISDM-W", "Gowalla"]:
-                    images = json.loads(images)
-                images = images.to(device)
+                x = x.to(device)
                 labels = labels.to(device)
 
                 optimizer.zero_grad()
-                outputs = model(images)
+                outputs = model(x)
                 # logger.info("""saida: {} true: {}""".format(outputs, labels))
                 loss = criterion(outputs, labels)
                 loss.backward()
@@ -266,13 +267,13 @@ def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, cl
             y_prob = []
             for batch in trainloader:
                 # logger.info("""dentro {} labels {}""".format(images, labels))
-                images = batch[key]
+                x = batch[key]
                 labels = batch["label"]
-                images = images.to(device)
+                x = x.to(device)
                 labels = labels.to(device)
 
                 optimizer.zero_grad()
-                output_student, rep_g, output_teacher, rep = model(images)
+                output_student, rep_g, output_teacher, rep = model(x)
                 outputs_S1 = F.log_softmax(output_student, dim=1)
                 outputs_S2 = F.log_softmax(output_teacher, dim=1)
                 outputs_T1 = F.softmax(output_student, dim=1)
@@ -333,14 +334,12 @@ def test(model, testloader, device, client_id, t, dataset_name, n_classes):
         key = DATASET_INPUT_MAP[dataset_name]
         with torch.no_grad():
             for batch in testloader:
-                images = batch[key]
+                x = batch[key]
                 labels = batch["label"]
-                if dataset_name in ["WISDM-W", "Gowalla"]:
-                    images = json.loads(images)
-                images = images.to(device)
+                x = x.to(device)
                 labels = labels.to(device)
                 y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
-                outputs = model(images)
+                outputs = model(x)
                 y_prob.append(outputs.detach().cpu().numpy())
                 loss += criterion(outputs, labels).item()
                 correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
@@ -378,12 +377,12 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
             key = DATASET_INPUT_MAP[dataset_name]
             with torch.no_grad():
                 for batch in testloader:
-                    images = batch[key]
+                    x = batch[key]
                     labels = batch["label"]
-                    images = images.to(device)
+                    x = x.to(device)
                     labels = labels.to(device)
                     y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
-                    output, proto_student, output_teacher, proto_teacher = model(images)
+                    output, proto_student, output_teacher, proto_teacher = model(x)
                     y_prob.append(output_teacher.detach().cpu().numpy())
                     loss += criterion(output_teacher, labels).item()
                     correct += (torch.sum(torch.argmax(output_teacher, dim=1) == labels)).item()
@@ -403,7 +402,7 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
             return loss, test_metrics
         except Exception as e:
             logger.info("Error test_fedkd")
-            logger.info('Error on line {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 
 def test_fedkd_fedpredict(lt, model, testloader, device, client_id, t, dataset_name, n_classes):
@@ -422,12 +421,12 @@ def test_fedkd_fedpredict(lt, model, testloader, device, client_id, t, dataset_n
         key = DATASET_INPUT_MAP[dataset_name]
         with torch.no_grad():
             for batch in testloader:
-                images = batch[key]
+                x = batch[key]
                 labels = batch["label"]
-                images = images.to(device)
+                x = x.to(device)
                 labels = labels.to(device)
                 y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
-                output, proto_student, output_teacher, proto_teacher = model(images)
+                output, proto_student, output_teacher, proto_teacher = model(x)
                 if lt == 0:
                     output_teacher = output
                 y_prob.append(output_teacher.detach().cpu().numpy())
@@ -448,5 +447,5 @@ def test_fedkd_fedpredict(lt, model, testloader, device, client_id, t, dataset_n
         # logger.info("""metricas cliente {} valores {}""".format(client_id, test_metrics))
         return loss, test_metrics
     except Exception as e:
-        logger.info("Error test_fedkd")
-        logger.info('Error on line {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+        logger.info("Error test_fedkd_fedpredict")
+        logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
