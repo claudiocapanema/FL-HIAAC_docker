@@ -124,6 +124,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
     ) -> None:
         super().__init__(fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
 
+        self.args = args
         self.local_epochs = args.local_epochs
         self.fraction_new_clients = args.fraction_new_clients
         self.round_new_clients = args.round_new_clients
