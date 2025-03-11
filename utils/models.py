@@ -73,7 +73,7 @@ class CNN(nn.Module):
             self.fc = nn.Linear(512, num_classes)
         except Exception as e:
             logger.info("CNN")
-            logger.info('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def forward(self, x):
         try:
@@ -85,7 +85,7 @@ class CNN(nn.Module):
             return out
         except Exception as e:
             logger.info("""CNN forward {}""".format(self.mid_dim))
-            logger.info('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 class CNN_3(nn.Module):
     def __init__(self, input_shape=1, mid_dim=256, num_classes=10):
