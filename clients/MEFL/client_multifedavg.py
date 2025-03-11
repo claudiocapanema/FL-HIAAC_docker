@@ -42,8 +42,8 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
         self.models_size = self._get_models_size()
         logger.info("leu model size")
         self.n_classes = [
-            {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'Tiny-ImageNet': 200,
-             'ImageNet100': 15, 'ImageNet': 15, "ImageNet_v2": 15, "Gowalla": 7}[dataset] for dataset in
+            {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'ImageNet': 15,
+             "ImageNet_v2": 15, "Gowalla": 7}[dataset] for dataset in
             self.args.dataset]
 
     def fit(self, parameters, config):
@@ -53,7 +53,7 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
         t = config['t']
         me = config['me']
         self.lt[me] = t - self.lt[me]
-        if t > 1:
+        if len(parameters) > 0:
             set_weights(self.model[me], parameters)
         self.optimizer[me] = self._get_optimizer(dataset_name=self.args.dataset[me], me=me)
         results = train(

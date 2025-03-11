@@ -36,7 +36,8 @@ class ClientFedPer(Client):
 
         logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
         t = config['t']
-        set_weights(self.model, parameters)
+        if len(parameters) > 0:
+            set_weights(self.model, parameters)
         results = train(
             self.model,
             self.trainloader,

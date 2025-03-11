@@ -35,7 +35,10 @@ class Client(fl.client.NumPyClient):
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
             self.lt = 0
             self.models_size = self._get_models_size()
-            self.n_classes = {"EMNIST": 47, "CIFAR10": 10, "GTSRB": 43, "ImageNet": 15, "WISDM-W": 12, "Gowalla": 7}[self.dataset]
+            self.n_classes = [
+                {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'ImageNet': 15,
+                 "ImageNet_v2": 15, "Gowalla": 7}[dataset] for dataset in
+                self.args.dataset]
         except Exception as e:
             logger.info("__init__ error")
             logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
@@ -46,7 +49,8 @@ class Client(fl.client.NumPyClient):
 
             logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
             t = config['t']
-            set_weights(self.model, parameters)
+            if len(parameters) > 0:
+                set_weights(self.model, parameters)
             self.optimizer = self._get_optimizer(dataset_name=self.dataset)
             results = train(
                 self.model,

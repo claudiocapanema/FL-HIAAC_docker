@@ -24,7 +24,8 @@ class ClientFedAvgFP(Client):
         logger.info("""fit cliente inicio fp config {}""".format(config))
         t = config['t']
         self.lt = t
-        set_weights(self.model, parameters)
+        if len(parameters) > 0:
+            set_weights(self.model, parameters)
         results = train(
             self.model,
             self.trainloader,

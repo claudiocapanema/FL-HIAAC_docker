@@ -91,103 +91,30 @@ class CNN_3(nn.Module):
     def __init__(self, input_shape=1, mid_dim=256, num_classes=10):
         try:
             super(CNN_3, self).__init__()
-    #         self.conv1 = nn.Sequential(
-    #             nn.Conv2d(input_shape,
-    #                       32,
-    #                       kernel_size=5,
-    #                       padding=0,
-    #                       stride=1,
-    #                       bias=True),
-    #             nn.ReLU(inplace=True),
-    #             nn.MaxPool2d(kernel_size=(2, 2))
-    #         )
-    #         self.conv2 = nn.Sequential(
-    #             nn.Conv2d(32,
-    #                       64,
-    #                       kernel_size=5,
-    #                       padding=0,
-    #                       stride=1,
-    #                       bias=True),
-    #             nn.ReLU(inplace=True),
-    #             nn.MaxPool2d(kernel_size=(2, 2))
-    #         )
-    #         self.fc1 = nn.Sequential(
-    #             nn.Linear(mid_dim*4, 512),
-    #             nn.ReLU(inplace=True)
-    #         )
-    #         self.fc = nn.Linear(512, num_classes)
-    #     except Exception as e:
-    #         logger.info("CNN")
-    #         logger.info('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-    #
-    # def forward(self, x):
-    #     try:
-    #         out = self.conv1(x)
-    #         out = self.conv2(out)
-    #         out = torch.flatten(out, 1)
-    #         out = self.fc1(out)
-    #         out = self.fc(out)
-    #         return out
-    #     except Exception as e:
-    #         logger.info("CNN forward")
-    #         logger.info('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
-            self.model = torch.nn.Sequential(
-
-                # queda para asl
-                # nn.Conv2d(input_shape, 32, kernel_size=3, padding=1),
-                # nn.ReLU(),
-                # nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
-                # nn.ReLU(),
-                # nn.MaxPool2d(2, 2),  # output: 64 x 16 x 16
-                #
-                # nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
-                # nn.ReLU(),
-                # nn.MaxPool2d(2, 2),  # output: 128 x 8 x 8
-                # nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
-                # nn.ReLU(),
-                # nn.MaxPool2d(2, 2),  # output: 128 x 8 x 8
-                #
-                # nn.Flatten(),
-                # nn.Linear(mid_dim,512),
-                # nn.ReLU(),
-                # nn.Linear(512, num_classes))
-
-                # nn.Linear(28*28, 392),
-                # nn.ReLU(),
-                # nn.Dropout(0.5),
-                # nn.Linear(392, 196),
-                # nn.ReLU(),
-                # nn.Linear(196, 98),
-                # nn.ReLU(),
-                # nn.Dropout(0.3),
-                # nn.Linear(98, num_classes)
-
-                torch.nn.Conv2d(in_channels=input_shape, out_channels=32, kernel_size=3, padding=1),
+            self.conv1 = torch.nn.Sequential(torch.nn.Conv2d(in_channels=input_shape, out_channels=32, kernel_size=3, padding=1),
                 torch.nn.ReLU(),
                 # Input = 32 x 32 x 32, Output = 32 x 16 x 16
-                torch.nn.MaxPool2d(kernel_size=2),
+                torch.nn.MaxPool2d(kernel_size=2))
 
                 # Input = 32 x 16 x 16, Output = 64 x 16 x 16
-                torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
+            self.conv2 = torch.nn.Sequential(torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
                 torch.nn.ReLU(),
                 # Input = 64 x 16 x 16, Output = 64 x 8 x 8
-                torch.nn.MaxPool2d(kernel_size=2),
+                torch.nn.MaxPool2d(kernel_size=2))
 
                 # Input = 64 x 8 x 8, Output = 64 x 8 x 8
-                torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
+            self.conv3 = torch.nn.Sequential(torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
                 torch.nn.ReLU(),
                 # Input = 64 x 8 x 8, Output = 64 x 4 x 4
-                torch.nn.MaxPool2d(kernel_size=2),
-                torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
+                torch.nn.MaxPool2d(kernel_size=2))
+            self.conv4 = torch.nn.Sequential(torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
                 torch.nn.ReLU(),
                 # Input = 64 x 8 x 8, Output = 64 x 4 x 4
-                torch.nn.MaxPool2d(kernel_size=2),
+                torch.nn.MaxPool2d(kernel_size=2))
 
-                torch.nn.Flatten(),
-                torch.nn.Linear(mid_dim * 4 * 4, 512),
-                torch.nn.ReLU(),
-                torch.nn.Linear(512, num_classes)
-            )
+            self.fc1 = torch.nn.Sequential(torch.nn.Linear(mid_dim * 4 * 4, 512),
+                torch.nn.ReLU())
+            self.fc2 = torch.nn.Linear(512, num_classes)
 
         except Exception as e:
 
@@ -196,7 +123,14 @@ class CNN_3(nn.Module):
 
     def forward(self, x):
         try:
-            return self.model(x)
+            out = self.conv1(x)
+            out = self.conv2(out)
+            out = self.conv3(out)
+            out = self.conv4(out)
+            out = torch.flatten(out, 1)
+            out = self.fc1(out)
+            out = self.fc2(out)
+            return out
         except Exception as e:
             logger.info("CNN_3 forward")
             logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
