@@ -45,6 +45,7 @@ def load_model(model_name, dataset, strategy, device):
             elif dataset == "CIFAR10":
                 input_shape = 3
                 mid_dim = 400*4
+                logger.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
             return CNN(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
         elif model_name == 'CNN_3':
             if dataset in ['MNIST']:
@@ -59,7 +60,11 @@ def load_model(model_name, dataset, strategy, device):
                 input_shape = 3
                 mid_dim = 16
                 logger.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            else:
+            elif dataset == "ImageNet":
+                input_shape = 3
+                mid_dim = 16
+                logger.info("""leu imagenet com {} {} {}""".format(input_shape, mid_dim, num_classes))
+            elif dataset == "CIFAR10":
                 input_shape = 3
                 mid_dim = 16
                 logger.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
@@ -87,22 +92,37 @@ def load_model(model_name, dataset, strategy, device):
 fds = None
 
 def get_weights(net):
-    return [val.cpu().numpy() for _, val in net.state_dict().items()]
+    try:
+        return [val.cpu().numpy() for _, val in net.state_dict().items()]
+    except Exception as e:
+        logger.info("get_weights error")
+        logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 def get_weights_fedkd(net):
-    return [val.cpu().numpy() for _, val in net.student.state_dict().items()]
+    try:
+        return [val.cpu().numpy() for _, val in net.student.state_dict().items()]
+    except Exception as e:
+        logger.info("get_weights_fedkd error")
+        logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 
 def set_weights(net, parameters):
-    params_dict = zip(net.state_dict().keys(), parameters)
-    state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
-    net.load_state_dict(state_dict, strict=True)
+    try:
+        params_dict = zip(net.state_dict().keys(), parameters)
+        state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
+        net.load_state_dict(state_dict, strict=True)
+    except Exception as e:
+        logger.info("set_weights error")
+        logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 def set_weights_fedkd(net, parameters):
-    params_dict = zip(net.student.state_dict().keys(), parameters)
-    state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
-    net.student.load_state_dict(state_dict, strict=True)
-
+    try:
+        params_dict = zip(net.student.state_dict().keys(), parameters)
+        state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
+        net.student.load_state_dict(state_dict, strict=True)
+    except Exception as e:
+        logger.info("set_weights_fedkd error")
+        logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions: int, batch_size: int,
               data_sampling_percentage: int):
@@ -110,7 +130,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
         """Load partition CIFAR10 data."""
         # Only initialize `FederatedDataset` once
         logger.info(
-            """Loading {} data.""".format(dataset_name, partition_id, num_partitions, batch_size, data_sampling_percentage))
+            """Loading {} {} {} {} {} {} data.""".format(dataset_name, partition_id, num_partitions, batch_size, data_sampling_percentage, alpha))
         # global fds
         # if fds is None:
         partitioner = DirichletPartitioner(num_partitions=num_partitions, partition_by="label",

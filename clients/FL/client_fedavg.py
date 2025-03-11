@@ -1,3 +1,4 @@
+import sys
 import logging
 
 import flwr as fl
@@ -10,64 +11,76 @@ logger = logging.getLogger(__name__)  # Create logger for the module
 
 class Client(fl.client.NumPyClient):
     def __init__(self, args):
-        self.args = args
-        self.dataset = self.args.dataset[0]
-        self.model = load_model(args.model[0], self.dataset, args.strategy, args.device)
-        self.alpha = self.args.alpha[0]
-        logger.info("Preparing data...")
-        logger.info("""args do cliente: {}""".format(self.args.client_id))
-        self.client_id = args.client_id
-        self.trainloader, self.valloader = load_data(
-            dataset_name=self.dataset,
-            alpha=self.alpha,
-            data_sampling_percentage=self.args.data_percentage,
-            partition_id=self.args.client_id,
-            num_partitions=self.args.total_clients + 1,
-            batch_size=self.args.batch_size,
-        )
-        self.optimizer = self._get_optimizer(dataset_name=self.dataset)
-        logger.info("""leu dados {}""".format(self.args.client_id))
+        try:
+            self.args = args
+            self.dataset = self.args.dataset[0]
+            self.model = load_model(args.model[0], self.dataset, args.strategy, args.device)
+            self.alpha = float(self.args.alpha[0])
+            logger.info("Preparing data...")
+            logger.info("""args do cliente: {} {}""".format(self.args.client_id, self.alpha))
+            self.client_id = args.client_id
+            self.trainloader, self.valloader = load_data(
+                dataset_name=self.dataset,
+                alpha=self.alpha,
+                data_sampling_percentage=self.args.data_percentage,
+                partition_id=self.args.client_id,
+                num_partitions=self.args.total_clients + 1,
+                batch_size=self.args.batch_size,
+            )
+            self.optimizer = self._get_optimizer(dataset_name=self.dataset)
+            logger.info("""leu dados {}""".format(self.args.client_id))
 
-        self.local_epochs = self.args.local_epochs
-        self.lr = self.args.learning_rate
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.lt = 0
-        self.models_size = self._get_models_size()
-        self.n_classes = {"EMNIST": 47, "CIFAR10": 10, "GTSRB": 43, "ImageNet": 15, "WISDM-W": 12, "Gowalla": 7}[self.dataset]
+            self.local_epochs = self.args.local_epochs
+            self.lr = self.args.learning_rate
+            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            self.lt = 0
+            self.models_size = self._get_models_size()
+            self.n_classes = {"EMNIST": 47, "CIFAR10": 10, "GTSRB": 43, "ImageNet": 15, "WISDM-W": 12, "Gowalla": 7}[self.dataset]
+        except Exception as e:
+            logger.info("__init__ error")
+            logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def fit(self, parameters, config):
-        """Train the utils with data of this client."""
+        try:
+            """Train the utils with data of this client."""
 
-        logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
-        t = config['t']
-        set_weights(self.model, parameters)
-        self.optimizer = self._get_optimizer(dataset_name=self.dataset)
-        results = train(
-            self.model,
-            self.trainloader,
-            self.valloader,
-            self.optimizer,
-            self.local_epochs,
-            self.lr,
-            self.device,
-            self.client_id,
-            t,
-            self.dataset,
-            self.n_classes
-        )
-        logger.info("fit cliente fim")
-        return get_weights(self.model), len(self.trainloader.dataset), results
+            logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
+            t = config['t']
+            set_weights(self.model, parameters)
+            self.optimizer = self._get_optimizer(dataset_name=self.dataset)
+            results = train(
+                self.model,
+                self.trainloader,
+                self.valloader,
+                self.optimizer,
+                self.local_epochs,
+                self.lr,
+                self.device,
+                self.client_id,
+                t,
+                self.dataset,
+                self.n_classes
+            )
+            logger.info("fit cliente fim")
+            return get_weights(self.model), len(self.trainloader.dataset), results
+        except Exception as e:
+            logger.info("fit error")
+            logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def evaluate(self, parameters, config):
-        """Evaluate the utils on the data this client has."""
-        logger.info("""eval cliente inicio""".format(config))
-        t = config["t"]
-        nt = t - self.lt
-        set_weights(self.model, parameters)
-        loss, metrics = test(self.model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
-        metrics["Model size"] = self.models_size
-        logger.info("eval cliente fim")
-        return loss, len(self.valloader.dataset), metrics
+        try:
+            """Evaluate the utils on the data this client has."""
+            logger.info("""eval cliente inicio""".format(config))
+            t = config["t"]
+            nt = t - self.lt
+            set_weights(self.model, parameters)
+            loss, metrics = test(self.model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
+            metrics["Model size"] = self.models_size
+            logger.info("eval cliente fim")
+            return loss, len(self.valloader.dataset), metrics
+        except Exception as e:
+            logger.info("evaluate error")
+            logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def _get_models_size(self):
         parameters = [i.detach().cpu().numpy() for i in self.model.parameters()]
