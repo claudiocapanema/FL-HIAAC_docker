@@ -120,10 +120,11 @@ class MultiFedEfficiency(MultiFedAvg):
         self.tw_range = [0.5, 0.1]
         self.models_semi_convergence_flag = [False] * self.ME
         self.models_semi_convergence_count = [0] * self.ME
+        self.client_class_count = {me: {i: [] for i in range(self.total_clients)} for me in range(self.ME)}
         self.training_clients_per_model_per_round = {me: [] for me in range(self.ME)}
         self.rounds_since_last_semi_convergence = {me: 0 for me in range(self.ME)}
         self.unique_count_samples = {me: np.array([0 for i in range(self.n_classes[me])]) for me in range(self.ME)}
-        self.models_semi_convergence_rounds_n_clients = {m: [] for m in range(self.M)}
+        self.models_semi_convergence_rounds_n_clients = {m: [] for m in range(self.ME)}
         self.accuracy_gain_models = {me: [] for me in range(self.ME)}
         self.stop_cpd = [False for me in range(self.ME)]
         self.re_per_model = int(args.reduction)
@@ -179,7 +180,7 @@ class MultiFedEfficiency(MultiFedAvg):
     def calculate_non_iid_degree_of_models(self):
 
         for me in range(self.ME):
-            for i in range(self.num_clients):
+            for i in range(self.total_clients):
                 self.client_class_count[me][i] = self.clients[i].train_class_count[me]
                 print("no train: ", " cliente: ", i, " modelo: ", me, " train class count: ", self.clients[i].train_class_count[me])
                 # non-iid degree
