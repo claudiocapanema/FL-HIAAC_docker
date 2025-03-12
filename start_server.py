@@ -72,6 +72,15 @@ parser.add_argument(
 parser.add_argument(
     "--learning_rate", type=float, default=0.01
 )
+parser.add_argument(
+    "--tw", type=int, default=15, help="TW window of rounds used in MultiFedEfficiency"
+)
+parser.add_argument(
+    "--reduction", type=int, default=3, help="Reduction in the number of training clients used in MultiFedEfficiency"
+)
+parser.add_argument(
+    "--df", type=float, default=0, help="Free budget redistribution factor used in MultiFedEfficiency"
+)
 
 args = parser.parse_args()
 
