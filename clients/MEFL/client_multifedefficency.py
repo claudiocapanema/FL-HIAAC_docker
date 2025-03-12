@@ -11,7 +11,17 @@ class ClientMultiFedEfficiency(ClientMultiFedAvg):
         super().__init__(args)
         self.fraction_of_classes = [0 for me in range(self.ME)]
         self.imbalance_level = [0 for me in range(self.ME)]
+        self.train_class_count = [0 for me in range(self.ME)]
         self._get_non_iid_degree()
+
+    def evaluate(self, parameters, config):
+        """Train the model with data of this client."""
+
+        parameters, dataset_size, results = super().evaluate(parameters, config)
+        results["fraction_of_classes"] = self.fraction_of_classes
+        results["imbalance_level"] = self.imbalance_level
+        results["train_class_count"] = self.train_class_count
+        return parameters, dataset_size, results
 
 
     def _get_non_iid_degree(self):
@@ -23,14 +33,14 @@ class ClientMultiFedEfficiency(ClientMultiFedAvg):
                 train_samples += len(x)
                 y_list += list(y)
 
-            train_class_count = {i: 0 for i in range(self.n_classes[me])}
+            self.train_class_count = {i: 0 for i in range(self.n_classes[me])}
             unique, count = np.unique(y, return_counts=True)
             data_unique_count_dict = dict(zip(unique, count))
             for class_ in data_unique_count_dict:
-                train_class_count[class_] = data_unique_count_dict[class_]
-            train_class_count = np.array(list(train_class_count.values()))
-            threshold = np.sum(train_class_count) / len(train_class_count)
-            self.fraction_of_classes[me] = np.count_nonzero(train_class_count) / len(train_class_count)
-            self.imbalance_level[me] = len(np.argwhere(train_class_count < threshold)) / len(
-                train_class_count)
+                self.train_class_count[class_] = data_unique_count_dict[class_]
+            self.train_class_count = np.array(list(self.train_class_count.values()))
+            threshold = np.sum(self.train_class_count) / len(self.train_class_count)
+            self.fraction_of_classes[me] = np.count_nonzero(self.train_class_count) / len(self.train_class_count)
+            self.imbalance_level[me] = len(np.argwhere(self.train_class_count < threshold)) / len(
+                self.train_class_count)
             logger.info("""fc do cliente {} {} {}""".format(self.client_id, self.fraction_of_classes[me], self.imbalance_level[me]))

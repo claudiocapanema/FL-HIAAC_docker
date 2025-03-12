@@ -1,5 +1,7 @@
 import argparse
 
+from torch.onnx.symbolic_helper import args_have_same_dtype
+
 parser = argparse.ArgumentParser(description="Generated Docker Compose")
 parser.add_argument(
     "--total_clients", type=int, default=20, help="Total clients to spawn (default: 2)"
@@ -70,8 +72,8 @@ def assert_args(args, strategy_name):
     elif strategy_name in ["MultiFedAvg", "FedFairMMFL", "MultiFedEfficiency"]:
         strategy_type = "MEFL"
 
-    args_size = True if len(args.dataset) == len(args.model) == len(args.alpha) else False
-    if not args_size:
+    args_have_same_size = True if len(args.dataset) == len(args.model) == len(args.alpha) else False
+    if not args_have_same_size:
         raise Exception(f"Number of datasets and models and alpha should be the same but you gave: {len(args.dataset)} dataset(s) {len(args.model)} model(s) and {len(args.alpha)} alpha(s)")
     else:
         if len(args.dataset) == 1 and strategy_type == "MEFL":

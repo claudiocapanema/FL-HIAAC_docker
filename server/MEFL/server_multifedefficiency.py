@@ -5,15 +5,18 @@ import numpy as np
 from typing import List, Tuple
 from flwr.common import Metrics
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 from flwr.common import (
     FitIns,
+    EvaluateIns,
+    EvaluateRes,
     MetricsAggregationFn,
     NDArrays,
     Parameters,
     Scalar,
 )
+
 from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 
@@ -120,6 +123,7 @@ class MultiFedEfficiency(MultiFedAvg):
         self.tw_range = [0.5, 0.1]
         self.models_semi_convergence_flag = [False] * self.ME
         self.models_semi_convergence_count = [0] * self.ME
+        self.clients_metrics = {client_id: {"fraction_of_classes": None, "imbalance_level": None, "train_class_count": None} for client_id in range(self.total_clients)}
         self.client_class_count = {me: {i: [] for i in range(self.total_clients)} for me in range(self.ME)}
         self.training_clients_per_model_per_round = {me: [] for me in range(self.ME)}
         self.rounds_since_last_semi_convergence = {me: 0 for me in range(self.ME)}
@@ -140,6 +144,7 @@ class MultiFedEfficiency(MultiFedAvg):
         torch.random.manual_seed(server_round)
         random.seed(server_round)
         np.random.seed(server_round)
+
         """Configure the next round of training."""
         config = {}
         if self.on_fit_config_fn is not None:
@@ -177,34 +182,59 @@ class MultiFedEfficiency(MultiFedAvg):
                 clients_m.append((client, fit_ins))
         return clients_m
 
-    def calculate_non_iid_degree_of_models(self):
+    def aggregate_evaluate(
+        self,
+        server_round: int,
+        results: list[tuple[ClientProxy, EvaluateRes]],
+        failures: list[Union[tuple[ClientProxy, EvaluateRes], BaseException]],
+    ) -> tuple[Optional[float], dict[str, Scalar]]:
+        """Aggregate evaluation losses using weighted average."""
+        if not results:
+            return None, {}
+        # Do not aggregate if there are failures and failures are not accepted
+        if not self.accept_failures and failures:
+            return None, {}
+
+        logger.info("""inicio aggregate evaluate {}""".format(server_round))
+
+        if server_round == 1:
+            for i in range(len(results)):
+                _, result = results[i]
+                fraction_of_classes = result.metrics["fraction_of_classes"]
+                imbalance_level = result.metrics["imbalance_level"]
+                train_class_count = result.metrics["train_class_count"]
+                client_id = result.metrics["client_id"]
+                self.clients_metrics[client_id]["fraction_of_classes"] = fraction_of_classes
+                self.clients_metrics[client_id]["imbalance_level"] = imbalance_level
+                self.clients_metrics[client_id]["train_class_count"] = train_class_count
+
+
+        return super().aggregate_evaluate(server_round, results, failures)
+
+    def calculate_non_iid_degree_of_models(self, clients_metrics):
+
+        logger.info(f"entrou no calculate non iid")
 
         for me in range(self.ME):
             for i in range(self.total_clients):
-                self.client_class_count[me][i] = self.clients[i].train_class_count[me]
-                print("no train: ", " cliente: ", i, " modelo: ", me, " train class count: ", self.clients[i].train_class_count[me])
+                self.client_class_count[me][i] = clients_metrics[i].train_class_count[me]
+                logger.info("no train: ", " cliente: ", i, " modelo: ", me, " train class count: ", clients_metrics[i].train_class_count[me])
                 # non-iid degree
-                self.fraction_of_classes[me][i] = self.clients[i].fraction_of_classes[me]
-                self.imbalance_level[me][i] = self.clients[i].imbalance_level[me]
+                self.fraction_of_classes[me][i] = clients_metrics[i].fraction_of_classes[me]
+                self.imbalance_level[me][i] = clients_metrics[i].imbalance_level[me]
 
-        # self.detect_non_iid_degree()
-
-        # print("Non iid degree")
-        # print("#########")
-        # print("""M1: {}\nM2: {}""".format(self.non_iid_degree[0], self.non_iid_degree[1]))
-
-        print(self.dataset)
+        logger.info(self.dataset)
         average_fraction_of_classes = 1 - np.mean(self.fraction_of_classes, axis=1)
         average_balance_level = np.mean(self.imbalance_level, axis=1)
         self.need_for_training = (average_fraction_of_classes + average_balance_level) / 2
         weighted_need_for_training = self.need_for_training / np.sum(self.need_for_training)
 
-        print("Média fraction of classes: ", np.mean(self.fraction_of_classes, axis=1))
-        print("Média imbalance level: ", np.mean(self.imbalance_level, axis=1))
-        print("Need for training: ", self.need_for_training)
-        print("Weighted need for training: ", weighted_need_for_training)
+        logger.info("Média fraction of classes: ", np.mean(self.fraction_of_classes, axis=1))
+        logger.info("Média imbalance level: ", np.mean(self.imbalance_level, axis=1))
+        logger.info("Need for training: ", self.need_for_training)
+        logger.info("Weighted need for training: ", weighted_need_for_training)
 
-    def process(self, t):
+    def process(self, t: int):
 
         """semi-convergence detection"""
         if t == 1:
