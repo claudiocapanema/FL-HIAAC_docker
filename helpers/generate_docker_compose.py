@@ -71,7 +71,7 @@ def assert_args(args, strategy_name):
             )
         elif len(args.dataset) > 1 and strategy_type == "FL":
             raise Exception(
-                f"Strategy {strategy_name} is FL but you gave {len(args.dataset)} dataset(s) {len(args.model)} model(s) and {len(args.alpha)} alpha(s)"
+                f"Strategy {strategy_name} is single model FL but you gave {len(args.dataset)} dataset(s) {len(args.model)} model(s) and {len(args.alpha)} alpha(s)"
             )
 
 
