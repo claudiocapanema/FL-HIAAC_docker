@@ -176,6 +176,33 @@ class MultiFedEfficiency(MultiFedAvg):
                 clients_m.append((client, fit_ins))
         return clients_m
 
+    def calculate_non_iid_degree_of_models(self):
+
+        for me in range(self.ME):
+            for i in range(self.num_clients):
+                self.client_class_count[me][i] = self.clients[i].train_class_count[me]
+                print("no train: ", " cliente: ", i, " modelo: ", me, " train class count: ", self.clients[i].train_class_count[me])
+                # non-iid degree
+                self.fraction_of_classes[me][i] = self.clients[i].fraction_of_classes[me]
+                self.imbalance_level[me][i] = self.clients[i].imbalance_level[me]
+
+        # self.detect_non_iid_degree()
+
+        # print("Non iid degree")
+        # print("#########")
+        # print("""M1: {}\nM2: {}""".format(self.non_iid_degree[0], self.non_iid_degree[1]))
+
+        print(self.dataset)
+        average_fraction_of_classes = 1 - np.mean(self.fraction_of_classes, axis=1)
+        average_balance_level = np.mean(self.imbalance_level, axis=1)
+        self.need_for_training = (average_fraction_of_classes + average_balance_level) / 2
+        weighted_need_for_training = self.need_for_training / np.sum(self.need_for_training)
+
+        print("Média fraction of classes: ", np.mean(self.fraction_of_classes, axis=1))
+        print("Média imbalance level: ", np.mean(self.imbalance_level, axis=1))
+        print("Need for training: ", self.need_for_training)
+        print("Weighted need for training: ", weighted_need_for_training)
+
     def process(self, t):
 
         """semi-convergence detection"""

@@ -54,8 +54,29 @@ parser.add_argument(
     "--learning_rate", type=float, default=0.01
 )
 
+def assert_args(args, strategy_name):
+    strategy_type = None
+    if strategy_name in ["FedAvg", "FedAvg+FP", "FedYogi", "FedYogi+FP", "FedPer", "FedKD", "FedKD+FP"]:
+        strategy_type = "FL"
+    elif strategy_name in ["MultiFedAvg", "FedFairMMFL", "MultiFedEfficiency"]:
+        strategy_type = "MEFL"
+
+    args_size = True if len(args.dataset) == len(args.model) == len(args.alpha) else False
+    if not args_size:
+        raise Exception(f"Number of datasets and models and alpha should be the same but you gave: {len(args.dataset)} dataset(s) {len(args.model)} model(s) and {len(args.alpha)} alpha(s)")
+    else:
+        if len(args.dataset) == 1 and strategy_type == "MEFL":
+            raise Exception(
+                f"Strategy {strategy_name} is MEFL but you gave only {len(args.dataset)} dataset {len(args.model)} model and {len(args.alpha)} alpha"
+            )
+        elif len(args.dataset) > 1 and strategy_type == "FL":
+            raise Exception(
+                f"Strategy {strategy_name} is FL but you gave {len(args.dataset)} dataset(s) {len(args.model)} model(s) and {len(args.alpha)} alpha(s)"
+            )
+
 
 def create_docker_compose(args):
+    assert_args(args, args.strategy)
     # cpus is used to set the number of CPUs available to the container as a fraction of the total number of CPUs on the host machine.
     # mem_limit is used to set the memory limit for the container.
     client_configs = [
