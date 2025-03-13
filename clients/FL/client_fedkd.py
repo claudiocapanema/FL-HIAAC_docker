@@ -49,17 +49,21 @@ class ClientFedKD(Client):
             return get_weights_fedkd(self.model), len(self.trainloader.dataset), results
 
         except Exception as e:
-            logger.info("fit")
-            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+            logger.error("fit")
+            logger.error('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 
     def evaluate(self, parameters, config):
         """Evaluate the utils on the data this client has."""
-        logger.info("""eval cliente inicio""".format(config))
-        t = config["t"]
-        nt = t - self.lt
-        # set_weights_fedkd(self.utils, parameters)
-        loss, metrics = test_fedkd(self.model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
-        metrics["Model size"] = self.models_size
-        logger.info("eval cliente fim")
-        return loss, len(self.valloader.dataset), metrics
+        try:
+            logger.info("""eval cliente inicio""".format(config))
+            t = config["t"]
+            nt = t - self.lt
+            # set_weights_fedkd(self.utils, parameters)
+            loss, metrics = test_fedkd(self.model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
+            metrics["Model size"] = self.models_size
+            logger.info("eval cliente fim")
+            return loss, len(self.valloader.dataset), metrics
+        except Exception as e:
+            logger.error("evaluate")
+            logger.error('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

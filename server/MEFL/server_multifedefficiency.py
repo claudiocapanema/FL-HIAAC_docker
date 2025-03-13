@@ -1,3 +1,4 @@
+import sys
 import pickle
 import logging
 
@@ -124,7 +125,10 @@ class MultiFedEfficiency(MultiFedAvg):
         self.tw_range = [0.5, 0.1]
         self.models_semi_convergence_flag = [False] * self.ME
         self.models_semi_convergence_count = [0] * self.ME
-        self.clients_metrics = {client_id: {"fraction_of_classes": None, "imbalance_level": None, "train_class_count": None} for client_id in range(1, self.total_clients + 1)}
+        self.clients_metrics = {client_id: {"fraction_of_classes": {me: None for me in range(self.ME)},
+                                            "imbalance_level": {me: None for me in range(self.ME)},
+                                            "train_class_count": {me: None for me in range(self.ME)}} for client_id in
+                                range(1, self.total_clients + 1)}
         self.client_class_count = {me: {i: [] for i in range(self.total_clients)} for me in range(self.ME)}
         self.training_clients_per_model_per_round = {me: [] for me in range(self.ME)}
         self.rounds_since_last_semi_convergence = {me: 0 for me in range(self.ME)}
@@ -144,49 +148,52 @@ class MultiFedEfficiency(MultiFedAvg):
     def configure_fit(
         self, server_round: int, parameters: dict, client_manager: ClientManager
     ) -> list[tuple[ClientProxy, FitIns]]:
+        try:
+            torch.random.manual_seed(server_round)
+            random.seed(server_round)
+            np.random.seed(server_round)
 
-        torch.random.manual_seed(server_round)
-        random.seed(server_round)
-        np.random.seed(server_round)
+            """Configure the next round of training."""
+            config = {}
+            if self.on_fit_config_fn is not None:
+                # Custom fit config function provided
+                config = self.on_fit_config_fn(server_round)
 
-        """Configure the next round of training."""
-        config = {}
-        if self.on_fit_config_fn is not None:
-            # Custom fit config function provided
-            config = self.on_fit_config_fn(server_round)
+            # Sample clients
+            sample_size, min_num_clients = self.num_fit_clients(
+                client_manager.num_available()
+            )
 
-        # Sample clients
-        sample_size, min_num_clients = self.num_fit_clients(
-            client_manager.num_available()
-        )
+            n_clients = int(self.total_clients * self.fraction_fit)
 
-        n_clients = int(self.total_clients * self.fraction_fit)
+            logger.info("""Rodada {} clients metrics {}""".format(server_round, self.clients_metrics))
 
-        logger.info("""Rodada {} clients metrics {}""".format(server_round, self.clients_metrics))
+            logging.info("""sample clientes {} {} disponiveis {} rodada {} n clients {}""".format(sample_size, min_num_clients, client_manager.num_available(), server_round, n_clients))
+            clients = client_manager.sample(
+                num_clients=n_clients, min_num_clients=n_clients
+            )
 
-        logging.info("""sample clientes {} {} disponiveis {} rodada {} n clients {}""".format(sample_size, min_num_clients, client_manager.num_available(), server_round, n_clients))
-        clients = client_manager.sample(
-            num_clients=n_clients, min_num_clients=n_clients
-        )
+            n = len(clients) // self.ME
+            selected_clients_m = np.array_split(clients, self.ME)
 
-        n = len(clients) // self.ME
-        selected_clients_m = np.array_split(clients, self.ME)
+            self.n_trained_clients = len(clients)
+            logging.info("""selecionados {} por modelo {} rodada {}""".format(self.n_trained_clients, [len(i) for i in selected_clients_m], server_round))
 
-        self.n_trained_clients = len(clients)
-        logging.info("""selecionados {} por modelo {} rodada {}""".format(self.n_trained_clients, [len(i) for i in selected_clients_m], server_round))
-
-        # Return client/config pairs
-        clients_m = []
-        for me in range(self.ME):
-            sc = selected_clients_m[me]
-            for client in sc:
-                config = {"t": server_round, "me": me}
-                if type(parameters) is dict:
-                    fit_ins = FitIns(parameters[me], config)
-                else:
-                    fit_ins = FitIns(parameters, config)
-                clients_m.append((client, fit_ins))
-        return clients_m
+            # Return client/config pairs
+            clients_m = []
+            for me in range(self.ME):
+                sc = selected_clients_m[me]
+                for client in sc:
+                    config = {"t": server_round, "me": me}
+                    if type(parameters) is dict:
+                        fit_ins = FitIns(parameters[me], config)
+                    else:
+                        fit_ins = FitIns(parameters, config)
+                    clients_m.append((client, fit_ins))
+            return clients_m
+        except Exception as e:
+            logger.error("configure_fit error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def aggregate_evaluate(
         self,
@@ -195,120 +202,130 @@ class MultiFedEfficiency(MultiFedAvg):
         failures: list[Union[tuple[ClientProxy, EvaluateRes], BaseException]],
     ) -> tuple[Optional[float], dict[str, Scalar]]:
         """Aggregate evaluation losses using weighted average."""
-        if not results:
-            return None, {}
-        # Do not aggregate if there are failures and failures are not accepted
-        if not self.accept_failures and failures:
-            return None, {}
+        try:
+            if not results:
+                return None, {}
+            # Do not aggregate if there are failures and failures are not accepted
+            if not self.accept_failures and failures:
+                return None, {}
 
-        logger.info("""inicio aggregate evaluate {}""".format(server_round))
+            logger.info("""inicio aggregate evaluate {} quantidade de clientes recebidos {}""".format(server_round, len(results)))
 
-        if server_round == 1 and self.fraction_evaluate == 1.0:
-            for i in range(len(results)):
-                _, result = results[i]
-                for me in result.metrics:
-                    tuple_me = pickle.loads(result.metrics[str(me)])
-                    results_mefl = tuple_me[2]
-                    fraction_of_classes = results_mefl["fraction_of_classes"]
-                    imbalance_level = results_mefl["imbalance_level"]
-                    train_class_count = results_mefl["train_class_count"]
-                    client_id = results_mefl["client_id"]
-                    self.clients_metrics[client_id]["fraction_of_classes"] = fraction_of_classes
-                    self.clients_metrics[client_id]["imbalance_level"] = imbalance_level
-                    self.clients_metrics[client_id]["train_class_count"] = train_class_count
+            if server_round == 2 and self.fraction_evaluate == 1.0:
+                for i in range(len(results)):
+                    _, result = results[i]
+                    for me in result.metrics:
+                        tuple_me = pickle.loads(result.metrics[str(me)])
+                        results_mefl = tuple_me[2]
+                        fraction_of_classes = results_mefl["fraction_of_classes"]
+                        imbalance_level = results_mefl["imbalance_level"]
+                        train_class_count = results_mefl["train_class_count"]
+                        client_id = results_mefl["client_id"]
+                        self.clients_metrics[client_id]["fraction_of_classes"][int(me)] = fraction_of_classes
+                        self.clients_metrics[client_id]["imbalance_level"][int(me)] = imbalance_level
+                        self.clients_metrics[client_id]["train_class_count"][int(me)] = train_class_count
 
 
-        return super().aggregate_evaluate(server_round, results, failures)
+            return super().aggregate_evaluate(server_round, results, failures)
+        except Exception as e:
+            logger.error("aggregate_evaluate error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def calculate_non_iid_degree_of_models(self, clients_metrics):
+        try:
+            logger.info(f"entrou no calculate non iid")
 
-        logger.info(f"entrou no calculate non iid")
+            for me in range(self.ME):
+                for i in range(self.total_clients):
+                    self.client_class_count[me][i] = clients_metrics[i].train_class_count[me]
+                    logger.info("no train: ", " cliente: ", i, " modelo: ", me, " train class count: ", clients_metrics[i].train_class_count[me])
+                    # non-iid degree
+                    self.fraction_of_classes[me][i] = clients_metrics[i].fraction_of_classes[me]
+                    self.imbalance_level[me][i] = clients_metrics[i].imbalance_level[me]
 
-        for me in range(self.ME):
-            for i in range(self.total_clients):
-                self.client_class_count[me][i] = clients_metrics[i].train_class_count[me]
-                logger.info("no train: ", " cliente: ", i, " modelo: ", me, " train class count: ", clients_metrics[i].train_class_count[me])
-                # non-iid degree
-                self.fraction_of_classes[me][i] = clients_metrics[i].fraction_of_classes[me]
-                self.imbalance_level[me][i] = clients_metrics[i].imbalance_level[me]
+            logger.info(self.dataset)
+            average_fraction_of_classes = 1 - np.mean(self.fraction_of_classes, axis=1)
+            average_balance_level = np.mean(self.imbalance_level, axis=1)
+            self.need_for_training = (average_fraction_of_classes + average_balance_level) / 2
+            weighted_need_for_training = self.need_for_training / np.sum(self.need_for_training)
 
-        logger.info(self.dataset)
-        average_fraction_of_classes = 1 - np.mean(self.fraction_of_classes, axis=1)
-        average_balance_level = np.mean(self.imbalance_level, axis=1)
-        self.need_for_training = (average_fraction_of_classes + average_balance_level) / 2
-        weighted_need_for_training = self.need_for_training / np.sum(self.need_for_training)
-
-        logger.info("Média fraction of classes: ", np.mean(self.fraction_of_classes, axis=1))
-        logger.info("Média imbalance level: ", np.mean(self.imbalance_level, axis=1))
-        logger.info("Need for training: ", self.need_for_training)
-        logger.info("Weighted need for training: ", weighted_need_for_training)
+            logger.info("Média fraction of classes: ", np.mean(self.fraction_of_classes, axis=1))
+            logger.info("Média imbalance level: ", np.mean(self.imbalance_level, axis=1))
+            logger.info("Need for training: ", self.need_for_training)
+            logger.info("Weighted need for training: ", weighted_need_for_training)
+        except Exception as e:
+            logger.error("calculate_non_iid_degree_of_models error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def process(self, t: int):
-
         """semi-convergence detection"""
-        if t == 1:
-            diff = self.tw_range[0] - self.tw_range[1]
-            middle = self.tw_range[1] + diff // 2
+        try:
+            if t == 1:
+                diff = self.tw_range[0] - self.tw_range[1]
+                middle = self.tw_range[1] + diff // 2
+                for me in range(self.ME):
+                    # method 2
+                    # r = diff * (1 - self.need_for_training[m])
+                    # if self.need_for_training[m] >= 0.5:
+                    #     # Makes it harder to reduce training intensity
+                    #     lower = upper - t/2
+                    #     upper = lower + diff * (1- self.need_for_training[m])
+                    # else:
+                    #     # Makes it easier to reduce training intensity
+                    #     upper = self.tw_range[0]
+                    #     lower = upper - diff * self.need_for_training[m]
+
+                    # method 1 funciona bem
+                    lower = self.tw_range[1]
+                    upper = self.tw_range[0]
+                    r = diff * (1 - self.need_for_training[me])
+                    # Smaller training reduction interval for higher need for training
+                    lower = max(middle - r / 2, lower)
+                    upper = min(middle + r / 2, upper)
+
+                    self.lim.append([upper, lower])
+            flag = True
+            print("limites: ", self.lim)
+            # exit()
+            loss_reduction = [0] * self.ME
             for me in range(self.ME):
-                # method 2
-                # r = diff * (1 - self.need_for_training[m])
-                # if self.need_for_training[m] >= 0.5:
-                #     # Makes it harder to reduce training intensity
-                #     lower = upper - t/2
-                #     upper = lower + diff * (1- self.need_for_training[m])
-                # else:
-                #     # Makes it easier to reduce training intensity
-                #     upper = self.tw_range[0]
-                #     lower = upper - diff * self.need_for_training[m]
+                if not self.stop_cpd[me]:
+                    self.rounds_since_last_semi_convergence[me] += 1
 
-                # method 1 funciona bem
-                lower = self.tw_range[1]
-                upper = self.tw_range[0]
-                r = diff * (1 - self.need_for_training[me])
-                # Smaller training reduction interval for higher need for training
-                lower = max(middle - r / 2, lower)
-                upper = min(middle + r / 2, upper)
+                    """Stop CPD"""
+                    print("Modelo m: ", me)
+                    print("tw: ", self.tw[me], self.results_test_metrics[me]["Loss"])
+                    losses = self.results_test_metrics[me]["Loss"][-(self.tw[me] + 1):]
+                    losses = np.array([losses[i] - losses[i + 1] for i in range(len(losses) - 1)])
+                    if len(losses) > 0:
+                        loss_reduction[me] = losses[-1]
+                    print("Modelo ", me, " losses: ", losses)
+                    idxs = np.argwhere(losses < 0)
+                    # lim = [[0.5, 0.25], [0.35, 0.15]]
+                    upper = self.lim[me][0]
+                    lower = self.lim[me][1]
+                    print("Condição 1: ", len(idxs) <= int(self.tw[me] * self.lim[me][0]), "Condição 2: ",
+                          len(idxs) >= int(self.tw[me] * lower))
+                    print(len(idxs), self.tw[me], upper, lower, int(self.tw[me] * upper), int(self.tw[me] * lower))
+                    if self.rounds_since_last_semi_convergence[me] >= 4:
+                        if len(idxs) <= int(self.tw[me] * upper) and len(idxs) >= int(self.tw[me] * lower):
+                            self.rounds_since_last_semi_convergence[me] = 0
+                            print("a, remaining_clients_per_model, total_clientsb: ",
+                                  self.training_clients_per_model_per_round[me])
+                            self.models_semi_convergence_rounds_n_clients[me].append({'round': t - 2, 'n_training_clients':
+                                self.training_clients_per_model_per_round[me][t - 2]})
+                            # more clients are trained for the semi converged model
+                            print("treinados na rodada passada: ", me, self.training_clients_per_model_per_round[me][t - 2])
 
-                self.lim.append([upper, lower])
-        flag = True
-        print("limites: ", self.lim)
-        # exit()
-        loss_reduction = [0] * self.ME
-        for me in range(self.ME):
-            if not self.stop_cpd[me]:
-                self.rounds_since_last_semi_convergence[me] += 1
+                            if flag:
+                                self.models_semi_convergence_flag[me] = True
+                                self.models_semi_convergence_count[me] += 1
+                                flag = False
 
-                """Stop CPD"""
-                print("Modelo m: ", me)
-                print("tw: ", self.tw[me], self.results_test_metrics[me]["Loss"])
-                losses = self.results_test_metrics[me]["Loss"][-(self.tw[me] + 1):]
-                losses = np.array([losses[i] - losses[i + 1] for i in range(len(losses) - 1)])
-                if len(losses) > 0:
-                    loss_reduction[me] = losses[-1]
-                print("Modelo ", me, " losses: ", losses)
-                idxs = np.argwhere(losses < 0)
-                # lim = [[0.5, 0.25], [0.35, 0.15]]
-                upper = self.lim[me][0]
-                lower = self.lim[me][1]
-                print("Condição 1: ", len(idxs) <= int(self.tw[me] * self.lim[me][0]), "Condição 2: ",
-                      len(idxs) >= int(self.tw[me] * lower))
-                print(len(idxs), self.tw[me], upper, lower, int(self.tw[me] * upper), int(self.tw[me] * lower))
-                if self.rounds_since_last_semi_convergence[me] >= 4:
-                    if len(idxs) <= int(self.tw[me] * upper) and len(idxs) >= int(self.tw[me] * lower):
-                        self.rounds_since_last_semi_convergence[me] = 0
-                        print("a, remaining_clients_per_model, total_clientsb: ",
-                              self.training_clients_per_model_per_round[me])
-                        self.models_semi_convergence_rounds_n_clients[me].append({'round': t - 2, 'n_training_clients':
-                            self.training_clients_per_model_per_round[me][t - 2]})
-                        # more clients are trained for the semi converged model
-                        print("treinados na rodada passada: ", me, self.training_clients_per_model_per_round[me][t - 2])
-
-                        if flag:
-                            self.models_semi_convergence_flag[me] = True
-                            self.models_semi_convergence_count[me] += 1
-                            flag = False
-
-                    elif len(idxs) > int(self.tw[me] * upper):
-                        self.rounds_since_last_semi_convergence[me] += 1
-                        self.models_semi_convergence_count[me] -= 1
-                        self.models_semi_convergence_count[me] = max(0, self.models_semi_convergence_count[me])
+                        elif len(idxs) > int(self.tw[me] * upper):
+                            self.rounds_since_last_semi_convergence[me] += 1
+                            self.models_semi_convergence_count[me] -= 1
+                            self.models_semi_convergence_count[me] = max(0, self.models_semi_convergence_count[me])
+        except Exception as e:
+            logger.error("process error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

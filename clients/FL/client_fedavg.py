@@ -40,8 +40,8 @@ class Client(fl.client.NumPyClient):
                  "ImageNet_v2": 15, "Gowalla": 7}[dataset] for dataset in
                 self.args.dataset]
         except Exception as e:
-            logger.info("__init__ error")
-            logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+            logger.error("__init__ error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def fit(self, parameters, config):
         try:
@@ -68,8 +68,8 @@ class Client(fl.client.NumPyClient):
             logger.info("fit cliente fim")
             return get_weights(self.model), len(self.trainloader.dataset), results
         except Exception as e:
-            logger.info("fit error")
-            logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+            logger.error("fit error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def evaluate(self, parameters, config):
         try:
@@ -83,8 +83,8 @@ class Client(fl.client.NumPyClient):
             logger.info("eval cliente fim")
             return loss, len(self.valloader.dataset), metrics
         except Exception as e:
-            logger.info("evaluate error")
-            logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+            logger.error("evaluate error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def _get_models_size(self):
         parameters = [i.detach().cpu().numpy() for i in self.model.parameters()]
