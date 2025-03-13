@@ -1,3 +1,4 @@
+import sys
 import logging
 import os
 
@@ -14,42 +15,53 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 class ClientFedAvgFP(Client):
     def __init__(self, args):
-        super(ClientFedAvgFP, self).__init__(args)
-        self.global_model = load_model(self.model, self.dataset, args.strategy, args.device)
-        self.lt = 0
+        try:
+            super(ClientFedAvgFP, self).__init__(args)
+            self.global_model = load_model(self.model, self.dataset, args.strategy, args.device)
+            self.lt = 0
+        except Exception as e:
+            logger.error("__init__ error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def fit(self, parameters, config):
         """Train the utils with data of this client."""
-
-        logger.info("""fit cliente inicio fp config {}""".format(config))
-        t = config['t']
-        self.lt = t
-        if len(parameters) > 0:
-            set_weights(self.model, parameters)
-        results = train(
-            self.model,
-            self.trainloader,
-            self.valloader,
-            self.local_epochs,
-            self.lr,
-            self.device,
-            self.client_id,
-            t,
-            self.dataset,
-            self.n_classes
-        )
-        logger.info("fit cliente fim fp")
-        return get_weights(self.model), len(self.trainloader.dataset), results
+        try:
+            logger.info("""fit cliente inicio fp config {}""".format(config))
+            t = config['t']
+            self.lt = t
+            if len(parameters) > 0:
+                set_weights(self.model, parameters)
+            results = train(
+                self.model,
+                self.trainloader,
+                self.valloader,
+                self.local_epochs,
+                self.lr,
+                self.device,
+                self.client_id,
+                t,
+                self.dataset,
+                self.n_classes
+            )
+            logger.info("fit cliente fim fp")
+            return get_weights(self.model), len(self.trainloader.dataset), results
+        except Exception as e:
+            logger.error("fit error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def evaluate(self, parameters, config):
         """Evaluate the utils on the data this client has."""
-        logger.info("""eval cliente inicio fp""".format(config))
-        t = config["t"]
-        nt = t - self.lt
-        set_weights(self.global_model, parameters)
-        combined_model = fedpredict_client_torch(local_model=self.model, global_model=self.global_model,
-                                  t=t, T=100, nt=nt, device=self.device, fc=1, il=1)
-        loss, metrics = test(combined_model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
-        metrics["Model size"] = self.models_size
-        logger.info("eval cliente fim fp")
-        return loss, len(self.valloader.dataset), metrics
+        try:
+            logger.info("""eval cliente inicio fp""".format(config))
+            t = config["t"]
+            nt = t - self.lt
+            set_weights(self.global_model, parameters)
+            combined_model = fedpredict_client_torch(local_model=self.model, global_model=self.global_model,
+                                      t=t, T=100, nt=nt, device=self.device, fc=1, il=1)
+            loss, metrics = test(combined_model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
+            metrics["Model size"] = self.models_size
+            logger.info("eval cliente fim fp")
+            return loss, len(self.valloader.dataset), metrics
+        except Exception as e:
+            logger.error("evaluate error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

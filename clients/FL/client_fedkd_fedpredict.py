@@ -14,8 +14,12 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 class ClientFedKDFedPredict(ClientFedKD):
     def __init__(self, args):
-        super().__init__(args)
-        self.lt = 0
+        try:
+            super().__init__(args)
+            self.lt = 0
+        except Exception as e:
+            logger.error("__init__ error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def fit(self, parameters, config):
         """Train the utils with data of this client."""

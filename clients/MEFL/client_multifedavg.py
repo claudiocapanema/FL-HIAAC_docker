@@ -48,8 +48,8 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                  "ImageNet_v2": 15, "Gowalla": 7}[dataset] for dataset in
                 self.args.dataset]
         except Exception as e:
-            logger.info("__init__ error")
-            logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+            logger.error("__init__ error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def fit(self, parameters, config):
         """Train the model with data of this client."""

@@ -15,16 +15,20 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 class ClientFedKD(Client):
     def __init__(self, args):
-        super().__init__(args)
-        self.lr_loss = torch.nn.MSELoss()
-        self.round_of_last_fit = 0
-        self.rounds_of_fit = 0
-        self.accuracy_of_last_round_of_fit = 0
-        self.start_server = 0
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr, momentum=0.9)
-        feature_dim = 512
-        self.W_h = torch.nn.Linear(feature_dim, feature_dim, bias=False)
-        self.MSE = torch.nn.MSELoss()
+        try:
+            super().__init__(args)
+            self.lr_loss = torch.nn.MSELoss()
+            self.round_of_last_fit = 0
+            self.rounds_of_fit = 0
+            self.accuracy_of_last_round_of_fit = 0
+            self.start_server = 0
+            self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.lr, momentum=0.9)
+            feature_dim = 512
+            self.W_h = torch.nn.Linear(feature_dim, feature_dim, bias=False)
+            self.MSE = torch.nn.MSELoss()
+        except Exception as e:
+            logger.error("__init__ error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def fit(self, parameters, config):
         """Train the utils with data of this client."""

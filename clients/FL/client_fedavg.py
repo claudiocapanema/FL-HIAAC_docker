@@ -87,22 +87,29 @@ class Client(fl.client.NumPyClient):
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def _get_models_size(self):
-        parameters = [i.detach().cpu().numpy() for i in self.model.parameters()]
-        size = 0
-        for i in range(len(parameters)):
-            size += parameters[i].nbytes
-        return int(size)
+        try:
+            parameters = [i.detach().cpu().numpy() for i in self.model.parameters()]
+            size = 0
+            for i in range(len(parameters)):
+                size += parameters[i].nbytes
+            return int(size)
+        except Exception as e:
+            logger.error("_get_models_size error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def _get_optimizer(self, dataset_name):
-
-        return {
-                'EMNIST': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
-                'MNIST': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
-                'CIFAR10': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
-                'GTSRB': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
-                'WISDM-W': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
-                'WISDM-P': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
-                'ImageNet100': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
-                'ImageNet': torch.optim.Adam(self.model.parameters(), lr=0.01),
-                "ImageNet_v2": torch.optim.Adam(self.model.parameters(), lr=0.01),
-                "Gowalla": torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9)}[dataset_name]
+        try:
+            return {
+                    'EMNIST': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
+                    'MNIST': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
+                    'CIFAR10': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
+                    'GTSRB': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
+                    'WISDM-W': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
+                    'WISDM-P': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
+                    'ImageNet100': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
+                    'ImageNet': torch.optim.Adam(self.model.parameters(), lr=0.01),
+                    "ImageNet_v2": torch.optim.Adam(self.model.parameters(), lr=0.01),
+                    "Gowalla": torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9)}[dataset_name]
+        except Exception as e:
+            logger.error("_get_optimizer error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
