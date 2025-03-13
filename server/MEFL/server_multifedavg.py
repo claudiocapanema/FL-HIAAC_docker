@@ -219,7 +219,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
 
         config["evaluate_models"] = str([me for me in range(self.ME)])
         config["t"] = server_round
-        logger.info("""config antes {}""".format(config))
+        logger.info("""config evaluate antes {}""".format(config))
         config["parameters"] = dict_ME
         evaluate_ins = EvaluateIns(parameters[0], config)
 

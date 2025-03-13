@@ -124,7 +124,7 @@ class MultiFedEfficiency(MultiFedAvg):
         self.tw_range = [0.5, 0.1]
         self.models_semi_convergence_flag = [False] * self.ME
         self.models_semi_convergence_count = [0] * self.ME
-        self.clients_metrics = {client_id: {"fraction_of_classes": None, "imbalance_level": None, "train_class_count": None} for client_id in range(self.total_clients)}
+        self.clients_metrics = {client_id: {"fraction_of_classes": None, "imbalance_level": None, "train_class_count": None} for client_id in range(1, self.total_clients + 1)}
         self.client_class_count = {me: {i: [] for i in range(self.total_clients)} for me in range(self.ME)}
         self.training_clients_per_model_per_round = {me: [] for me in range(self.ME)}
         self.rounds_since_last_semi_convergence = {me: 0 for me in range(self.ME)}
@@ -161,6 +161,8 @@ class MultiFedEfficiency(MultiFedAvg):
         )
 
         n_clients = int(self.total_clients * self.fraction_fit)
+
+        logger.info("""Rodada {} clients metrics {}""".format(server_round, self.clients_metrics))
 
         logging.info("""sample clientes {} {} disponiveis {} rodada {} n clients {}""".format(sample_size, min_num_clients, client_manager.num_available(), server_round, n_clients))
         clients = client_manager.sample(

@@ -22,11 +22,13 @@ class ClientMultiFedEfficiency(ClientMultiFedAvg):
         for me in range(self.ME):
             me_str = str(me)
             tuple_me = pickle.loads(tuple_ME[me_str])
+            t = config["t"]
             results = tuple_me[2]
             results["fraction_of_classes"] = self.fraction_of_classes
             results["imbalance_level"] = self.imbalance_level
             results["train_class_count"] = self.train_class_count
             results["client_id"] = self.client_id
+            logger.info("""testou cliente {} rodada {} modelo {}""".format(self.client_id, t, me))
             tuple_ME[me_str] = pickle.dumps((tuple_me[0], tuple_me[1], results))
         return parameters, dataset_size, tuple_ME
 
