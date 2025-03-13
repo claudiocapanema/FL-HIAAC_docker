@@ -45,14 +45,14 @@ class ClientMultiFedEfficiency(ClientMultiFedAvg):
             for me in range(self.ME):
                 train_samples = 0
                 y_list = []
-                for x, y in self.trainloader[me]:
-                    train_samples += len(x)
-                    y_list += list(y)
+                for batch in self.trainloader[me]:
+                    train_samples += len(batch['label'])
+                    y_list += batch['label'].detach().cpu().numpy().tolist()
 
                 self.train_class_count[me] = {i: 0 for i in range(self.n_classes[me])}
-                unique, count = np.unique(y, return_counts=True)
+                unique, count = np.unique(y_list, return_counts=True)
                 data_unique_count_dict = dict(zip(unique, count))
-                logger.info("""y: {}""".format(y))
+                logger.info("""y: {}""".format(y_list))
                 logger.info("""data unique {}""".format(data_unique_count_dict))
                 for class_ in data_unique_count_dict:
                     self.train_class_count[class_] = data_unique_count_dict[class_]
