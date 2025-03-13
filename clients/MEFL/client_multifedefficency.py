@@ -1,4 +1,5 @@
 import logging
+import pickle
 
 import numpy as np
 from clients.MEFL.client_multifedavg import ClientMultiFedAvg
@@ -17,11 +18,17 @@ class ClientMultiFedEfficiency(ClientMultiFedAvg):
     def evaluate(self, parameters, config):
         """Train the model with data of this client."""
 
-        parameters, dataset_size, results = super().evaluate(parameters, config)
-        results["fraction_of_classes"] = self.fraction_of_classes
-        results["imbalance_level"] = self.imbalance_level
-        results["train_class_count"] = self.train_class_count
-        return parameters, dataset_size, results
+        parameters, dataset_size, tuple_ME = super().evaluate(parameters, config)
+        for me in range(self.ME):
+            me_str = str(me)
+            tuple_me = pickle.loads(tuple_ME[me_str])
+            results = tuple_me[2]
+            results["fraction_of_classes"] = self.fraction_of_classes
+            results["imbalance_level"] = self.imbalance_level
+            results["train_class_count"] = self.train_class_count
+            results["client_id"] = self.client_id
+            tuple_ME[me_str] = pickle.dumps((tuple_me[0], tuple_me[1], results))
+        return parameters, dataset_size, tuple_ME
 
 
     def _get_non_iid_degree(self):

@@ -1,3 +1,4 @@
+import pickle
 import logging
 
 import torch
@@ -137,6 +138,9 @@ class MultiFedEfficiency(MultiFedAvg):
         self.lim = []
         self.free_budget_distribution_factor = args.df
 
+        if self.fraction_evaluate != 1.0:
+            raise ValueError("fraction_evaluate must be 1.0 to run MultiFedEfficiency")
+
     def configure_fit(
         self, server_round: int, parameters: dict, client_manager: ClientManager
     ) -> list[tuple[ClientProxy, FitIns]]:
@@ -197,16 +201,19 @@ class MultiFedEfficiency(MultiFedAvg):
 
         logger.info("""inicio aggregate evaluate {}""".format(server_round))
 
-        if server_round == 1:
+        if server_round == 1 and self.fraction_evaluate == 1.0:
             for i in range(len(results)):
                 _, result = results[i]
-                fraction_of_classes = result.metrics["fraction_of_classes"]
-                imbalance_level = result.metrics["imbalance_level"]
-                train_class_count = result.metrics["train_class_count"]
-                client_id = result.metrics["client_id"]
-                self.clients_metrics[client_id]["fraction_of_classes"] = fraction_of_classes
-                self.clients_metrics[client_id]["imbalance_level"] = imbalance_level
-                self.clients_metrics[client_id]["train_class_count"] = train_class_count
+                for me in result.metrics:
+                    tuple_me = pickle.loads(result.metrics[str(me)])
+                    results_mefl = tuple_me[2]
+                    fraction_of_classes = results_mefl["fraction_of_classes"]
+                    imbalance_level = results_mefl["imbalance_level"]
+                    train_class_count = results_mefl["train_class_count"]
+                    client_id = results_mefl["client_id"]
+                    self.clients_metrics[client_id]["fraction_of_classes"] = fraction_of_classes
+                    self.clients_metrics[client_id]["imbalance_level"] = imbalance_level
+                    self.clients_metrics[client_id]["train_class_count"] = train_class_count
 
 
         return super().aggregate_evaluate(server_round, results, failures)
