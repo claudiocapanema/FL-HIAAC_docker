@@ -137,8 +137,8 @@ class MultiFedEfficiency(MultiFedAvg):
         self.accuracy_gain_models = {me: [] for me in range(self.ME)}
         self.stop_cpd = [False for me in range(self.ME)]
         self.re_per_model = int(args.reduction)
-        self.fraction_of_classes = np.zeros((self.ME, self.total_clients))
-        self.imbalance_level = np.zeros((self.ME, self.total_clients))
+        self.fraction_of_classes = np.zeros((self.ME, self.total_clients + 1))
+        self.imbalance_level = np.zeros((self.ME, self.total_clients + 1))
         self.lim = []
         self.free_budget_distribution_factor = args.df
 
@@ -224,6 +224,7 @@ class MultiFedEfficiency(MultiFedAvg):
                         self.clients_metrics[client_id]["fraction_of_classes"][int(me)] = fraction_of_classes
                         self.clients_metrics[client_id]["imbalance_level"][int(me)] = imbalance_level
                         self.clients_metrics[client_id]["train_class_count"][int(me)] = train_class_count
+                self.calculate_non_iid_degree_of_models()
 
 
             return super().aggregate_evaluate(server_round, results, failures)
@@ -231,17 +232,16 @@ class MultiFedEfficiency(MultiFedAvg):
             logger.error("aggregate_evaluate error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-    def calculate_non_iid_degree_of_models(self, clients_metrics):
+    def calculate_non_iid_degree_of_models(self):
         try:
             logger.info(f"entrou no calculate non iid")
 
             for me in range(self.ME):
-                for i in range(self.total_clients):
-                    self.client_class_count[me][i] = clients_metrics[i].train_class_count[me]
-                    logger.info("no train: ", " cliente: ", i, " modelo: ", me, " train class count: ", clients_metrics[i].train_class_count[me])
+                for i in self.clients_metrics.keys():
+                    logger.info("no train: ", " cliente: ", i, " modelo: ", me, " train class count: ", self.clients_metrics[i]["train_class_count"][me])
                     # non-iid degree
-                    self.fraction_of_classes[me][i] = clients_metrics[i].fraction_of_classes[me]
-                    self.imbalance_level[me][i] = clients_metrics[i].imbalance_level[me]
+                    self.fraction_of_classes[me][i] = self.clients_metrics[i]["fraction_of_classes"][me]
+                    self.imbalance_level[me][i] = self.clients_metrics[i]["imbalance_level"][me]
 
             logger.info(self.dataset)
             average_fraction_of_classes = 1 - np.mean(self.fraction_of_classes, axis=1)
