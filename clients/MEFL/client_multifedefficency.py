@@ -56,13 +56,13 @@ class ClientMultiFedEfficiency(ClientMultiFedAvg):
                 logger.info("""data unique {}""".format(data_unique_count_dict))
                 for class_ in data_unique_count_dict:
                     logger.info("""class local {}""".format(class_))
-                    self.train_class_count[class_] = data_unique_count_dict[class_]
-                self.train_class_count[me] = np.array(list(self.train_class_count.values()))
+                    self.train_class_count[me][class_] = data_unique_count_dict[class_]
+                self.train_class_count[me] = np.array(list(self.train_class_count[me].values()))
                 threshold = np.sum(self.train_class_count[me]) / len(self.train_class_count[me])
                 self.fraction_of_classes[me] = np.count_nonzero(self.train_class_count[me]) / len(self.train_class_count[me])
-                self.imbalance_level[me] = len(np.argwhere(self.train_class_count < threshold)) / len(
+                self.imbalance_level[me] = len(np.argwhere(self.train_class_count[me] < threshold)) / len(
                     self.train_class_count[me])
-                self.train_class_count[me] = list(self.train_class_count[me])
+                self.train_class_count[me] = np.array(self.train_class_count[me]).tolist()
                 logger.info("""fc do cliente {} {} {} {}""".format(self.client_id, self.fraction_of_classes[me], self.imbalance_level[me], self.train_class_count[me]))
         except Exception as e:
             logger.error("_get_non_iid_degree error")
