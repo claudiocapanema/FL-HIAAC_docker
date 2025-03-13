@@ -238,7 +238,6 @@ class MultiFedEfficiency(MultiFedAvg):
 
             for me in range(self.ME):
                 for i in self.clients_metrics.keys():
-                    logger.info("no train: ", " cliente: ", i, " modelo: ", me, " train class count: ", self.clients_metrics[i]["train_class_count"][me])
                     # non-iid degree
                     self.fraction_of_classes[me][i] = self.clients_metrics[i]["fraction_of_classes"][me]
                     self.imbalance_level[me][i] = self.clients_metrics[i]["imbalance_level"][me]
@@ -249,10 +248,10 @@ class MultiFedEfficiency(MultiFedAvg):
             self.need_for_training = (average_fraction_of_classes + average_balance_level) / 2
             weighted_need_for_training = self.need_for_training / np.sum(self.need_for_training)
 
-            logger.info("Média fraction of classes: ", np.mean(self.fraction_of_classes, axis=1))
-            logger.info("Média imbalance level: ", np.mean(self.imbalance_level, axis=1))
-            logger.info("Need for training: ", self.need_for_training)
-            logger.info("Weighted need for training: ", weighted_need_for_training)
+            logger.info("""Média fraction of classes: {}""".format(np.mean(self.fraction_of_classes, axis=1)))
+            logger.info("""Média imbalance level: {}""".format(np.mean(self.imbalance_level, axis=1)))
+            logger.info("""Need for training: {}""".format(self.need_for_training))
+            logger.info("""Weighted need for training: {}""".format(weighted_need_for_training))
         except Exception as e:
             logger.error("calculate_non_iid_degree_of_models error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
