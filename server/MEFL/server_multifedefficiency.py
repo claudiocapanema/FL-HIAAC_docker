@@ -130,6 +130,7 @@ class MultiFedEfficiency(MultiFedAvg):
                                             "train_class_count": {me: None for me in range(self.ME)}} for client_id in
                                 range(1, self.total_clients + 1)}
         self.client_class_count = {me: {i: [] for i in range(self.total_clients)} for me in range(self.ME)}
+        self.minimum_training_clients_per_model = {0.1: 1, 0.2: 2, 0.3: 3, 0.5: 3}[self.fraction_fit]
         self.training_clients_per_model_per_round = {me: [] for me in range(self.ME)}
         self.rounds_since_last_semi_convergence = {me: 0 for me in range(self.ME)}
         self.unique_count_samples = {me: np.array([0 for i in range(self.n_classes[me])]) for me in range(self.ME)}
@@ -172,6 +173,11 @@ class MultiFedEfficiency(MultiFedAvg):
             clients = client_manager.sample(
                 num_clients=n_clients, min_num_clients=n_clients
             )
+
+            if server_round >= 3:
+                self.process(server_round)
+                random_selection_ME = self.random_selection(server_round)
+                logger.info("""selecionados random {}""".format(random_selection_ME))
 
             n = len(clients) // self.ME
             selected_clients_m = np.array_split(clients, self.ME)
@@ -328,3 +334,58 @@ class MultiFedEfficiency(MultiFedAvg):
         except Exception as e:
             logger.error("process error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def random_selection(self, t):
+
+        try:
+            g = torch.Generator()
+            g.manual_seed(t)
+            np.random.seed(t)
+            random.seed(t)
+
+            budget = int(self.total_clients / self.ME)
+            cm = [budget] * self.ME
+
+            for me in range(self.ME):
+                if self.models_semi_convergence_count[me] > 0:
+                    cm[me] = int(max(self.minimum_training_clients_per_model,
+                                                      cm[me] - self.models_semi_convergence_count[me]))
+
+            print("cm i: ", cm)
+
+            if self.free_budget_distribution_factor > 0:
+                free_budget = self.total_clients - np.sum(cm)
+                k_nt = len(np.argwhere(self.need_for_training >= 0.5))
+                free_budget_k = int(int(free_budget * self.free_budget_distribution_factor) / k_nt)
+                rest = free_budget - free_budget_k * k_nt
+
+                print("Free budget: ", free_budget, " k nt: ", k_nt, " Free budget k: ", free_budget_k, " resto: ", rest)
+
+                for me in range(self.ME):
+                    if self.need_for_training[me] >= 0.5 and cm[me] == budget:
+                        cm[me] = int(cm[me] + free_budget_k)
+                        if rest > 0:
+                            cm[me] += 1
+                            rest -= 1
+                            rest = max(rest, 0)
+
+            selected_clients = list(np.random.choice([i for i in range(1, self.total_clients + 1)], int(self.fraction_fit * self.total_clients), replace=False))
+            selected_clients = [i for i in selected_clients]
+
+            selected_clients_m = [None] * self.ME
+
+            print("a : ", selected_clients_m)
+            print("random: ", selected_clients)
+            print("cm: ", cm)
+            i = 0
+            reverse_list = [0, 1]
+            for me in reverse_list:
+                j = i + cm[me]
+                selected_clients_m[me] = selected_clients[i: j]
+                i = j
+
+            return selected_clients_m
+
+        except Exception as e:
+            logger.error("Error random selection")
+            logger.error('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
