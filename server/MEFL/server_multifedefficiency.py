@@ -116,7 +116,7 @@ class MultiFedEfficiency(MultiFedAvg):
 
         self.tw = []
         for d in self.dataset:
-            self.tw.append({"WISDM-W": args.tw, "WISDM-P": args.tw, "ImageNet": args.tw, "CIFAR10": args.tw,
+            self.tw.append({'EMNIST': args.tw, 'MNIST': args.tw, 'GTSRB': args.tw, "WISDM-W": args.tw, "WISDM-P": args.tw, "ImageNet": args.tw, "CIFAR10": args.tw,
                             "ImageNet_v2": args.tw, "Gowalla": args.tw}[d])
         self.n_classes = [
             {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'ImageNet': 15,
@@ -131,7 +131,7 @@ class MultiFedEfficiency(MultiFedAvg):
                                 range(1, self.total_clients + 1)}
         self.client_class_count = {me: {i: [] for i in range(self.total_clients)} for me in range(self.ME)}
         self.minimum_training_clients_per_model = {0.1: 1, 0.2: 2, 0.3: 3, 0.5: 3}[self.fraction_fit]
-        self.training_clients_per_model_per_round = {me: [] for me in range(self.ME)}
+        self.training_clients_per_model_per_round = {me: {t: [] for t in range(1, self.number_of_rounds + 1)} for me in range(self.ME)}
         self.rounds_since_last_semi_convergence = {me: 0 for me in range(self.ME)}
         self.unique_count_samples = {me: np.array([0 for i in range(self.n_classes[me])]) for me in range(self.ME)}
         self.models_semi_convergence_rounds_n_clients = {m: [] for m in range(self.ME)}
@@ -174,10 +174,9 @@ class MultiFedEfficiency(MultiFedAvg):
                 num_clients=n_clients, min_num_clients=n_clients
             )
 
-            if server_round >= 3:
-                self.process(server_round)
-                random_selection_ME = self.random_selection(server_round)
-                logger.info("""selecionados random {}""".format(random_selection_ME))
+            # if server_round >= 3:
+            random_selection_ME = self.random_selection(server_round)
+            logger.info("""selecionados random {}""".format(random_selection_ME))
 
             n = len(clients) // self.ME
             selected_clients_m = np.array_split(clients, self.ME)
@@ -217,6 +216,14 @@ class MultiFedEfficiency(MultiFedAvg):
 
             logger.info("""inicio aggregate evaluate {} quantidade de clientes recebidos {}""".format(server_round, len(results)))
 
+            for i in range(len(results)):
+                _, result = results[i]
+                for me in result.metrics:
+                    tuple_me = pickle.loads(result.metrics[str(me)])
+                    results_mefl = tuple_me[2]
+                    client_id = results_mefl["client_id"]
+                    self.training_clients_per_model_per_round[int(me)][server_round].append(client_id)
+
             if server_round == 2 and self.fraction_evaluate == 1.0:
                 for i in range(len(results)):
                     _, result = results[i]
@@ -231,6 +238,8 @@ class MultiFedEfficiency(MultiFedAvg):
                         self.clients_metrics[client_id]["imbalance_level"][int(me)] = imbalance_level
                         self.clients_metrics[client_id]["train_class_count"][int(me)] = train_class_count
                 self.calculate_non_iid_degree_of_models()
+            if server_round >= 2:
+                self.process(server_round)
 
 
             return super().aggregate_evaluate(server_round, results, failures)
@@ -265,7 +274,7 @@ class MultiFedEfficiency(MultiFedAvg):
     def process(self, t: int):
         """semi-convergence detection"""
         try:
-            if t == 1:
+            if t == 2:
                 diff = self.tw_range[0] - self.tw_range[1]
                 middle = self.tw_range[1] + diff // 2
                 for me in range(self.ME):
@@ -290,7 +299,7 @@ class MultiFedEfficiency(MultiFedAvg):
 
                     self.lim.append([upper, lower])
             flag = True
-            print("limites: ", self.lim)
+            logger.info(f"limites:  {self.lim}")
             # exit()
             loss_reduction = [0] * self.ME
             for me in range(self.ME):
@@ -298,29 +307,30 @@ class MultiFedEfficiency(MultiFedAvg):
                     self.rounds_since_last_semi_convergence[me] += 1
 
                     """Stop CPD"""
-                    print("Modelo m: ", me)
-                    print("tw: ", self.tw[me], self.results_test_metrics[me]["Loss"])
+                    logger.info(f"Modelo m:  {me}")
+                    logger.info(f"tw:  {self.tw[me]}")
+                    logger.info("""loss results test metrics {}""".format(self.results_test_metrics[me]["Loss"]))
                     losses = self.results_test_metrics[me]["Loss"][-(self.tw[me] + 1):]
                     losses = np.array([losses[i] - losses[i + 1] for i in range(len(losses) - 1)])
                     if len(losses) > 0:
                         loss_reduction[me] = losses[-1]
-                    print("Modelo ", me, " losses: ", losses)
+                    logger.info(f"Modelo {me}, losses: {losses}")
                     idxs = np.argwhere(losses < 0)
                     # lim = [[0.5, 0.25], [0.35, 0.15]]
+                    logger.info("""tamanho lin {} ind me {}""".format(len(self.lim), me))
                     upper = self.lim[me][0]
                     lower = self.lim[me][1]
-                    print("Condição 1: ", len(idxs) <= int(self.tw[me] * self.lim[me][0]), "Condição 2: ",
-                          len(idxs) >= int(self.tw[me] * lower))
-                    print(len(idxs), self.tw[me], upper, lower, int(self.tw[me] * upper), int(self.tw[me] * lower))
+                    logger.info(f"Condição 1: {len(idxs) <= int(self.tw[me] * self.lim[me][0])}, Condição 2: {len(idxs) >= int(self.tw[me] * lower)}")
+                    logger.info(f"{len(idxs)} {self.tw[me]} {upper} {lower} {int(self.tw[me] * upper)} {int(self.tw[me] * lower)}")
                     if self.rounds_since_last_semi_convergence[me] >= 4:
                         if len(idxs) <= int(self.tw[me] * upper) and len(idxs) >= int(self.tw[me] * lower):
                             self.rounds_since_last_semi_convergence[me] = 0
-                            print("a, remaining_clients_per_model, total_clientsb: ",
-                                  self.training_clients_per_model_per_round[me])
-                            self.models_semi_convergence_rounds_n_clients[me].append({'round': t - 2, 'n_training_clients':
-                                self.training_clients_per_model_per_round[me][t - 2]})
+                            logger.info("a, remaining_clients_per_model, total_clientsb: ",
+                                  self.training_clients_per_model_per_round)
+                            self.models_semi_convergence_rounds_n_clients[me].append({'round': t, 'n_training_clients':
+                                self.training_clients_per_model_per_round[me][t]})
                             # more clients are trained for the semi converged model
-                            print("treinados na rodada passada: ", me, self.training_clients_per_model_per_round[me][t - 2])
+                            logger.info(f"treinados na rodada passada: {me}, {self.training_clients_per_model_per_round[me][t - 2]}")
 
                             if flag:
                                 self.models_semi_convergence_flag[me] = True
@@ -343,7 +353,7 @@ class MultiFedEfficiency(MultiFedAvg):
             np.random.seed(t)
             random.seed(t)
 
-            budget = int(self.total_clients / self.ME)
+            budget = int((self.total_clients * self.fraction_fit) / self.ME)
             cm = [budget] * self.ME
 
             for me in range(self.ME):
@@ -351,7 +361,7 @@ class MultiFedEfficiency(MultiFedAvg):
                     cm[me] = int(max(self.minimum_training_clients_per_model,
                                                       cm[me] - self.models_semi_convergence_count[me]))
 
-            print("cm i: ", cm)
+            logger.info("""cm i: {}""".format(cm))
 
             if self.free_budget_distribution_factor > 0:
                 free_budget = self.total_clients - np.sum(cm)
@@ -359,7 +369,7 @@ class MultiFedEfficiency(MultiFedAvg):
                 free_budget_k = int(int(free_budget * self.free_budget_distribution_factor) / k_nt)
                 rest = free_budget - free_budget_k * k_nt
 
-                print("Free budget: ", free_budget, " k nt: ", k_nt, " Free budget k: ", free_budget_k, " resto: ", rest)
+                logger.info(f"Free budget: {free_budget},  k nt: {k_nt}, Free budget k: {free_budget_k}, resto: {rest}")
 
                 for me in range(self.ME):
                     if self.need_for_training[me] >= 0.5 and cm[me] == budget:
@@ -369,14 +379,14 @@ class MultiFedEfficiency(MultiFedAvg):
                             rest -= 1
                             rest = max(rest, 0)
 
-            selected_clients = list(np.random.choice([i for i in range(1, self.total_clients + 1)], int(self.fraction_fit * self.total_clients), replace=False))
+            selected_clients = np.random.choice([i for i in range(1, self.total_clients + 1)], int(self.fraction_fit * self.total_clients), replace=False).tolist()
             selected_clients = [i for i in selected_clients]
 
             selected_clients_m = [None] * self.ME
 
-            print("a : ", selected_clients_m)
-            print("random: ", selected_clients)
-            print("cm: ", cm)
+            logger.info("""a : {}""".format(selected_clients_m))
+            logger.info("""random: {}""".format(selected_clients))
+            logger.info("""cm: {}""".format(cm))
             i = 0
             reverse_list = [0, 1]
             for me in reverse_list:

@@ -52,7 +52,7 @@ class ClientMultiFedEfficiency(ClientMultiFedAvg):
                 self.train_class_count[me] = {i: 0 for i in range(self.n_classes[me])}
                 unique, count = np.unique(y_list, return_counts=True)
                 data_unique_count_dict = dict(zip(np.array(unique).tolist(), np.array(count).tolist()))
-                logger.info("""y: {}""".format(y_list))
+                logger.info("""y: {}""".format(y_list[:10]))
                 logger.info("""data unique {}""".format(data_unique_count_dict))
                 for class_ in data_unique_count_dict:
                     logger.info("""class local {}""".format(class_))

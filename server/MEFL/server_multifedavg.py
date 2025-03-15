@@ -354,10 +354,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             elif server_round == 1:  # Only log this warning once
                 log(WARNING, "No evaluate_metrics_aggregation_fn provided")
 
-            if server_round == 1:
-                mode = "w"
-            else:
-                mode = "w"
+            mode = "w"
 
             for me in range(self.ME):
                 self.add_metrics(server_round, metrics_aggregated_mefl, me)
