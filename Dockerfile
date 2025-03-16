@@ -7,8 +7,6 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     python3-dev \
     python3-setuptools \
-    python3-venv \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory in the container to /app
