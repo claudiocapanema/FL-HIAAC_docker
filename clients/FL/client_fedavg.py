@@ -13,7 +13,6 @@ class Client(fl.client.NumPyClient):
     def __init__(self, args):
         try:
             self.args = args
-            self.device = args.device
             self.dataset = self.args.dataset[0]
             self.model = load_model(args.model[0], self.dataset, args.strategy, args.device)
             self.alpha = float(self.args.alpha[0])
