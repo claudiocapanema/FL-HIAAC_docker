@@ -1,3 +1,4 @@
+import sys
 import argparse
 import logging
 
@@ -118,6 +119,7 @@ def start_fl_client():
         fl.client.start_client(server_address=args.server_address, client=client)
     except Exception as e:
         logger.error("Error starting FL client: %s", e)
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
         return {"status": "error", "message": str(e)}
 
 

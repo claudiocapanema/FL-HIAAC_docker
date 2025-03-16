@@ -1,3 +1,4 @@
+import sys
 import argparse
 import logging
 
@@ -113,6 +114,7 @@ def start_fl_server(strategy, rounds):
         )
     except Exception as e:
         logger.error(f"FL Server error: {e}", exc_info=True)
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 def get_server(strategy_name):
 

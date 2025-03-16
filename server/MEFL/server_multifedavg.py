@@ -428,12 +428,12 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             if train_test == 'test':
 
                 header = self.test_metrics_names
-                print(self.rs_test_acc[me])
-                print(self.rs_test_auc[me])
-                print(self.rs_train_loss[me])
+                # print(self.rs_test_acc[me])
+                # print(self.rs_test_auc[me])
+                # print(self.rs_train_loss[me])
                 list_of_metrics = []
                 for metric in self.results_test_metrics[me]:
-                    print(me, len(self.results_test_metrics[me][metric]))
+                    # print(me, len(self.results_test_metrics[me][metric]))
                     length = len(self.results_test_metrics[me][metric])
                     list_of_metrics.append(self.results_test_metrics[me][metric])
 
@@ -450,7 +450,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
                     header = self.train_metrics_names
                     list_of_metrics = []
                     for metric in self.results_train_metrics[me]:
-                        print(me, len(self.results_train_metrics[me][metric]))
+                        # print(me, len(self.results_train_metrics[me][metric]))
                         length = len(self.results_train_metrics[me][metric])
                         list_of_metrics.append(self.results_train_metrics[me][metric])
 

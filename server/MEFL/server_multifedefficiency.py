@@ -175,11 +175,11 @@ class MultiFedEfficiency(MultiFedAvg):
             )
 
             # if server_round >= 3:
-            random_selection_ME = self.random_selection(server_round)
-            logger.info("""selecionados random {}""".format(random_selection_ME))
+            selected_clients_m = self.random_selection(server_round, clients)
+            logger.info("""selecionados random {}""".format([len(i) for i in selected_clients_m]))
 
             n = len(clients) // self.ME
-            selected_clients_m = np.array_split(clients, self.ME)
+            # selected_clients_m = np.array_split(clients, self.ME)
 
             self.n_trained_clients = len(clients)
             logging.info("""selecionados {} por modelo {} rodada {}""".format(self.n_trained_clients, [len(i) for i in selected_clients_m], server_round))
@@ -345,7 +345,7 @@ class MultiFedEfficiency(MultiFedAvg):
             logger.error("process error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-    def random_selection(self, t):
+    def random_selection(self, t,  clients):
 
         try:
             g = torch.Generator()
@@ -379,7 +379,7 @@ class MultiFedEfficiency(MultiFedAvg):
                             rest -= 1
                             rest = max(rest, 0)
 
-            selected_clients = np.random.choice([i for i in range(1, self.total_clients + 1)], int(self.fraction_fit * self.total_clients), replace=False).tolist()
+            selected_clients = np.random.choice(clients, int(self.fraction_fit * self.total_clients), replace=False).tolist()
             selected_clients = [i for i in selected_clients]
 
             selected_clients_m = [None] * self.ME
