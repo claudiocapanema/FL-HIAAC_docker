@@ -143,6 +143,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
                      "GTSRB": "claudiogsc/GTSRB", "Gowalla": "claudiogsc/Gowalla-State-of-Texas",
                      "WISDM-W": "claudiogsc/WISDM-W", "ImageNet": "claudiogsc/ImageNet-15_household_objects"}[dataset_name],
             partitioners={"train": partitioner},
+            seed=42
         )
         partition = fds.load_partition(partition_id)
         # Divide data on each node: 80% train, 20% test
