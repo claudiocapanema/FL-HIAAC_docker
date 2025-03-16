@@ -237,8 +237,8 @@ def train(model, trainloader, valloader, optimizer, epochs, learning_rate, devic
                 loss = criterion(outputs, labels)
                 loss.backward()
                 loss_total += loss.item() * labels.shape[0]
-                y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
-                y_prob.append(outputs.detach().cpu().numpy())
+                y_true.append(label_binarize(labels.detach().cpu().numpy().tolist(), classes=np.arange(n_classes)))
+                y_prob.append(outputs.detach().cpu().numpy().tolist())
                 correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
                 optimizer.step()
         accuracy = correct / len(trainloader.dataset)

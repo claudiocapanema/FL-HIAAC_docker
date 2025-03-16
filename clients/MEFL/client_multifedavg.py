@@ -130,12 +130,12 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                     'MNIST': torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9),
                     'CIFAR10': torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9),
                     'GTSRB': torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9),
-                    'WISDM-W': torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9),
-                    'WISDM-P': torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9),
+                    'WISDM-W': torch.optim.RMSprop(self.model[me].parameters(), lr=0.001, momentum=0.9),
+                    'WISDM-P': torch.optim.RMSprop(self.model[me].parameters(), lr=0.001, momentum=0.9),
                     'ImageNet100': torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9),
                     'ImageNet': torch.optim.Adam(self.model[me].parameters(), lr=0.01),
                     "ImageNet_v2": torch.optim.Adam(self.model[me].parameters(), lr=0.01),
-                    "Gowalla": torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9)}[dataset_name]
+                    "Gowalla": torch.optim.RMSprop(self.model[me].parameters(), lr=0.001, momentum=0.9)}[dataset_name]
         except Exception as e:
             logger.error("_get_optimizer error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

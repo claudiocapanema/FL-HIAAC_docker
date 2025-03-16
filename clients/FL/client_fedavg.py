@@ -28,17 +28,17 @@ class Client(fl.client.NumPyClient):
                 batch_size=self.args.batch_size,
             )
             self.optimizer = self._get_optimizer(dataset_name=self.dataset)
-            logger.info("""leu dados {}""".format(self.args.client_id))
+            logger.info("""leu dados client id {}""".format(self.args.client_id))
 
             self.local_epochs = self.args.local_epochs
             self.lr = self.args.learning_rate
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
             self.lt = 0
             self.models_size = self._get_models_size()
-            self.n_classes = [
-                {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'ImageNet': 15,
-                 "ImageNet_v2": 15, "Gowalla": 7}[dataset] for dataset in
-                self.args.dataset]
+            self.n_classes = \
+            {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'ImageNet': 15,
+             "ImageNet_v2": 15, "Gowalla": 7}[self.args.dataset[0]]
+
         except Exception as e:
             logger.error("__init__ error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
@@ -104,12 +104,12 @@ class Client(fl.client.NumPyClient):
                     'MNIST': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
                     'CIFAR10': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
                     'GTSRB': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
-                    'WISDM-W': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
-                    'WISDM-P': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
+                    'WISDM-W':torch.optim.RMSprop(self.model.parameters(), lr=0.001),
+                    'WISDM-P': torch.optim.RMSprop(self.model.parameters(), lr=0.001),
                     'ImageNet100': torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9),
                     'ImageNet': torch.optim.Adam(self.model.parameters(), lr=0.01),
                     "ImageNet_v2": torch.optim.Adam(self.model.parameters(), lr=0.01),
-                    "Gowalla": torch.optim.SGD(self.model.parameters(), lr=self.args.learning_rate, momentum=0.9)}[dataset_name]
+                    "Gowalla": torch.optim.RMSprop(self.model.parameters(), lr=0.001)}[dataset_name]
         except Exception as e:
             logger.error("_get_optimizer error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
