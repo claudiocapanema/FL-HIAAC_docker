@@ -15,6 +15,7 @@ from server.FL.server_fedyogi_fedpredict import FedYogiFP
 from server.FL.server_fedper import FedPer
 from server.MEFL.server_multifedavg import MultiFedAvg
 from server.MEFL.server_multifedefficiency import MultiFedEfficiency
+from server.MEFL.server_multifedavgrr import MultiFedAvgRR
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
@@ -136,6 +137,8 @@ def get_server(strategy_name):
         return MultiFedAvg
     elif strategy_name == "MultiFedEfficiency":
         return MultiFedEfficiency
+    elif strategy_name == "MultiFedAvgRR":
+        return MultiFedAvgRR
 
 # Main Function
 if __name__ == "__main__":
