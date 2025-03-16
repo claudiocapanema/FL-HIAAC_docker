@@ -133,7 +133,7 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                     'WISDM-W': torch.optim.RMSprop(self.model[me].parameters(), lr=0.001, momentum=0.9),
                     'WISDM-P': torch.optim.RMSprop(self.model[me].parameters(), lr=0.001, momentum=0.9),
                     'ImageNet100': torch.optim.SGD(self.model[me].parameters(), lr=self.args.learning_rate, momentum=0.9),
-                    'ImageNet': torch.optim.Adam(self.model[me].parameters(), lr=0.01),
+                    'ImageNet': torch.optim.SGD(self.model[me].parameters(), lr=0.1),
                     "ImageNet_v2": torch.optim.Adam(self.model[me].parameters(), lr=0.01),
                     "Gowalla": torch.optim.RMSprop(self.model[me].parameters(), lr=0.001, momentum=0.9)}[dataset_name]
         except Exception as e:
