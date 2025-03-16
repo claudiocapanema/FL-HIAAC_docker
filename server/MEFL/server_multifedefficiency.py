@@ -388,7 +388,7 @@ class MultiFedEfficiency(MultiFedAvg):
             logger.info("""random: {}""".format(selected_clients))
             logger.info("""cm: {}""".format(cm))
             i = 0
-            reverse_list = [0, 1]
+            reverse_list = [k for k in range(self.ME)]
             for me in reverse_list:
                 j = i + cm[me]
                 selected_clients_m[me] = selected_clients[i: j]

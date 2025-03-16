@@ -1,4 +1,5 @@
 import json
+import time
 from collections import OrderedDict
 
 import torch
@@ -127,7 +128,6 @@ def set_weights_fedkd(net, parameters):
 def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions: int, batch_size: int,
               data_sampling_percentage: int):
     try:
-        """Load partition CIFAR10 data."""
         # Only initialize `FederatedDataset` once
         logger.info(
             """Loading {} {} {} {} {} {} data.""".format(dataset_name, partition_id, num_partitions, batch_size, data_sampling_percentage, alpha))
@@ -145,7 +145,18 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
             partitioners={"train": partitioner},
             seed=42
         )
-        partition = fds.load_partition(partition_id)
+
+        attempts = 0
+        while True:
+            attempts += 1
+            try:
+                partition = fds.load_partition(partition_id)
+                logger.info("""Loaded dataset {} in the {} attempt for client {}""".format(dataset_name, attempts, partition_id))
+                break
+            except Exception as e:
+                logger.info("""Tried to load dataset {} for the {} time for the client {} error""".format(dataset_name, attempts, partition_id))
+                logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+                time.sleep(1)
         # Divide data on each node: 80% train, 20% test
         test_size = 1 - data_sampling_percentage
         partition_train_test = partition.train_test_split(test_size=test_size, seed=42)
