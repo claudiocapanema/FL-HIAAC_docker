@@ -403,21 +403,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
         try:
             algo = self.dataset[me] + "_" + self.strategy_name
 
-            result_path = """/results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
-                self.cd,
-                self.fraction_new_clients,
-                self.round_new_clients,
-                self.total_clients,
-                self.alpha,
-                self.alpha,
-                self.dataset,
-                0,
-                0,
-                self.model_name,
-                self.fraction_fit,
-                self.number_of_rounds,
-                self.local_epochs,
-                train_test)
+            result_path = self.get_result_path(train_test)
 
 
             if not os.path.exists(result_path):
@@ -515,3 +501,34 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
         except Exception as e:
             logger.error("_get_models_size error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def get_result_path(self, train_test):
+
+        result_path = """/results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+            self.cd,
+            self.fraction_new_clients,
+            self.round_new_clients,
+            self.total_clients,
+            self.alpha,
+            self.alpha,
+            self.dataset,
+            0,
+            0,
+            self.model_name,
+            self.fraction_fit,
+            self.number_of_rounds,
+            self.local_epochs,
+            train_test)
+
+        return result_path
+
+    def write_log(self, result_path):
+
+        # Abra um arquivo para gravação
+        result_path = """{}/log_{}""".format(result_path, self.strategy_name)
+        os.makedirs(os.path.dirname(result_path), exist_ok=True)
+        with open(result_path, 'w') as f:
+            # Redirecione a saída padrão para o arquivo
+            original = sys.stdout
+            sys.stdout = f
+            sys.stdout = original
