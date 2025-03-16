@@ -15,6 +15,7 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
     def __init__(self, args):
         try:
             self.args = args
+            self.device = args.device
             self.model = [load_model(args.model[me], args.dataset[me], args.strategy, args.device) for me in range(len(args.model))]
             self.alpha = [float(i) for i in args.alpha]
             self.ME = len(self.model)
