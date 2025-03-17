@@ -75,6 +75,14 @@ python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=
 
 ```
 
+or
+
+```bash
+
+python helpers/generate_docker_compose.py --total_clients=30 --number_of_rounds=40 --strategy="MultiFedAvg" --dataset="Gowalla" --dataset="WISDM-W" --dataset="ImageNet" --model="lstm" --model="gru" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=0.1 --alpha=0.1
+
+```
+
 ## Saving the results locally:
 
 Save the results/ volume locally:
