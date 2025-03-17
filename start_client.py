@@ -13,6 +13,7 @@ from clients.FL.client_fedyogi_fedpredict import ClientFedYogiFP
 from clients.MEFL.client_multifedavg import ClientMultiFedAvg
 from clients.MEFL.client_multifedefficency import ClientMultiFedEfficiency
 from clients.MEFL.client_multifedavgrr import ClientMultiFedAvgRR
+from clients.MEFL.client_fedfairmmfl import ClientFedFairMMFL
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
@@ -113,6 +114,8 @@ def get_client(strategy_name):
         return ClientMultiFedEfficiency
     elif strategy_name == "MultiFedAvgRR":
         return ClientMultiFedAvgRR
+    elif strategy_name == "FedFairMMFL":
+        return ClientFedFairMMFL
 
 # Function to Start the Client
 def start_fl_client():
