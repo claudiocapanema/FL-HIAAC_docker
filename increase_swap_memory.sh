@@ -1,5 +1,7 @@
 sudo swapon --show
-sudo dd if=/dev/zero of=/swapfile bs=1M count=14336 status=progress
+sudo swapoff -a
+sudo rm /swapfile
+sudo dd if=/dev/zero of=/swapfile bs=1M count=32768
 sudo chmod 600 /swapfile
 sudo mkswap /swapfile
 sudo swapon /swapfile
