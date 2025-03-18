@@ -1,4 +1,5 @@
 import sys
+import copy
 import logging
 import pickle
 

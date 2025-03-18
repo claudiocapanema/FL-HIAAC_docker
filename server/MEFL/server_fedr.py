@@ -1,3 +1,4 @@
+import copy
 import logging
 
 import torch
@@ -137,6 +138,14 @@ class MultiFedR(MultiFedAvg):
             self.clients_num_examples_ME = {client_id: {me: 1 for me in range(self.ME)} for client_id in
                                     range(1, self.total_clients + 1)}
             self.client_id_real_random = {i: None for i in range(self.total_clients + 1)}
+            self.beta1 = 0
+            self.beta2 = 0
+            self.previous_variance = [0 for me in range(self.ME)]
+            self.previous_mean_loss = [0 for me in range(self.ME)]
+            self.LRcoeff = [0 for me in range(self.ME)]
+            self.mean_loss = [0 for me in range(self.ME)]
+            self.variance = [0 for me in range(self.ME)]
+            self.initialLR = [0 for me in range(self.ME)]
 
         except Exception as e:
             logger.error("__init__ error")
@@ -266,3 +275,51 @@ class MultiFedR(MultiFedAvg):
         except Exception as e:
             logger.error("aggregate_fit error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+
+    def adaptiveLR_Loss_Based(self, server_round, me, loss):
+
+        '''
+        Loss-Based Adaptive FedAVG solution
+        '''
+
+        # EMA on the mean
+        self.mean_loss[me] = self.previous_mean_loss[me] * self.beta1 + (1 - self.beta1) * loss
+
+        # Initialization Bias correction
+        self.mean_loss[me] = self.mean_loss[me] / (1 - pow(self.beta1, server_round + 1))
+
+        # EMA on the Variance
+        self.variance[me] = self.previous_variance[me] * self.beta2 + (1 - self.beta2) * (
+                    loss - self.previous_mean_loss[me]) * (loss - self.previous_mean_loss[me])
+
+        self.previous_mean_loss[me] = copy.deepcopy(self.mean_loss[me])
+
+        temp = copy.deepcopy(self.previous_variance[me])
+        self.previous_variance[me] = copy.deepcopy(self.variance[me])
+        # Initialization Bias correction
+        self.variance[me] = self.variance[me] / (1 - pow(self.beta2, server_round + 1))
+
+        if server_round < 2:
+            r = 1
+        else:
+            r = np.abs(self.variance[me] / (temp / (1 - pow(self.beta2, server_round))))
+
+        self.LRcoeff = self.LRcoeff * self.beta3 + (1 - self.beta3) * r
+
+        coeff = self.LRcoeff / (1 - pow(self.beta3, server_round + 1))
+
+        ### SERVER SCHEDULER Choosing the decay
+
+        # No Decay
+        # coeff = min(self.initialLR, self.initialLR*coeff)
+
+        # Decay of 1/t TIME BASED DECAY as in the convergence analysis of FedAVG
+        coeff = min(self.initialLR, (self.initialLR * coeff) / (server_round + 1))
+
+        # Decay of 0.99 per round
+        # coeff = min(self.initialLR, self.initialLR*coeff*math.pow(0.99, self.current_round))
+
+        for i in self.clients:
+            # i.decayLR(coeff)
+            i.setLR(coeff)

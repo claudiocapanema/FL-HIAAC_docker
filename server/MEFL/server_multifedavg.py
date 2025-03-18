@@ -146,9 +146,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             self.rs_test_auc = {me: [] for me in range(self.ME)}
             self.rs_train_loss = {me : [] for me in range(self.ME)}
             self.results_train_metrics = {me: {metric: [] for metric in self.train_metrics_names} for me in range(self.ME)}
-            self.results_train_metrics_w = {me: {metric: [] for metric in self.train_metrics_names} for me in range(self.ME)}
             self.results_test_metrics = {me: {metric: [] for metric in self.test_metrics_names} for me in range(self.ME)}
-            self.results_test_metrics_w = {me: {metric: [] for metric in self.test_metrics_names} for me in range(self.ME)}
             self.clients_results_test_metrics = {me: {metric: [] for metric in self.test_metrics_names} for me in range(self.ME)}
             self.selected_clients_m = []
             self.selected_clients_m_ids_random = [[] for me in range(self.ME)]
@@ -315,6 +313,8 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
                     log(WARNING, "No fit_metrics_aggregation_fn provided")
 
             logger.info(f"finalizou aggregated fit {server_round} {metrics_aggregated_mefl}")
+            for me in range(self.ME):
+                self.results_train_metrics[me] = metrics_aggregated_mefl[me]
 
             self.parameters_aggregated_mefl = parameters_aggregated_mefl
             self.metrics_aggregated_mefl = metrics_aggregated_mefl
