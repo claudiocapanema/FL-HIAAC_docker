@@ -167,10 +167,12 @@ class FedFairMMFL(MultiFedAvg):
             n_clients = int(self.total_clients * self.fraction_fit)
 
             logging.info("""sample clientes {} {} disponiveis {} rodada {} n clients {}""".format(sample_size, min_num_clients, client_manager.num_available(), server_round, n_clients))
-            clients = client_manager.all()
+            clients = client_manager.sample(
+                num_clients=self.total_clients, min_num_clients=self.total_clients
+            )
+            # clients = [clients[key] for key in list(clients)]
             logger.info(f"tipo dos clientes: {clients}")
-            clients = list(clients.values())
-            ids = [i for i in range(len(clients))]
+            ids = [i + 1 for i in range(len(clients) + 1)]
             logger.info(f"client ids {ids} n clients {n_clients}")
             ids = np.random.choice(ids, n_clients, replace=False).tolist()
 
@@ -180,9 +182,17 @@ class FedFairMMFL(MultiFedAvg):
             selected_clients_m = [[] for i in range(self.ME)]
             selected_clients_m_ids = [[] for i in range(self.ME)]
 
-            for client_id in ids:
+            me = 0
+            for client_id in ids[: self.ME*2]:
+                me = int(me % self.ME)
                 client = clients[client_id]
+                selected_clients_m[me].append(client)
+                selected_clients_m_ids[me].append(client_id)
+                me += 1
+
+            for client_id in ids[self.ME*2:]:
                 client_p = []
+                client = clients[client_id]
                 for me in range(self.ME):
                     loss = self.clients_loss_ME[client_id][me]
                     num_examples = self.clients_num_examples_ME[client_id][me]
@@ -196,7 +206,7 @@ class FedFairMMFL(MultiFedAvg):
                 selected_clients_m_ids[me].append(client_id)
 
             # Return client/config pairs
-            logger.info(f"selected_clients_m_ids {selected_clients_m_ids}")
+            logger.info(f"selected_clients_m_ids {selected_clients_m_ids} rodada {server_round}")
             clients_m = []
             for me in range(self.ME):
                 sc = selected_clients_m[me]
@@ -238,7 +248,7 @@ class FedFairMMFL(MultiFedAvg):
                 self.clients_num_examples_ME[client_id][me] = num_examples
 
                 self.selected_clients_m[me].append(client_id)
-            logger.info(f"informacoes de momento {self.selected_clients_m[me]}")
+            logger.info(f"informacoes de momento {self.selected_clients_m} round {server_round}")
 
             return super().aggregate_fit(server_round, results, failures)
         except Exception as e:
