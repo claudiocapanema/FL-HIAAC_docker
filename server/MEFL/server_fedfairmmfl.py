@@ -136,7 +136,7 @@ class FedFairMMFL(MultiFedAvg):
             self.clients_loss_ME = {client_id: {me: 10 for me in range(self.ME)} for client_id in range(1, self.total_clients + 1)}
             self.clients_num_examples_ME = {client_id: {me: 1 for me in range(self.ME)} for client_id in
                                     range(1, self.total_clients + 1)}
-            self.client_id_real_random = {i: None for i in range(1, self.total_clients + 1)}
+            self.client_id_real_random = {i: None for i in range(self.total_clients + 1)}
 
         except Exception as e:
             logger.error("__init__ error")
@@ -173,13 +173,13 @@ class FedFairMMFL(MultiFedAvg):
                 num_clients=self.total_clients, min_num_clients=self.total_clients
             )
             # clients = [clients[key] for key in list(clients)]
-            logger.info(f"tipo dos clientes: {clients}")
             ids = [i + 1 for i in range(len(clients) + 1)]
-            logger.info(f"client ids {ids} n clients {len(n_clients)}")
+            logger.info(f"client ids {ids} n clients {n_clients}")
             ids = np.random.choice(ids, n_clients, replace=False).tolist()
 
             self.n_trained_clients = len(clients)
             logging.info("""selecionados {} rodada {}""".format(self.n_trained_clients, server_round))
+            logger.info(f"mapeamento {self.client_id_real_random}")
 
             selected_clients_m = [[] for i in range(self.ME)]
             selected_clients_m_ids = [[] for i in range(self.ME)]
@@ -245,6 +245,7 @@ class FedFairMMFL(MultiFedAvg):
                 return None, {}
 
             self.selected_clients_m = [[] for me in range(self.ME)]
+            count_results_me = [0 for me in range(self.ME)]
 
             for i in range(len(results)):
                 _, result = results[i]
@@ -252,9 +253,12 @@ class FedFairMMFL(MultiFedAvg):
                 client_id = result.metrics["client_id"]
                 train_loss = result.metrics["train_loss"]
                 num_examples = result.num_examples
+
                 self.clients_loss_ME[client_id][me] = train_loss
                 self.clients_num_examples_ME[client_id][me] = num_examples
-
+                logger.info(f"slect ids random {self.selected_clients_m_ids_random[me]} {count_results_me[me]}")
+                self.client_id_real_random[client_id] = self.selected_clients_m_ids_random[me][count_results_me[me]]
+                count_results_me[me] += 1
                 self.selected_clients_m[me].append(client_id)
             logger.info(f"informacoes de momento {self.selected_clients_m} round {server_round}")
 

@@ -151,6 +151,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             self.results_test_metrics_w = {me: {metric: [] for metric in self.test_metrics_names} for me in range(self.ME)}
             self.clients_results_test_metrics = {me: {metric: [] for metric in self.test_metrics_names} for me in range(self.ME)}
             self.selected_clients_m = []
+            self.selected_clients_m_ids_random = [[] for me in range(self.ME)]
         except Exception as e:
             logger.error("__init__ error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
@@ -169,6 +170,8 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
                 config = self.on_fit_config_fn(server_round)
 
             # Sample clients
+            logger.info("Waiting for available clients...")
+            client_manager.wait_for(self.total_clients, 120)
             sample_size, min_num_clients = self.num_fit_clients(
                 client_manager.num_available()
             )
@@ -191,6 +194,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             for me in range(self.ME):
                 sc = selected_clients_m[me]
                 for client in sc:
+                    self.selected_clients_m_ids_random[me].append(client.cid)
                     config = {"t": server_round, "me": me}
                     if type(parameters) is dict:
                         fit_ins = FitIns(parameters[me], config)
@@ -224,6 +228,9 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
                 for key in parameters:
                     parameters_me = parameters_to_ndarrays(parameters[key])
                     dict_ME[str(key)] = parameters_me
+                logger.info(f"parameters is dict round {server_round} ke {parameters.keys()}")
+            else:
+                logger.info(f"parameters is not dict round {server_round} ke {type(parameters)}")
             dict_ME = pickle.dumps(dict_ME)
 
             config["evaluate_models"] = str([me for me in range(self.ME)])
@@ -231,14 +238,17 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             logger.info("""config evaluate antes {}""".format(config))
             config["parameters"] = dict_ME
             evaluate_ins = EvaluateIns(parameters[0], config)
-
+            logger.info("1")
             # Sample clients
             sample_size, min_num_clients = self.num_evaluation_clients(
                 client_manager.num_available()
             )
+            logger.info("2")
             clients = client_manager.sample(
                 num_clients=sample_size, min_num_clients=min_num_clients
             )
+
+            logger.info(f"final configure evaluate {server_round}")
 
             # Return client/config pairs
             return [(client, evaluate_ins) for client in clients]
@@ -271,7 +281,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
                 results_mefl[me].append(results[i])
 
 
-            aggregated_ndarrays_mefl = {me: None for me in range(self.ME)}
+            aggregated_ndarrays_mefl = {me: [] for me in range(self.ME)}
             weights_results_mefl = {me: [] for me in range(self.ME)}
             parameters_aggregated_mefl = {me: [] for me in range(self.ME)}
 
@@ -286,9 +296,13 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
                         (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples)
                         for _, fit_res in results_mefl[me]
                     ]
-                    aggregated_ndarrays_mefl[me] = aggregate(weights_results)
+                    if len(weights_results) > 1:
+                        aggregated_ndarrays_mefl[me] = aggregate(weights_results)
+                    elif len(weights_results) == 1:
+                        aggregated_ndarrays_mefl[me] = results_mefl[me][1].parameters
 
             for me in range(self.ME):
+                logger.info(f"tamanho para modelo {me} rodada {server_round} {len(aggregated_ndarrays_mefl[me])}")
                 parameters_aggregated_mefl[me] = ndarrays_to_parameters(aggregated_ndarrays_mefl[me])
 
             # Aggregate custom metrics if aggregation fn was provided
@@ -300,7 +314,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
                 elif server_round == 1:  # Only log this warning once
                     log(WARNING, "No fit_metrics_aggregation_fn provided")
 
-            logger.info("""finalizou aggregated fit""")
+            logger.info(f"finalizou aggregated fit {server_round} {metrics_aggregated_mefl}")
 
             self.parameters_aggregated_mefl = parameters_aggregated_mefl
             self.metrics_aggregated_mefl = metrics_aggregated_mefl
