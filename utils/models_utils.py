@@ -86,8 +86,8 @@ def load_model(model_name, dataset, strategy, device):
         raise ValueError("""Model not found for model {} and dataset {}""".format(model_name, dataset))
 
     except Exception as e:
-        logger.info("""load_model error""")
-        logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+        logger.error("""load_model error""")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 
 fds = None
@@ -96,15 +96,15 @@ def get_weights(net):
     try:
         return [val.cpu().numpy() for _, val in net.state_dict().items()]
     except Exception as e:
-        logger.info("get_weights error")
-        logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+        logger.error("get_weights error")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 def get_weights_fedkd(net):
     try:
         return [val.cpu().numpy() for _, val in net.student.state_dict().items()]
     except Exception as e:
-        logger.info("get_weights_fedkd error")
-        logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+        logger.error("get_weights_fedkd error")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 
 def set_weights(net, parameters):
@@ -113,8 +113,8 @@ def set_weights(net, parameters):
         state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
         net.load_state_dict(state_dict, strict=True)
     except Exception as e:
-        logger.info("set_weights error")
-        logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+        logger.error("set_weights error")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 def set_weights_fedkd(net, parameters):
     try:
@@ -122,8 +122,8 @@ def set_weights_fedkd(net, parameters):
         state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
         net.student.load_state_dict(state_dict, strict=True)
     except Exception as e:
-        logger.info("set_weights_fedkd error")
-        logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+        logger.error("set_weights_fedkd error")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions: int, batch_size: int,
               data_sampling_percentage: int):
@@ -219,8 +219,8 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
         return trainloader, testloader
 
     except Exception as e:
-        logger.info("load_data error")
-        logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+        logger.error("load_data error")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 def train(model, trainloader, valloader, optimizer, epochs, learning_rate, device, client_id, t, dataset_name, n_classes):
     try:
@@ -275,8 +275,8 @@ def train(model, trainloader, valloader, optimizer, epochs, learning_rate, devic
         return results
 
     except Exception as e:
-        logger.info("train error")
-        logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+        logger.error("train error")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, client_id, t, dataset_name, n_classes):
     """Train the utils on the training set."""
@@ -313,17 +313,18 @@ def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, cl
 
                 loss_student = criterion(output_student, labels)
                 loss_teacher = criterion(output_teacher, labels)
-                # loss_1 = torch.nn.KLDivLoss()(outputs_S1, outputs_T2) / (loss_student + loss_teacher)
-                # loss_2 = torch.nn.KLDivLoss()(outputs_S2, outputs_T1) / (loss_student + loss_teacher)
-                # L_h = MSE(rep, W_h(rep_g)) / (loss_student + loss_teacher)
-                loss = loss_student + loss_teacher
-                # loss = loss_teacher + loss_student + L_h + loss_1 + loss_2
+                loss_1 = torch.nn.KLDivLoss()(outputs_S1, outputs_T2) / (loss_student + loss_teacher)
+                loss_2 = torch.nn.KLDivLoss()(outputs_S2, outputs_T1) / (loss_student + loss_teacher)
+                L_h = MSE(rep, W_h(rep_g)) / (loss_student + loss_teacher)
+                # loss = loss_student + loss_teacher
+                loss = loss_teacher + loss_student + L_h + loss_1 + loss_2
                 loss.backward()
+                optimizer.step()
                 loss_total += loss.item() * labels.shape[0]
                 y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
                 y_prob.append(output_teacher.detach().cpu().numpy())
                 correct += (torch.max(output_teacher.data, 1)[1] == labels).sum().item()
-                optimizer.step()
+
         accuracy = correct / len(trainloader.dataset)
         loss = loss_total / len(trainloader.dataset)
         y_prob = np.concatenate(y_prob, axis=0)
@@ -347,8 +348,8 @@ def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, cl
         return results
 
     except Exception as e:
-        logger.info("""Error on train_fedkd""")
-        logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+        logger.error("""Error on train_fedkd""")
+        logger.error('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 
 def test(model, testloader, device, client_id, t, dataset_name, n_classes):
@@ -390,8 +391,8 @@ def test(model, testloader, device, client_id, t, dataset_name, n_classes):
         return loss, test_metrics
 
     except Exception as e:
-        logger.info(" error")
-        logger.info("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+        logger.error(" error")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes):
         try:
@@ -433,8 +434,8 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
             # logger.info("""metricas cliente {} valores {}""".format(client_id, test_metrics))
             return loss, test_metrics
         except Exception as e:
-            logger.info("Error test_fedkd")
-            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+            logger.error("Error test_fedkd")
+            logger.error('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 
 def test_fedkd_fedpredict(lt, model, testloader, device, client_id, t, dataset_name, n_classes):
@@ -479,5 +480,5 @@ def test_fedkd_fedpredict(lt, model, testloader, device, client_id, t, dataset_n
         # logger.info("""metricas cliente {} valores {}""".format(client_id, test_metrics))
         return loss, test_metrics
     except Exception as e:
-        logger.info("Error test_fedkd_fedpredict")
-        logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+        logger.error("Error test_fedkd_fedpredict")
+        logger.error('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
