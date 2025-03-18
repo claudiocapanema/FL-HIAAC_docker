@@ -136,6 +136,8 @@ class FedFairMMFL(MultiFedAvg):
             self.clients_loss_ME = {client_id: {me: 10 for me in range(self.ME)} for client_id in range(1, self.total_clients + 1)}
             self.clients_num_examples_ME = {client_id: {me: 1 for me in range(self.ME)} for client_id in
                                     range(1, self.total_clients + 1)}
+            self.client_id_real_random = {i: None for i in range(1, self.total_clients + 1)}
+
         except Exception as e:
             logger.error("__init__ error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
@@ -173,7 +175,7 @@ class FedFairMMFL(MultiFedAvg):
             # clients = [clients[key] for key in list(clients)]
             logger.info(f"tipo dos clientes: {clients}")
             ids = [i + 1 for i in range(len(clients) + 1)]
-            logger.info(f"client ids {ids} n clients {n_clients}")
+            logger.info(f"client ids {ids} n clients {len(n_clients)}")
             ids = np.random.choice(ids, n_clients, replace=False).tolist()
 
             self.n_trained_clients = len(clients)
@@ -181,6 +183,7 @@ class FedFairMMFL(MultiFedAvg):
 
             selected_clients_m = [[] for i in range(self.ME)]
             selected_clients_m_ids = [[] for i in range(self.ME)]
+            selected_clients_m_ids_random = [[] for i in range(self.ME)]
 
             me = 0
             for client_id in ids[: self.ME*2]:
@@ -188,6 +191,7 @@ class FedFairMMFL(MultiFedAvg):
                 client = clients[client_id]
                 selected_clients_m[me].append(client)
                 selected_clients_m_ids[me].append(client_id)
+                selected_clients_m_ids_random[me].append(client.cid)
                 me += 1
 
             for client_id in ids[self.ME*2:]:
@@ -204,6 +208,10 @@ class FedFairMMFL(MultiFedAvg):
                 me = np.random.choice([i for i in range(self.ME)], p=client_p)
                 selected_clients_m[me].append(client)
                 selected_clients_m_ids[me].append(client_id)
+                selected_clients_m_ids_random[me].append(client.cid)
+
+            self.selected_clients_m_ids = selected_clients_m_ids
+            self.selected_clients_m_ids_random = selected_clients_m_ids_random
 
             # Return client/config pairs
             logger.info(f"selected_clients_m_ids {selected_clients_m_ids} rodada {server_round}")
