@@ -22,3 +22,5 @@ RUN apt-get update && apt-get install -y \
 
 # Ativar o ambiente virtual e instalar as dependências do requirements.txt
 RUN pip install --no-cache-dir  -r /app/requirements.txt
+
+
