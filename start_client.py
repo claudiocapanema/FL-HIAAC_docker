@@ -117,7 +117,7 @@ def get_client(strategy_name):
         return ClientMultiFedAvgRR
     elif strategy_name == "FedFairMMFL":
         return ClientFedFairMMFL
-    elif strategy_name == "MultiFedAvgFedPredict":
+    elif strategy_name == "MultiFedAvg+FedPredict":
         return ClientMultiFedAvgFedPredict
 
 # Function to Start the Client

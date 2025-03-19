@@ -154,7 +154,7 @@ def get_server(strategy_name):
         return MultiFedAvgRR
     elif strategy_name == "FedFairMMFL":
         return FedFairMMFL
-    elif strategy_name == "MultiFedAvgFedPredict":
+    elif strategy_name == "MultiFedAvg+FedPredict":
         return MultiFedAvgFedPredict
 
 # Main Function
@@ -173,7 +173,6 @@ if __name__ == "__main__":
         fraction_evaluate=1.0,
         min_available_clients=args.total_clients,
         evaluate_metrics_aggregation_fn=weighted_average,
-        fit_metrics_aggregation_fn=weighted_average_fit,
         initial_parameters=None,
     )
 

@@ -18,7 +18,7 @@ class ClientMultiFedAvgFedPredict(ClientMultiFedAvg):
         self.global_model = [None] * self.ME
         for me in range(self.ME):
             # Copy of randomly initialized parameters
-            self.global_model = copy.deepcopy(self.model[me])
+            self.global_model[me] = copy.deepcopy(self.model[me])
 
 
     def evaluate(self, parameters, config):
@@ -35,7 +35,7 @@ class ClientMultiFedAvgFedPredict(ClientMultiFedAvg):
                 me_str = str(me)
                 nt = t - self.lt[me]
                 parameters_me = parameters[me_str]
-                set_weights(self.model[me], parameters_me)
+                set_weights(self.global_model[me], parameters_me)
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, device=self.device, fc=1, il=1)
                 loss, metrics = test(combined_model, self.valloader[me], self.device, self.client_id, t, self.args.dataset[me], self.n_classes[me])

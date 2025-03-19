@@ -108,71 +108,72 @@ class MultiFedAvgFedPredict(MultiFedAvg):
         evaluate_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
         inplace: bool = True,
     ) -> None:
-        super().__init__(fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
-        self.selected_clients_m = [None] * self.ME
-        self.rr_count = 0
-
-    def configure_fit(
-            self, server_round: int, parameters: dict, client_manager: ClientManager
-    ) -> list[tuple[ClientProxy, FitIns]]:
-        try:
-            torch.random.manual_seed(server_round)
-            random.seed(server_round)
-            np.random.seed(server_round)
-            """Configure the next round of training."""
-            config = {}
-            if self.on_fit_config_fn is not None:
-                # Custom fit config function provided
-                config = self.on_fit_config_fn(server_round)
-
-            return super().configure_fit(server_round, parameters, client_manager)
-
-            # Sample clients
-            sample_size, min_num_clients = self.num_fit_clients(
-                client_manager.num_available()
-            )
-
-            n_clients = int(self.total_clients * self.fraction_fit)
-
-            logging.info(
-                """sample clientes {} {} disponiveis {} rodada {} n clients {}""".format(sample_size, min_num_clients,
-                                                                                         client_manager.num_available(),
-                                                                                         server_round, n_clients))
-
-            if self.rr_count == 0:
-                clients = client_manager.sample(
-                    num_clients=n_clients, min_num_clients=n_clients
-                )
-
-                n = len(clients) // self.ME
-                self.selected_clients_m = np.array_split(clients, self.ME)
-
-            selected_clients_m_rr = [None] * self.ME
-            for i, clients_set in enumerate(self.selected_clients_m):
-                new_i = int((i + self.rr_count) % self.ME)
-                selected_clients_m_rr[new_i] = clients_set
-            self.rr_count += 1
-            if self.rr_count == self.ME:
-                self.rr_count = 0
-
-
-            self.n_trained_clients = len(clients)
-            logging.info("""selecionados {} por modelo {} rodada {}""".format(self.n_trained_clients,
-                                                                              [len(i) for i in selected_clients_m_rr],
-                                                                              server_round))
-
-            # Return client/config pairs
-            clients_m = []
-            for me in range(self.ME):
-                sc = selected_clients_m_rr[me]
-                for client in sc:
-                    config = {"t": server_round, "me": me}
-                    if type(parameters) is dict:
-                        fit_ins = FitIns(parameters[me], config)
-                    else:
-                        fit_ins = FitIns(parameters, config)
-                    clients_m.append((client, fit_ins))
-            return clients_m
-        except Exception as e:
-            logger.error("configure_fit error")
-            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+        super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
+        pass
+    #     self.selected_clients_m = [None] * self.ME
+    #     self.rr_count = 0
+    #
+    # def configure_fit(
+    #         self, server_round: int, parameters: dict, client_manager: ClientManager
+    # ) -> list[tuple[ClientProxy, FitIns]]:
+    #     try:
+    #         torch.random.manual_seed(server_round)
+    #         random.seed(server_round)
+    #         np.random.seed(server_round)
+    #         """Configure the next round of training."""
+    #         config = {}
+    #         if self.on_fit_config_fn is not None:
+    #             # Custom fit config function provided
+    #             config = self.on_fit_config_fn(server_round)
+    #
+    #         return super().configure_fit(server_round, parameters, client_manager)
+    #
+    #         # Sample clients
+    #         sample_size, min_num_clients = self.num_fit_clients(
+    #             client_manager.num_available()
+    #         )
+    #
+    #         n_clients = int(self.total_clients * self.fraction_fit)
+    #
+    #         logging.info(
+    #             """sample clientes {} {} disponiveis {} rodada {} n clients {}""".format(sample_size, min_num_clients,
+    #                                                                                      client_manager.num_available(),
+    #                                                                                      server_round, n_clients))
+    #
+    #         if self.rr_count == 0:
+    #             clients = client_manager.sample(
+    #                 num_clients=n_clients, min_num_clients=n_clients
+    #             )
+    #
+    #             n = len(clients) // self.ME
+    #             self.selected_clients_m = np.array_split(clients, self.ME)
+    #
+    #         selected_clients_m_rr = [None] * self.ME
+    #         for i, clients_set in enumerate(self.selected_clients_m):
+    #             new_i = int((i + self.rr_count) % self.ME)
+    #             selected_clients_m_rr[new_i] = clients_set
+    #         self.rr_count += 1
+    #         if self.rr_count == self.ME:
+    #             self.rr_count = 0
+    #
+    #
+    #         self.n_trained_clients = len(clients)
+    #         logging.info("""selecionados {} por modelo {} rodada {}""".format(self.n_trained_clients,
+    #                                                                           [len(i) for i in selected_clients_m_rr],
+    #                                                                           server_round))
+    #
+    #         # Return client/config pairs
+    #         clients_m = []
+    #         for me in range(self.ME):
+    #             sc = selected_clients_m_rr[me]
+    #             for client in sc:
+    #                 config = {"t": server_round, "me": me}
+    #                 if type(parameters) is dict:
+    #                     fit_ins = FitIns(parameters[me], config)
+    #                 else:
+    #                     fit_ins = FitIns(parameters, config)
+    #                 clients_m.append((client, fit_ins))
+    #         return clients_m
+    #     except Exception as e:
+    #         logger.error("configure_fit error")
+    #         logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
