@@ -1,6 +1,5 @@
+import subprocess
 import argparse
-
-from torch.onnx.symbolic_helper import args_have_same_dtype
 
 parser = argparse.ArgumentParser(description="Generated Docker Compose")
 parser.add_argument(
@@ -85,6 +84,27 @@ def assert_args(args, strategy_name):
                 f"Strategy {strategy_name} is single model FL but you gave {len(args.dataset)} dataset(s) {len(args.model)} model(s) and {len(args.alpha)} alpha(s)"
             )
 
+
+def load_fedpredict_project():
+    return f'''# Defina o diretório de destino (você pode substituir por seu caminho de destino desejado)
+            DESTINO="/home/gustavo/PycharmProjects/FL-HIAAC_docker/fedpredict"
+            
+            # Encontre o diretório de origem (que está em um nível acima do diretório atual)
+            ORIGEM="/home/gustavo/PycharmProjects/fedpredict/"
+            if [ ! -d "$DESTINO" ]; then
+                mkdir -p "$DESTINO"
+                echo "Pasta de destino criada: $DESTINO"
+            else
+                # Se a pasta já existir, limpe o conteúdo
+                rm -rf "$DESTINO"/*
+                echo "Conteúdo da pasta de destino limpo: $DESTINO"
+            fi
+
+            
+            # Agora, vamos copiar os arquivos da pasta de origem para a pasta de destino
+            cp -r "$ORIGEM"/* "$DESTINO"
+            
+            echo "Arquivos copiados de $ORIGEM para $DESTINO"'''
 
 def create_docker_compose(args):
     assert_args(args, args.strategy)
@@ -242,8 +262,6 @@ services:
     with open(filename, "w") as file:
         file.write(docker_compose_content)
 
-    import subprocess
-
     # Caminho para o seu script bash
     script_up = f"sudo docker compose -f {filename} up --build && docker image prune -f"
 
@@ -264,5 +282,6 @@ services:
 
 
 if __name__ == "__main__":
+    # subprocess.Popen(load_fedpredict_project()).wait()
     args = parser.parse_args()
     create_docker_compose(args)

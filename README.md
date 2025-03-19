@@ -89,20 +89,20 @@ Save the results/ volume locally:
 
 ```bash
 
-bash get_results.sh
+sudo bash get_results.sh
 ```
 
 Once you finish your simulation, type the following command:
 
 ```bash
 
-docker compose down
+sudo docker compose down
 ```
 
 In case your building is not working, try the following steps (one at a time):
 ```bash
 # Remove unused containers
-docker container prune -f
+sudo docker container prune -f
 
 ```
 
@@ -110,13 +110,13 @@ When changing strategy it is important to first remove existing images:
 
 ```bash
 # Remove images
-docker image prune -a
+sudo docker image prune -a
 
 ```
 
 ```bash
 # Remove everything (images, containers, networks)
-docker system prune -a --volumes
+sudo docker system prune -a --volumes
 
 ```
 

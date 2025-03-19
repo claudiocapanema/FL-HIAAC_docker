@@ -239,12 +239,12 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             config["parameters"] = dict_ME
             evaluate_ins = EvaluateIns(parameters[0], config)
 
-            logger.info("1")
+
             # Sample clients
             sample_size, min_num_clients = self.num_evaluation_clients(
                 client_manager.num_available()
             )
-            logger.info("2")
+
             clients = client_manager.sample(
                 num_clients=sample_size, min_num_clients=min_num_clients
             )
@@ -403,7 +403,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
         try:
             logger.info("""save results: {}""".format(self.results_test_metrics[me]))
             file_path, header, data = self.get_results( 'train', '', me)
-            logger.info("""dados: {} {}""".format(data, file_path))
+            # logger.info("""dados: {} {}""".format(data, file_path))
             self._write_header(file_path, header=header, mode=mode)
             self._write_outputs(file_path, data=data)
 
