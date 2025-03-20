@@ -24,6 +24,7 @@ class ClientMultiFedAvgFedPredict(ClientMultiFedAvg):
         for me in range(self.ME):
             # Copy of randomly initialized parameters
             self.global_model[me] = copy.deepcopy(self.model[me])
+        self.previous_alpha = self.alpha
 
         self.p_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes)
 
@@ -33,7 +34,11 @@ class ClientMultiFedAvgFedPredict(ClientMultiFedAvg):
         """Train the model with data of this client."""
         try:
             self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes)
-            return super().fit(parameters, config)
+            parameters, size, results = super().fit(parameters, config)
+            me = config['me']
+            results["fc"] = self.fc_ME[me]
+            results["il"] = self.il_ME[me]
+            return parameters, size, results
         except Exception as e:
             logger.error("fit error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

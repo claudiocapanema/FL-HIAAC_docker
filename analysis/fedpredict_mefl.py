@@ -18,6 +18,7 @@ def read_data(read_solutions, read_dataset_order):
         "FedKD+FP": {"Strategy": "FedKD", "Version": "FP", "Table": "FedKD+FP"},
         "MultiFedAvg+FP": {"Strategy": "MultiFedAvg", "Version": "FP", "Table": "MultiFedAvg+FP"},
         "MultiFedAvg": {"Strategy": "MultiFedAvg", "Version": "Original", "Table": "MultiFedAvg"},
+        "MultiFedAvgRR": {"Strategy": "MultiFedAvgRR", "Version": "Original", "Table": "MultiFedAvgRR"}
     }
     hue_order = []
     for solution in read_solutions:
@@ -53,10 +54,9 @@ def read_data(read_solutions, read_dataset_order):
 def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
     datasets = df["Dataset"].unique().tolist()
-    df["Strategy"] = np.array([i.replace("Multi", "") for i in df["Strategy"].tolist()])
 
     fig, axs = plt.subplots(len(datasets), sharex='all', figsize=(12, 6))
-    hue_order = ["MultiFedAvg"]
+    hue_order = ["MultiFedAvg", "MultiFedAvgRR"]
 
     for j in range(len(datasets)):
 
@@ -84,6 +84,8 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
     f = lambda m, c: plt.plot([], [], marker=m, color=c, ls="none")[0]
     handles = [f("o", colors[i]) for i in range(len(hue_order) + 1)]
     handles += [plt.Line2D([], [], linestyle=markers[i], color="k") for i in range(3)]
+    axs[0].legend(handles, labels, fontsize=9)
+    axs[1].legend(handles, labels, fontsize=9)
 
     # fig.suptitle("", fontsize=16)
 
@@ -120,7 +122,7 @@ if __name__ == "__main__":
     #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
-    solutions = ["MultiFedAvg+FP", "MultiFedAvg"]
+    solutions = ["MultiFedAvg+FP", "MultiFedAvg", "MultiFedAvgRR"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}
@@ -145,12 +147,11 @@ if __name__ == "__main__":
 
             read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution))
 
-    write_path = """plots/MEFL/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/concept_drift_experiment_id_{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
+    write_path = """plots/MEFL/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/concept_drift_experiment_id_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
         cd,
         fraction_new_clients,
         round_new_clients,
         total_clients,
-        [str(alphas)],
         alphas,
         concept_drift_experiment_id,
         dataset,

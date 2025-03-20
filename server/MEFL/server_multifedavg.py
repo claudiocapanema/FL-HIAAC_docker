@@ -413,7 +413,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
 
         # train
         try:
-            logger.info("""save results: {}""".format(self.results_test_metrics[me]))
+            # logger.info("""save results: {}""".format(self.results_test_metrics[me]))
             file_path, header, data = self._get_results('train', '', me)
             # logger.info("""dados: {} {}""".format(data, file_path))
             self._write_header(file_path, header=header, mode=mode)
@@ -471,7 +471,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
                         list_of_metrics.append(self.results_train_metrics[me][metric])
 
                     data = []
-                    logger.info("""tamanho: {}    {}""".format(length, list_of_metrics))
+                    # logger.info("""tamanho: {}    {}""".format(length, list_of_metrics))
                     for i in range(length):
                         row = []
                         for j in range(len(list_of_metrics)):
@@ -483,7 +483,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
                         data.append(row)
 
 
-            logger.info("File path: " + file_path)
+            # logger.info("File path: " + file_path)
             logger.info(data)
 
             return file_path, header, data
@@ -526,7 +526,6 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
                 for i in range(len(parameters)):
                     size += parameters[i].nbytes
                 models_size.append(size)
-            print("models size: ", models_size)
             self.models_size = models_size
         except Exception as e:
             logger.error("_get_models_size error")
