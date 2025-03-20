@@ -44,6 +44,9 @@ parser.add_argument(
     "--alpha", action="append", help="Dirichlet alpha"
 )
 parser.add_argument(
+    "--concept_drift_experiment_id", type=int, default=0, help=""
+)
+parser.add_argument(
     "--round_new_clients", type=float, default=0.1, help=""
 )
 parser.add_argument(
@@ -117,7 +120,7 @@ def get_client(strategy_name):
         return ClientMultiFedAvgRR
     elif strategy_name == "FedFairMMFL":
         return ClientFedFairMMFL
-    elif strategy_name == "MultiFedAvg+FedPredict":
+    elif strategy_name == "MultiFedAvg+FP":
         return ClientMultiFedAvgFedPredict
 
 # Function to Start the Client

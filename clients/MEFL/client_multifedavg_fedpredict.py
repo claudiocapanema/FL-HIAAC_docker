@@ -51,6 +51,7 @@ class ClientMultiFedAvgFedPredict(ClientMultiFedAvg):
             for me in evaluate_models:
                 me = int(me)
                 me_str = str(me)
+                self.alpha[me] = self._get_current_alpha(t, me)
                 nt = t - self.lt[me]
                 parameters_me = parameters[me_str]
                 set_weights(self.global_model[me], parameters_me)
@@ -61,6 +62,7 @@ class ClientMultiFedAvgFedPredict(ClientMultiFedAvg):
                 metrics["Model size"] = self.models_size[me]
                 metrics["Dataset size"] = len(self.valloader[me].dataset)
                 metrics["me"] = me
+                metrics["Alpha"] = self.alpha[me]
                 logger.info("""eval cliente fim {} {} similaridade {}""".format(metrics["me"], metrics, similarity))
                 tuple_me[me_str] = pickle.dumps((loss, len(self.valloader[me].dataset), metrics))
                 self.p_ME, self.fc_ME, self.il_ME = p_ME, fc_ME, il_ME

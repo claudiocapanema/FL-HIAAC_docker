@@ -47,6 +47,9 @@ parser.add_argument(
     "--alpha", action="append", help="Dirichlet alpha"
 )
 parser.add_argument(
+    "--concept_drift_experiment_id", type=int, default=0, help=""
+)
+parser.add_argument(
     "--round_new_clients", type=float, default=0.1, help=""
 )
 parser.add_argument(
@@ -91,15 +94,20 @@ args = parser.parse_args()
 
 # Define metric aggregation function
 def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
-    # Multiply accuracy of each client by number of examples used
-    accuracies = [num_examples * m["Accuracy"] for num_examples, m in metrics]
-    balanced_accuracies = [num_examples * m["Balanced accuracy"] for num_examples, m in metrics]
-    loss = [num_examples * m["Loss"] for num_examples, m in metrics]
-    examples = [num_examples for num_examples, _ in metrics]
+    try:
+        # Multiply accuracy of each client by number of examples used
+        accuracies = [num_examples * m["Accuracy"] for num_examples, m in metrics]
+        balanced_accuracies = [num_examples * m["Balanced accuracy"] for num_examples, m in metrics]
+        loss = [num_examples * m["Loss"] for num_examples, m in metrics]
+        examples = [num_examples for num_examples, _ in metrics]
 
-    # Aggregate and return custom metric (weighted average)
-    return {"Accuracy": sum(accuracies) / sum(examples), "Balanced accuracy": sum(balanced_accuracies) / sum(examples),
-            "Loss": sum(loss) / sum(examples), "Round (t)": metrics[0][1]["Round (t)"], "Model size": metrics[0][1]["Model size"]}
+        # Aggregate and return custom metric (weighted average)
+        return {"Accuracy": sum(accuracies) / sum(examples), "Balanced accuracy": sum(balanced_accuracies) / sum(examples),
+                "Loss": sum(loss) / sum(examples), "Round (t)": metrics[0][1]["Round (t)"], "Model size": metrics[0][1]["Model size"], "Alpha": metrics[0][1]["Alpha"]}
+    except Exception as e:
+        logger.error("weighted_average error")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
 
 def weighted_average_fit(metrics: List[Tuple[int, Metrics]]) -> Metrics:
     # Multiply accuracy of each client by number of examples used
@@ -154,7 +162,7 @@ def get_server(strategy_name):
         return MultiFedAvgRR
     elif strategy_name == "FedFairMMFL":
         return FedFairMMFL
-    elif strategy_name == "MultiFedAvg+FedPredict":
+    elif strategy_name == "MultiFedAvg+FP":
         return MultiFedAvgFedPredict
 
 # Main Function

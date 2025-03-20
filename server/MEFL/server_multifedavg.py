@@ -40,23 +40,33 @@ import random
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Define metric aggregation function
-def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
-    # Multiply accuracy of each client by number of examples used
-    accuracies = [num_examples * m["Accuracy"] for num_examples, m in metrics]
-    balanced_accuracies = [num_examples * m["Balanced accuracy"] for num_examples, m in metrics]
-    loss = [num_examples * m["Loss"] for num_examples, m in metrics]
-    examples = [num_examples for num_examples, _ in metrics]
-
-    # Aggregate and return custom metric (weighted average)
-    return {"Accuracy": sum(accuracies) / sum(examples), "Balanced accuracy": sum(balanced_accuracies) / sum(examples),
-            "Loss": sum(loss) / sum(examples), "Round (t)": metrics[0][1]["Round (t)"], "Model size": metrics[0][1]["Model size"]}
-
 def weighted_loss_avg(results: list[tuple[int, float]]) -> float:
     """Aggregate evaluation results obtained from multiple clients."""
     num_total_evaluation_examples = sum(num_examples for (num_examples, _) in results)
     weighted_losses = [num_examples * loss for num_examples, loss in results]
     return sum(weighted_losses) / num_total_evaluation_examples
+
+
+def global_concept_dirft_config(ME, n_rounds, alphas, experiment_id, seed=0):
+    # np.random.seed(seed)
+    # fraction_min_round = 0.3
+    # min_round = int(fraction_min_round * n_rounds)
+    #
+    # new_alphas = np.random.choice(alphas, ME, replace=True)
+    # while new_alphas == alphas:
+    #     np.random.seed()
+    #     new_alphas = np.random.choice(alphas, ME, replace=True)
+
+    np.random.seed(seed)
+    if experiment_id > 0:
+        if experiment_id == 1:
+            ME_concept_drift_rounds = [[int(n_rounds * 0.3)], [int(n_rounds) * 0.6]]
+            new_alphas = [[alphas[1]], [alphas[0]]]
+
+        config = {me: {"concept_drift_rounds": ME_concept_drift_rounds[me], "new_alphas": ME_concept_drift_rounds[me]} for me in range(len(ME_concept_drift_rounds))}
+    else:
+        config = {}
+    return config
 
 
 # pylint: disable=line-too-long
@@ -136,7 +146,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             self.model_name = args.model
             self.ME = len(self.model_name)
             self.number_of_rounds = args.number_of_rounds
-            self.cd = args.cd
+            self.cd = "false" if args.concept_drift_experiment_id == 0 else f"true_experiment_id_{args.concept_drift_experiment_id}"
             self.strategy_name = args.strategy
             self.test_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
                                        "# training clients", "training clients and models", "Model size", "Alpha"]
@@ -152,6 +162,9 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             self.clients_results_test_metrics = {me: {metric: [] for metric in self.test_metrics_names} for me in range(self.ME)}
             self.selected_clients_m = []
             self.selected_clients_m_ids_random = [[] for me in range(self.ME)]
+            # Concept drift parameters
+            self.concept_drift_experiment_id = args.concept_drift_experiment_id
+            self.concept_drift_config = global_concept_dirft_config(self.ME, self.number_of_rounds, self.alpha, self.concept_drift_experiment_id, 0)
         except Exception as e:
             logger.error("__init__ error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
@@ -376,7 +389,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
 
             for me in range(self.ME):
                 self.add_metrics(server_round, metrics_aggregated_mefl, me)
-                self.save_results(mode, me)
+                self._save_results(mode, me)
 
 
             return loss_aggregated_mefl, metrics_aggregated_mefl
@@ -384,12 +397,11 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             logger.error("aggregate_evaluate error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-    def add_metrics(self, t, metrics_aggregated, me):
+    def add_metrics(self, server_round, metrics_aggregated, me):
         try:
             metrics_aggregated[me]["Fraction fit"] = self.fraction_fit
             metrics_aggregated[me]["# training clients"] = self.n_trained_clients
             metrics_aggregated[me]["training clients and models"] = self.selected_clients_m[me]
-            metrics_aggregated[me]["Alpha"] = self.alpha[me]
 
             for metric in metrics_aggregated[me]:
                 self.results_test_metrics[me][metric].append(metrics_aggregated[me][metric])
@@ -397,26 +409,26 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             logger.error("add_metrics error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-    def save_results(self, mode, me):
+    def _save_results(self, mode, me):
 
         # train
         try:
             logger.info("""save results: {}""".format(self.results_test_metrics[me]))
-            file_path, header, data = self.get_results( 'train', '', me)
+            file_path, header, data = self._get_results('train', '', me)
             # logger.info("""dados: {} {}""".format(data, file_path))
             self._write_header(file_path, header=header, mode=mode)
             self._write_outputs(file_path, data=data)
 
             # test
 
-            file_path, header, data = self.get_results( 'test', '', me)
+            file_path, header, data = self._get_results('test', '', me)
             self._write_header(file_path, header=header, mode=mode)
             self._write_outputs(file_path, data=data)
         except Exception as e:
             logger.error("save_results error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-    def get_results(self, train_test, mode, me):
+    def _get_results(self, train_test, mode, me):
 
         try:
             algo = self.dataset[me] + "_" + self.strategy_name
@@ -522,16 +534,13 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
 
     def get_result_path(self, train_test):
 
-        result_path = """/results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+        result_path = """/results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
             self.cd,
             self.fraction_new_clients,
             self.round_new_clients,
             self.total_clients,
             self.alpha,
-            self.alpha,
             self.dataset,
-            0,
-            0,
             self.model_name,
             self.fraction_fit,
             self.number_of_rounds,

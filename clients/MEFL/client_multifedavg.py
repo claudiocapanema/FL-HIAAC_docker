@@ -3,6 +3,8 @@ import logging
 import json
 import pickle
 
+import numpy as np
+
 import flwr as fl
 
 from utils.models_utils import load_model, get_weights, load_data, set_weights, test, train
@@ -11,13 +13,36 @@ import torch
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
 
+def global_concept_dirft_config(ME, n_rounds, alphas, experiment_id, seed=0):
+    # np.random.seed(seed)
+    # fraction_min_round = 0.3
+    # min_round = int(fraction_min_round * n_rounds)
+    #
+    # new_alphas = np.random.choice(alphas, ME, replace=True)
+    # while new_alphas == alphas:
+    #     np.random.seed()
+    #     new_alphas = np.random.choice(alphas, ME, replace=True)
+
+    np.random.seed(seed)
+    if experiment_id > 0:
+        if experiment_id == 1:
+            ME_concept_drift_rounds = [[int(n_rounds * 0.3)], [int(n_rounds) * 0.6]]
+            new_alphas = [[alphas[1]], [alphas[0]]]
+
+        config = {me: {"concept_drift_rounds": ME_concept_drift_rounds[me], "new_alphas": new_alphas[me]} for me in range(len(ME_concept_drift_rounds))}
+    else:
+        config = {}
+    return config
+
 class ClientMultiFedAvg(fl.client.NumPyClient):
     def __init__(self, args):
         try:
             self.args = args
             self.model = [load_model(args.model[me], args.dataset[me], args.strategy, args.device) for me in range(len(args.model))]
             self.alpha = [float(i) for i in args.alpha]
+            self.initial_alpha = self.alpha
             self.ME = len(self.model)
+            self.number_of_rounds = args.number_of_rounds
             logger.info("Preparing data...")
             logger.info("""args do cliente: {} {}""".format(self.args.client_id, self.alpha))
             self.client_id = args.client_id
@@ -47,6 +72,10 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                 {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'ImageNet': 15,
                  "ImageNet_v2": 15, "Gowalla": 7}[dataset] for dataset in
                 self.args.dataset]
+            # Concept drift parameters
+            self.concept_drift_experiment_id = args.concept_drift_experiment_id
+            self.concept_drift_config = global_concept_dirft_config(self.ME, self.number_of_rounds, self.initial_alpha,
+                                                                    self.concept_drift_experiment_id, 0)
         except Exception as e:
             logger.error("__init__ error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
@@ -58,6 +87,8 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
             t = config['t']
             me = config['me']
             self.lt[me] = t - self.lt[me]
+            # Update alpha to simulate global concept drift
+            self.alpha[me] = self._get_current_alpha(t, me)
             if len(parameters) > 0:
                 set_weights(self.model[me], parameters)
             self.optimizer[me] = self._get_optimizer(dataset_name=self.args.dataset[me], me=me)
@@ -93,6 +124,8 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
             logger.info("""modelos para cliente avaliar {} {} {}""".format(evaluate_models, type(parameters), parameters.keys()))
             for me in evaluate_models:
                 me = int(me)
+                # Update alpha to simulate global concept drift
+                self.alpha[me] = self._get_current_alpha(t, me)
                 me_str = str(me)
                 nt = t - self.lt[me]
                 parameters_me = parameters[me_str]
@@ -101,12 +134,32 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                 metrics["Model size"] = self.models_size[me]
                 metrics["Dataset size"] = len(self.valloader[me].dataset)
                 metrics["me"] = me
+                metrics["Alpha"] = self.alpha[me]
                 logger.info("""eval cliente fim {} {}""".format(metrics["me"], metrics))
                 tuple_me[me_str] = pickle.dumps((loss, len(self.valloader[me].dataset), metrics))
             return loss, len(self.valloader[me].dataset), tuple_me
         except Exception as e:
             logger.error("evaluate error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def _get_current_alpha(self, server_round, me):
+
+        try:
+            if self.concept_drift_experiment_id == 0:
+                return self.alpha[me]
+            else:
+                config = self.concept_drift_config[me]
+                for i, round_ in enumerate(config["concept_drift_rounds"]):
+                    if server_round >= round_:
+                        alpha = config["new_alphas"][i]
+                    else:
+                        alpha = self.alpha[me]
+
+                return alpha
+        except Exception as e:
+            logger.error("_get_current_alpha error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
 
     def _get_models_size(self):
         try:

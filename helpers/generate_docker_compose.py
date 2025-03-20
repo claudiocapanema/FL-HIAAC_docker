@@ -25,6 +25,9 @@ parser.add_argument(
     "--alpha", action="append", help="Dirichlet alpha"
 )
 parser.add_argument(
+    "--concept_drift_experiment_id", type=int, default=0, help=""
+)
+parser.add_argument(
     "--round_new_clients", type=float, default=0.1, help=""
 )
 parser.add_argument(
@@ -128,8 +131,7 @@ def create_docker_compose(args):
     for me  in range(ME):
         mefl_string += f" --dataset='{args.dataset[me]}' --model='{args.model[me]}' --alpha={float(args.alpha[me])} "
 
-
-    general_config = f"--total_clients={args.total_clients} --number_of_rounds={args.number_of_rounds} --data_percentage={args.data_percentage} --strategy='{strategy_name}' --round_new_clients={args.round_new_clients} --fraction_new_clients={args.fraction_new_clients} --cd='{args.cd}' --fraction_fit={args.fraction_fit} --batch_size={args.batch_size} --learning_rate={args.learning_rate} --tw={args.tw} --reduction={args.reduction} --df={args.df}" + mefl_string
+    general_config = f"--total_clients={args.total_clients} --number_of_rounds={args.number_of_rounds} --data_percentage={args.data_percentage} --strategy='{strategy_name}' --round_new_clients={args.round_new_clients} --fraction_new_clients={args.fraction_new_clients} --cd='{args.cd}' --fraction_fit={args.fraction_fit} --batch_size={args.batch_size} --learning_rate={args.learning_rate} --tw={args.tw} --reduction={args.reduction} --df={args.df} --concept_drift_experiment_id={args.concept_drift_experiment_id}" + mefl_string
     print("config geral: ", general_config)
 
     docker_compose_content = f"""
