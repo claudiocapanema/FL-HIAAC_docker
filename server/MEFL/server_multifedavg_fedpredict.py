@@ -145,7 +145,11 @@ class MultiFedAvgFedPredict(MultiFedAvg):
 
             n = len(clients) // self.ME
             selected_clients_m = np.array_split(clients, self.ME)
-            train_more_models = np.argwhere(self.need_for_training == True)
+            train_more_models = []
+            for i, v in enumerate(self.need_for_training):
+                if v == True:
+                    train_more_models.append(i)
+
             if len(train_more_models) > 0:
                 distributed_budget = self.free_budget // len(train_more_models)
             else:
@@ -156,6 +160,7 @@ class MultiFedAvgFedPredict(MultiFedAvg):
                 if me in train_more_models:
                     training_intensity_me[me] += distributed_budget
 
+            logger.info(f"training intensity me {training_intensity_me} rodada {server_round} free budget {self.free_budget} train more models {train_more_models} need for training {self.need_for_training}")
             i = 0
             selected_clients_m = []
             for me in range(self.ME):
