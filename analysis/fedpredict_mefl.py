@@ -104,15 +104,15 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 if __name__ == "__main__":
     concept_drift_experiment_id = 1
     cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
-    total_clients = 20
+    total_clients = 30
     alphas = [0.1, 1.0]
     concept_drift_experiment_id = 1
-    dataset = ["MNIST", "ImageNet"]
+    dataset = ["WISDM-W", "ImageNet"]
     # dataset = ["EMNIST", "CIFAR10"]
     # models_names = ["cnn_c"]
-    model_name = ["CNN", "CNN"]
+    model_name = ["gru", "CNN"]
     fraction_fit = 0.3
-    number_of_rounds = 40
+    number_of_rounds = 41
     local_epochs = 1
     fraction_new_clients = alphas[0]
     round_new_clients = 0
