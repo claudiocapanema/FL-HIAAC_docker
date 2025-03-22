@@ -37,6 +37,35 @@ import torch
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def ema(dados):
+
+    try:
+        # Definir o número de períodos (N)
+        n = 5
+
+        # Calcular o fator de suavização (alpha)
+        alpha = 2 / (n + 1)
+
+        # Inicializar o array para armazenar as EMAs
+        ema = np.zeros_like(dados)
+
+        # Calcular a primeira EMA (como a média simples dos primeiros N valores)
+        ema[0] = np.mean(dados[:n])
+
+        # Calcular as EMAs subsequentes
+        for i in range(1, len(dados)):
+            ema[i] = alpha * dados[i] + (1 - alpha) * ema[i - 1]
+
+        return ema
+
+        # Exibir os resultados
+        print("Valores originais:", dados, len(dados))
+        print("EMA:", ema, len(ema))
+
+    except Exception as e:
+        logger.error("ema error")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
 def weighted_loss_avg(results: list[tuple[int, float]]) -> float:
     """Aggregate evaluation results obtained from multiple clients."""
     num_total_evaluation_examples = sum(num_examples for (num_examples, _) in results)
@@ -112,6 +141,7 @@ class MultiFedAvgFedPredict(MultiFedAvg):
         self.need_for_training = [None] * self.ME
         self.min_training_clients_per_model = 3
         self.free_budget = int(self.fraction_fit * self.total_clients) - self.min_training_clients_per_model * self.ME
+        self.ME_round_loss = {me: [] for me in range(self.ME)}
 
     def configure_fit(
             self, server_round: int, parameters: dict, client_manager: ClientManager
@@ -145,29 +175,29 @@ class MultiFedAvgFedPredict(MultiFedAvg):
 
             n = len(clients) // self.ME
             selected_clients_m = np.array_split(clients, self.ME)
-            train_more_models = []
-            for i, v in enumerate(self.need_for_training):
-                if v == True:
-                    train_more_models.append(i)
-
-            if len(train_more_models) > 0:
-                distributed_budget = self.free_budget // len(train_more_models)
-            else:
-                distributed_budget = 0
-            training_intensity_me = [self.min_training_clients_per_model] * self.ME
-
-            for me in train_more_models:
-                if me in train_more_models:
-                    training_intensity_me[me] += distributed_budget
-
-            logger.info(f"training intensity me {training_intensity_me} rodada {server_round} free budget {self.free_budget} train more models {train_more_models} need for training {self.need_for_training}")
-            i = 0
-            selected_clients_m = []
-            for me in range(self.ME):
-                training_intensity = training_intensity_me[me]
-                j = i + training_intensity
-                selected_clients_m.append(clients[i:j])
-                i = j
+            # train_more_models = []
+            # for i, v in enumerate(self.need_for_training):
+            #     if v == True:
+            #         train_more_models.append(i)
+            #
+            # if len(train_more_models) > 0:
+            #     distributed_budget = self.free_budget // len(train_more_models)
+            # else:
+            #     distributed_budget = 0
+            # training_intensity_me = [self.min_training_clients_per_model] * self.ME
+            #
+            # for me in train_more_models:
+            #     if me in train_more_models:
+            #         training_intensity_me[me] += distributed_budget
+            #
+            # logger.info(f"training intensity me {training_intensity_me} rodada {server_round} free budget {self.free_budget} train more models {train_more_models} need for training {self.need_for_training}")
+            # i = 0
+            # selected_clients_m = []
+            # for me in range(self.ME):
+            #     training_intensity = training_intensity_me[me]
+            #     j = i + training_intensity
+            #     selected_clients_m.append(clients[i:j])
+            #     i = j
 
 
 
@@ -261,8 +291,14 @@ class MultiFedAvgFedPredict(MultiFedAvg):
                 elif server_round == 1:  # Only log this warning once
                     log(WARNING, "No fit_metrics_aggregation_fn provided")
 
+            # Get losses
+            for me in range(self.ME):
+                self.ME_round_loss[me].append(metrics_aggregated_mefl[me]["Loss"])
+
             logger.info("""finalizou aggregated fit""")
-            logger.info(f"finalizou aggregated fit {server_round} {metrics_aggregated_mefl}")
+            logger.info(f"finalizou aggregated fit {server_round}")
+
+            self.calculate_pseudo_t(server_round, self.ME_round_loss[me])
 
             self.parameters_aggregated_mefl = parameters_aggregated_mefl
             self.metrics_aggregated_mefl = metrics_aggregated_mefl
@@ -270,4 +306,19 @@ class MultiFedAvgFedPredict(MultiFedAvg):
             return parameters_aggregated_mefl, metrics_aggregated_mefl
         except Exception as e:
             logger.error("aggregate_fit error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def calculate_pseudo_t(self, t, losses):
+
+        try:
+            ema_list = ema(losses)
+            ema_value = ema_list[-1]
+            logger.info(f"ema rodada {t} orignal {losses} ema {ema_list}")
+            # Calcula a diferença absoluta entre cada elemento do vetor e x
+            diferencas = np.abs(np.array(losses) - ema_value)
+            # Retorna o índice da menor diferença
+            return np.argmin(diferencas) + 1
+
+        except Exception as e:
+            logger.error("calculate_pseudo_t error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

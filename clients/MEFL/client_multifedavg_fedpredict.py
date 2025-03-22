@@ -7,12 +7,22 @@ import numpy as np
 
 from clients.MEFL.client_multifedavg import ClientMultiFedAvg
 from fedpredict import fedpredict_client_torch
-from fedpredict.utils.utils import cosine_similarity
+# from fedpredict.utils.utils import cosine_similarity
+from numpy.linalg import norm
 
 from utils.models_utils import load_model, get_weights, load_data, set_weights, test, train
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
+
+def cosine_similarity(p_1, p_2):
+
+    # compute cosine similarity
+    try:
+        return np.dot(p_1, p_2) / (norm(p_1) * norm(p_2))
+    except Exception as e:
+        logger.error("cosine_similairty error")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 class ClientMultiFedAvgFedPredict(ClientMultiFedAvg):
     def __init__(self, args):
@@ -60,6 +70,7 @@ class ClientMultiFedAvgFedPredict(ClientMultiFedAvg):
                 nt = t - self.lt[me]
                 parameters_me = parameters[me_str]
                 set_weights(self.global_model[me], parameters_me)
+                logger.info(f"ta cos:{self.p_ME[me]} {p_ME[me]}")
                 similarity = cosine_similarity(self.p_ME[me], p_ME[me])
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device, fc=fc_ME[me], il=il_ME[me])

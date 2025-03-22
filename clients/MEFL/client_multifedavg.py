@@ -107,6 +107,7 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
             )
             results["me"] = me
             results["client_id"] = self.client_id
+            results["Model size"] = self.models_size[me]
             logger.info("fit cliente fim")
             return get_weights(self.model[me]), len(self.trainloader[me].dataset), results
         except Exception as e:

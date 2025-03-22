@@ -270,7 +270,8 @@ def train(model, trainloader, valloader, optimizer, epochs, learning_rate, devic
             "val_balanced_accuracy": test_metrics["Balanced accuracy"],
             "train_loss": train_metrics["Train loss"],
             "train_accuracy": train_metrics["Train accuracy"],
-            "train_balanced_accuracy": train_metrics["Train balanced accuracy"]
+            "train_balanced_accuracy": train_metrics["Train balanced accuracy"],
+            "Round (t)": t
         }
         return results
 

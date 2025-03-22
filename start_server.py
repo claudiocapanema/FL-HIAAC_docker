@@ -110,15 +110,20 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
 
 
 def weighted_average_fit(metrics: List[Tuple[int, Metrics]]) -> Metrics:
-    # Multiply accuracy of each client by number of examples used
-    accuracies = [num_examples * m["train_accuracy"] for num_examples, m in metrics]
-    balanced_accuracies = [num_examples * m["train_balanced_accuracy"] for num_examples, m in metrics]
-    loss = [num_examples * m["train_loss"] for num_examples, m in metrics]
-    examples = [num_examples for num_examples, _ in metrics]
+    try:
+        # Multiply accuracy of each client by number of examples used
+        logger.info(f"metricas recebidas: {metrics}")
+        accuracies = [num_examples * m["train_accuracy"] for num_examples, m in metrics]
+        balanced_accuracies = [num_examples * m["train_balanced_accuracy"] for num_examples, m in metrics]
+        loss = [num_examples * m["train_loss"] for num_examples, m in metrics]
+        examples = [num_examples for num_examples, _ in metrics]
 
-    # Aggregate and return custom metric (weighted average)
-    return {"Accuracy": sum(accuracies) / sum(examples), "Balanced accuracy": sum(balanced_accuracies) / sum(examples),
-            "Loss": sum(loss) / sum(examples), "Round (t)": metrics[0][1]["Round (t)"], "Model size": metrics[0][1]["Model size"]}
+        # Aggregate and return custom metric (weighted average)
+        return {"Accuracy": sum(accuracies) / sum(examples), "Balanced accuracy": sum(balanced_accuracies) / sum(examples),
+                "Loss": sum(loss) / sum(examples), "Round (t)": metrics[0][1]["Round (t)"], "Model size": metrics[0][1]["Model size"]}
+    except Exception as e:
+        logger.error("weighted_average_fit error")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 def weighted_loss_avg(results: list[tuple[int, float]]) -> float:
     """Aggregate evaluation results obtained from multiple clients."""
@@ -181,6 +186,7 @@ if __name__ == "__main__":
         fraction_evaluate=1.0,
         min_available_clients=args.total_clients,
         evaluate_metrics_aggregation_fn=weighted_average,
+        fit_metrics_aggregation_fn=weighted_average_fit,
         initial_parameters=None,
     )
 
