@@ -26,8 +26,8 @@ def global_concept_dirft_config(ME, n_rounds, alphas, experiment_id, seed=0):
     np.random.seed(seed)
     if experiment_id > 0:
         if experiment_id == 1:
-            ME_concept_drift_rounds = [[int(n_rounds * 0.3)], [int(n_rounds) * 0.6]]
-            new_alphas = [[alphas[1]], [alphas[0]]]
+            ME_concept_drift_rounds = [[int(n_rounds * 0.3), int(n_rounds * 0.6), int(n_rounds * 0.9)], [int(n_rounds) * 0.3, int(n_rounds) * 0.6, int(n_rounds * 0.9)]]
+            new_alphas = [[1.0, 5.0, 0.1], [0.1, 5.0, 1.0]]
 
         config = {me: {"concept_drift_rounds": ME_concept_drift_rounds[me], "new_alphas": new_alphas[me]} for me in range(len(ME_concept_drift_rounds))}
     else:
@@ -150,11 +150,13 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                 return self.alpha[me]
             else:
                 config = self.concept_drift_config[me]
+                alpha = None
                 for i, round_ in enumerate(config["concept_drift_rounds"]):
                     if server_round >= round_:
                         alpha = config["new_alphas"][i]
-                    else:
-                        alpha = self.alpha[me]
+
+                if alpha is None:
+                    alpha = self.alpha[me]
 
                 return alpha
         except Exception as e:
