@@ -9,7 +9,6 @@ from base_plots import bar_plot, line_plot, ecdf_plot
 import matplotlib.pyplot as plt
 
 def read_data(read_solutions, read_dataset_order):
-
     df_concat = None
     solution_strategy_version = {
         "FedAvg+FP": {"Strategy": "FedAvg", "Version": "FP", "Table": "FedAvg+FP"},
@@ -19,7 +18,8 @@ def read_data(read_solutions, read_dataset_order):
         "FedPer": {"Strategy": "FedPer", "Version": "Original", "Table": "FedPer"},
         "FedKD": {"Strategy": "FedKD", "Version": "Original", "Table": "FedKD"},
         "FedKD+FP": {"Strategy": "FedKD", "Version": "FP", "Table": "FedKD+FP"},
-        "MultiFedAvg+FP": {"Strategy": "MultiFedAvg", "Version": "FP", "Table": "MultiFedAvg+FP"},
+        "MultiFedAvg+MFP": {"Strategy": "MultiFedAvg", "Version": "MFP", "Table": "MultiFedAvg+MFP"},
+        "MultiFedAvg+FPD": {"Strategy": "MultiFedAvg", "Version": "FPD", "Table": "MultiFedAvg+FPD"},
         "MultiFedAvg": {"Strategy": "MultiFedAvg", "Version": "Original", "Table": "MultiFedAvg"},
         "MultiFedAvgRR": {"Strategy": "MultiFedAvgRR", "Version": "Original", "Table": "MultiFedAvgRR"}
     }
@@ -182,7 +182,7 @@ def table(df, write_path, metric, t=None):
 
 def improvements(df, datasets, metric):
     # , "FedKD+FP": "FedKD"
-    strategies = {"MultiFedAvg+FP": "MultiFedAvg"}
+    strategies = {"MultiFedAvg+MFP": "MultiFedAvg", "MultiFedAvg+FPD": "MultiFedAvg"}
     # strategies = {r"MultiFedAvg+FP": "MultiFedAvg"}
     columns = df.columns.tolist()
     improvements_dict = {'Dataset': [], 'Table': [], 'Original strategy': [], 'Alpha': [], metric: []}
@@ -262,7 +262,7 @@ def accuracy_improvement(df, datasets):
     # reference_solutions = {"MultiFedAvg+FP": "MultiFedAvg", "MultiFedAvgGlobalModelEval+FP": "MultiFedAvgGlobalModelEval"}
     # ,
     #                            "FedKD+FP": "FedKD"
-    reference_solutions = {"MultiFedAvg+FP": "MultiFedAvg"}
+    reference_solutions = {"MultiFedAvg+MFP": "MultiFedAvg", "MultiFedAvg+FPD": "MultiFedAvg"}
 
     print(df_difference)
     # exit()
@@ -334,7 +334,7 @@ def idmax(df, n_solutions):
 if __name__ == "__main__":
     concept_drift_experiment_id = 1
     cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
-    total_clients = 30
+    total_clients = 20
     alphas = [0.1, 1.0]
     concept_drift_experiment_id = 1
     dataset = ["WISDM-W", "ImageNet"]
@@ -342,7 +342,7 @@ if __name__ == "__main__":
     # models_names = ["cnn_c"]
     model_name = ["gru", "CNN"]
     fraction_fit = 0.3
-    number_of_rounds = 40
+    number_of_rounds = 100
     local_epochs = 1
     fraction_new_clients = alphas[0]
     round_new_clients = 0
@@ -352,7 +352,7 @@ if __name__ == "__main__":
     #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
-    solutions = ["MultiFedAvg+FP", "MultiFedAvg", "MultiFedAvgRR"]
+    solutions = ["MultiFedAvg+MFP", "MultiFedAvg+FPD", "MultiFedAvg"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}

@@ -74,7 +74,7 @@ def weighted_loss_avg(results: list[tuple[int, float]]) -> float:
 
 
 # pylint: disable=line-too-long
-class MultiFedAvgFedPredict(MultiFedAvg):
+class MultiFedAvgMultiFedPredict(MultiFedAvg):
     """MultiFedAvgRR strategy.
 
     Implementation based on https://arxiv.org/abs/1602.05629

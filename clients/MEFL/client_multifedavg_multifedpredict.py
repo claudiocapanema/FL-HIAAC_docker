@@ -24,9 +24,9 @@ def cosine_similarity(p_1, p_2):
         logger.error("cosine_similairty error")
         logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-class ClientMultiFedAvgFedPredict(ClientMultiFedAvg):
+class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
     def __init__(self, args):
-        super(ClientMultiFedAvgFedPredict, self).__init__(args)
+        super(ClientMultiFedAvgMultiFedPredict, self).__init__(args)
         self.global_model = [None] * self.ME
         self.p_ME = [None] * self.ME
         self.fc_ME = [0] * self.ME
