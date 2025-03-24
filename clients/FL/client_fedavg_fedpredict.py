@@ -35,6 +35,7 @@ class ClientFedAvgFP(Client):
                 self.model,
                 self.trainloader,
                 self.valloader,
+                self.optimizer,
                 self.local_epochs,
                 self.lr,
                 self.device,
