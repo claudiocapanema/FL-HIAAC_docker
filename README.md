@@ -75,7 +75,7 @@ python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=
 
 ```
 
-or
+or with more clients to accommodate 3 models:
 
 ```bash
 
@@ -83,9 +83,18 @@ python helpers/generate_docker_compose.py --total_clients=30 --number_of_rounds=
 
 ```
 
+### Concept drift simulation
+
+Optionally, you can simulate global concept drift informing the configuration identifier `--concept_drift_experiment_id=1`:
+
+```bash
+
+python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy="MultiFedAvg" --dataset="WISDM-W" --dataset="ImageNet" --model="gru" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=10.0 --concept_drift_experiment_id=1
+```
+
 ## Saving the results locally:
 
-Save the results/ volume locally:
+When the learning finishes, save the `results/` volume locally:
 
 ```bash
 
