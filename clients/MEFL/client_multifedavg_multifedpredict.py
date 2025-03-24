@@ -10,7 +10,7 @@ from fedpredict import fedpredict_client_torch
 # from fedpredict.utils.utils import cosine_similarity
 from numpy.linalg import norm
 
-from utils.models_utils import load_model, get_weights, load_data, set_weights, test_fedpredict, train
+from utils.models_utils import load_model, get_weights, load_data, set_weights, test_fedpredict, test, train
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
