@@ -100,39 +100,49 @@ class MultiFedEfficiency(MultiFedAvg):
         evaluate_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
         inplace: bool = True,
     ) -> None:
-        super().__init__(fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace, args=args)
+        try:
+            super().__init__(fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate,
+                             min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients,
+                             min_available_clients=min_available_clients, evaluate_fn=evaluate_fn,
+                             on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn,
+                             accept_failures=accept_failures, initial_parameters=initial_parameters,
+                             fit_metrics_aggregation_fn=fit_metrics_aggregation_fn,
+                             evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace,
+                             args=args)
+            self.tw = []
+            for d in self.dataset:
+                self.tw.append({'EMNIST': args.tw, 'MNIST': args.tw, 'GTSRB': args.tw, "WISDM-W": args.tw, "WISDM-P": args.tw, "ImageNet": args.tw, "CIFAR10": args.tw,
+                                "ImageNet_v2": args.tw, "Gowalla": args.tw}[d])
+            self.n_classes = [
+                {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'ImageNet': 15,
+                 "ImageNet_v2": 15, "Gowalla": 7}[dataset] for dataset in
+                self.args.dataset]
+            self.tw_range = [0.5, 0.1]
+            self.models_semi_convergence_flag = [False] * self.ME
+            self.models_semi_convergence_count = [0] * self.ME
+            self.clients_metrics = {client_id: {"fraction_of_classes": {me: None for me in range(self.ME)},
+                                                "imbalance_level": {me: None for me in range(self.ME)},
+                                                "train_class_count": {me: None for me in range(self.ME)}} for client_id in
+                                    range(1, self.total_clients + 1)}
+            self.client_class_count = {me: {i: [] for i in range(self.total_clients)} for me in range(self.ME)}
+            self.minimum_training_clients_per_model = {0.1: 1, 0.2: 2, 0.3: 3, 0.5: 3}[self.fraction_fit]
+            self.training_clients_per_model_per_round = {me: {t: [] for t in range(1, self.number_of_rounds + 1)} for me in range(self.ME)}
+            self.rounds_since_last_semi_convergence = {me: 0 for me in range(self.ME)}
+            self.unique_count_samples = {me: np.array([0 for i in range(self.n_classes[me])]) for me in range(self.ME)}
+            self.models_semi_convergence_rounds_n_clients = {m: [] for m in range(self.ME)}
+            self.accuracy_gain_models = {me: [] for me in range(self.ME)}
+            self.stop_cpd = [False for me in range(self.ME)]
+            self.re_per_model = int(args.reduction)
+            self.fraction_of_classes = np.zeros((self.ME, self.total_clients + 1))
+            self.imbalance_level = np.zeros((self.ME, self.total_clients + 1))
+            self.lim = []
+            self.free_budget_distribution_factor = args.df
 
-        self.tw = []
-        for d in self.dataset:
-            self.tw.append({'EMNIST': args.tw, 'MNIST': args.tw, 'GTSRB': args.tw, "WISDM-W": args.tw, "WISDM-P": args.tw, "ImageNet": args.tw, "CIFAR10": args.tw,
-                            "ImageNet_v2": args.tw, "Gowalla": args.tw}[d])
-        self.n_classes = [
-            {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'ImageNet': 15,
-             "ImageNet_v2": 15, "Gowalla": 7}[dataset] for dataset in
-            self.args.dataset]
-        self.tw_range = [0.5, 0.1]
-        self.models_semi_convergence_flag = [False] * self.ME
-        self.models_semi_convergence_count = [0] * self.ME
-        self.clients_metrics = {client_id: {"fraction_of_classes": {me: None for me in range(self.ME)},
-                                            "imbalance_level": {me: None for me in range(self.ME)},
-                                            "train_class_count": {me: None for me in range(self.ME)}} for client_id in
-                                range(1, self.total_clients + 1)}
-        self.client_class_count = {me: {i: [] for i in range(self.total_clients)} for me in range(self.ME)}
-        self.minimum_training_clients_per_model = {0.1: 1, 0.2: 2, 0.3: 3, 0.5: 3}[self.fraction_fit]
-        self.training_clients_per_model_per_round = {me: {t: [] for t in range(1, self.number_of_rounds + 1)} for me in range(self.ME)}
-        self.rounds_since_last_semi_convergence = {me: 0 for me in range(self.ME)}
-        self.unique_count_samples = {me: np.array([0 for i in range(self.n_classes[me])]) for me in range(self.ME)}
-        self.models_semi_convergence_rounds_n_clients = {m: [] for m in range(self.ME)}
-        self.accuracy_gain_models = {me: [] for me in range(self.ME)}
-        self.stop_cpd = [False for me in range(self.ME)]
-        self.re_per_model = int(args.reduction)
-        self.fraction_of_classes = np.zeros((self.ME, self.total_clients + 1))
-        self.imbalance_level = np.zeros((self.ME, self.total_clients + 1))
-        self.lim = []
-        self.free_budget_distribution_factor = args.df
-
-        if self.fraction_evaluate != 1.0:
-            raise ValueError("fraction_evaluate must be 1.0 to run MultiFedEfficiency")
+            if self.fraction_evaluate != 1.0:
+                raise ValueError("fraction_evaluate must be 1.0 to run MultiFedEfficiency")
+        except Exception as e:
+            logger.error("__init__ error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def configure_fit(
         self, server_round: int, parameters: dict, client_manager: ClientManager

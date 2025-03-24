@@ -138,13 +138,23 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
         evaluate_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
         inplace: bool = True,
     ) -> None:
-        super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
-        self.need_for_training = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
-        self.min_training_clients_per_model = 3
-        self.free_budget = int(self.fraction_fit * self.total_clients) - self.min_training_clients_per_model * self.ME
-        self.ME_round_loss = {me: [] for me in range(self.ME)}
-        self.checkpoint_models = {me: {} for me in range(self.ME)}
-        self.round_initial_parameters = [None] * self.ME
+        try:
+            super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate,
+                             min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients,
+                             min_available_clients=min_available_clients, evaluate_fn=evaluate_fn,
+                             on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn,
+                             accept_failures=accept_failures, initial_parameters=initial_parameters,
+                             fit_metrics_aggregation_fn=fit_metrics_aggregation_fn,
+                             evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
+            self.need_for_training = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
+            self.min_training_clients_per_model = 3
+            self.free_budget = int(self.fraction_fit * self.total_clients) - self.min_training_clients_per_model * self.ME
+            self.ME_round_loss = {me: [] for me in range(self.ME)}
+            self.checkpoint_models = {me: {} for me in range(self.ME)}
+            self.round_initial_parameters = [None] * self.ME
+        except Exception as e:
+            logger.error("__init__ error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def configure_fit(
             self, server_round: int, parameters: dict, client_manager: ClientManager

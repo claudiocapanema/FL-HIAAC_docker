@@ -55,10 +55,10 @@ def weighted_loss_avg(results: list[tuple[int, float]]) -> float:
 
 
 # pylint: disable=line-too-long
-class MultiFedR(MultiFedAvg):
+class MultiFedLR(MultiFedAvg):
     """MultiFedR strategy.
 
-    Implementation based on https://arxiv.org/abs/1602.05629
+    Implementation based on
 
     Parameters
     ----------
@@ -118,9 +118,14 @@ class MultiFedR(MultiFedAvg):
         evaluate_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
         inplace: bool = True,
     ) -> None:
-        super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
-
         try:
+            super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate,
+                             min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients,
+                             min_available_clients=min_available_clients, evaluate_fn=evaluate_fn,
+                             on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn,
+                             accept_failures=accept_failures, initial_parameters=initial_parameters,
+                             fit_metrics_aggregation_fn=fit_metrics_aggregation_fn,
+                             evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
             self.fairness_weight = 2
             self.clients_loss_ME = {client_id: {me: 10 for me in range(self.ME)} for client_id in range(1, self.total_clients + 1)}
             self.clients_num_examples_ME = {client_id: {me: 1 for me in range(self.ME)} for client_id in

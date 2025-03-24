@@ -108,7 +108,7 @@ if __name__ == "__main__":
     total_clients = 20
     alphas = [0.1, 10.0]
     concept_drift_experiment_id = 1
-    dataset = ["WISDM-W", "ImageNet"]
+    dataset = ["WISDM-W", "CIFAR10"]
     # dataset = ["EMNIST", "CIFAR10"]
     # models_names = ["cnn_c"]
     model_name = ["gru", "CNN"]

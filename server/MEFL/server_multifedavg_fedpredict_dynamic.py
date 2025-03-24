@@ -77,7 +77,7 @@ def weighted_loss_avg(results: list[tuple[int, float]]) -> float:
 class MultiFedAvgFedPredictDynamic(MultiFedAvg):
     """MultiFedAvg+FedPredictDynamic strategy.
 
-    Implementation based on https://arxiv.org/abs/1602.05629
+    Implementation based on
 
     Parameters
     ----------
@@ -137,7 +137,17 @@ class MultiFedAvgFedPredictDynamic(MultiFedAvg):
         evaluate_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
         inplace: bool = True,
     ) -> None:
-        super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
+        try:
+            super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate,
+                             min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients,
+                             min_available_clients=min_available_clients, evaluate_fn=evaluate_fn,
+                             on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn,
+                             accept_failures=accept_failures, initial_parameters=initial_parameters,
+                             fit_metrics_aggregation_fn=fit_metrics_aggregation_fn,
+                             evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
+        except Exception as e:
+            logger.error("__init__ error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def configure_fit(
             self, server_round: int, parameters: dict, client_manager: ClientManager

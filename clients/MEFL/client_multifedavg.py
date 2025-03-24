@@ -14,15 +14,6 @@ logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
 
 def global_concept_dirft_config(ME, n_rounds, alphas, experiment_id, seed=0):
-    # np.random.seed(seed)
-    # fraction_min_round = 0.3
-    # min_round = int(fraction_min_round * n_rounds)
-    #
-    # new_alphas = np.random.choice(alphas, ME, replace=True)
-    # while new_alphas == alphas:
-    #     np.random.seed()
-    #     new_alphas = np.random.choice(alphas, ME, replace=True)
-
     np.random.seed(seed)
     if experiment_id > 0:
         if experiment_id == 1:

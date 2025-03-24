@@ -31,22 +31,26 @@ def cosine_similarity(p_1, p_2):
 
 class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
     def __init__(self, args):
-        super(ClientMultiFedAvgFedPredictDynamic, self).__init__(args)
-        self.global_model = [None] * self.ME
-        self.p_ME = [None] * self.ME
-        for me in range(self.ME):
-            # Copy of randomly initialized parameters
-            self.global_model[me] = copy.deepcopy(self.model[me])
-        self.previous_alpha = self.alpha
+        try:
+            super(ClientMultiFedAvgFedPredictDynamic, self).__init__(args)
+            self.global_model = [None] * self.ME
+            self.p_ME = [None] * self.ME
+            for me in range(self.ME):
+                # Copy of randomly initialized parameters
+                self.global_model[me] = copy.deepcopy(self.model[me])
+            self.previous_alpha = self.alpha
 
-        self.p_ME, self.fc_ME, self.il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes)
+            self.p_ME, self.fc_ME, self.il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes)
+        except Exception as e:
+            logger.error("__init__ error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def fit(self, parameters, config):
         """Train the model with data of this client."""
         try:
+            # Update the metrics that characterize the local dataset that the client will train
             self.p_ME, self.fc_ME, self.il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes)
             parameters, size, results = super().fit(parameters, config)
-            me = config['me']
             return parameters, size, results
         except Exception as e:
             logger.error("fit error")
@@ -60,7 +64,7 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
             parameters = pickle.loads(config["parameters"])
             evaluate_models = json.loads(config["evaluate_models"])
             tuple_me = {}
-            logger.info("""modelos para cliente avaliar {} {} {}""".format(evaluate_models, type(parameters), parameters.keys()))
+            # Evaluate the assigned models
             for me in evaluate_models:
                 me = int(me)
                 me_str = str(me)
@@ -90,7 +94,7 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
                 metrics["Dataset size"] = len(self.valloader[me].dataset)
                 metrics["me"] = me
                 metrics["Alpha"] = self.alpha[me]
-                logger.info("""eval cliente fim {} {} similaridade {}""".format(metrics["me"], metrics, similarity))
+                # Additional values should be passed as a tuple. If a traditional tuple is insufficient, each position of it can carry a serialized object
                 tuple_me[me_str] = pickle.dumps((loss, len(self.valloader[me].dataset), metrics))
             return loss, len(self.valloader[me].dataset), tuple_me
         except Exception as e:
