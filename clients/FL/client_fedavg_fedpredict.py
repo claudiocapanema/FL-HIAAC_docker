@@ -17,7 +17,7 @@ class ClientFedAvgFP(Client):
     def __init__(self, args):
         try:
             super(ClientFedAvgFP, self).__init__(args)
-            self.global_model = load_model(self.model, self.dataset, args.strategy, args.device)
+            self.global_model = load_model(args.model[0], self.dataset, args.strategy, args.device)
             self.lt = 0
         except Exception as e:
             logger.error("__init__ error")
