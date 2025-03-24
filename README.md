@@ -19,9 +19,10 @@ This project uses the Flower framework for Federated Learning (FL) simulation. I
 ### Highlights
 
 FL-H.IAAC highlights are presented as follows:
-- Reproductibility: run experiments with only one command.
+- Reproducibility: run experiments with only one command.
 - Data heterogeneity: simulate non-IID data across devices.
 - System heterogeneity: simulate devices with heterogeneous resources.
+- Concept drift: simulate concept drift in clients' data.
 - MEFL: support for Multi-model Federated Learning.
 - GPU usage: it is configured to use GPU when available.
 
