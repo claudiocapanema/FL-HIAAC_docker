@@ -72,7 +72,7 @@ For each additional task, add the fields `dataset`, `model`, and `alpha`:
 
 ```bash
 
-python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=10 --strategy="MultiFedAvg" --dataset="CIFAR10" --dataset="EMNIST" --model="CNN" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=0.1
+python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy="MultiFedAvg" --dataset="CIFAR10" --dataset="EMNIST" --model="CNN" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=0.1
 
 ```
 
@@ -80,7 +80,7 @@ or with more clients to accommodate 3 models:
 
 ```bash
 
-python helpers/generate_docker_compose.py --total_clients=30 --number_of_rounds=40 --strategy="MultiFedAvg" --dataset="Gowalla" --dataset="WISDM-W" --dataset="ImageNet" --model="lstm" --model="gru" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=0.1 --alpha=0.1
+python helpers/generate_docker_compose.py --total_clients=30 --number_of_rounds=100 --strategy="MultiFedAvg" --dataset="Gowalla" --dataset="WISDM-W" --dataset="ImageNet" --model="lstm" --model="gru" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=0.1 --alpha=0.1
 
 ```
 
