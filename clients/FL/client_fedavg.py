@@ -66,6 +66,7 @@ class Client(fl.client.NumPyClient):
                 self.n_classes
             )
             logger.info("fit cliente fim")
+            results["Model size"] = self.models_size
             return get_weights(self.model), len(self.trainloader.dataset), results
         except Exception as e:
             logger.error("fit error")
@@ -80,6 +81,7 @@ class Client(fl.client.NumPyClient):
             set_weights(self.model, parameters)
             loss, metrics = test(self.model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
             metrics["Model size"] = self.models_size
+            metrics["Alpha"] = self.alpha
             logger.info("eval cliente fim")
             return loss, len(self.valloader.dataset), metrics
         except Exception as e:

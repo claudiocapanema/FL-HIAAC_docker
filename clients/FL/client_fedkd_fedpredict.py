@@ -43,6 +43,7 @@ class ClientFedKDFedPredict(ClientFedKD):
             loss, metrics = test_fedkd_fedpredict(self.lt, self.model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
             metrics["Model size"] = self.models_size
             logger.info("eval cliente fim")
+            metrics["Alpha"] = self.alpha
             return loss, len(self.valloader.dataset), metrics
         except Exception as e:
             logger.error("evaluate")
