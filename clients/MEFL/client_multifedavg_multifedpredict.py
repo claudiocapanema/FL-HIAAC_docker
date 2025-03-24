@@ -95,7 +95,7 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 #                                     self.args.dataset[me], self.n_classes[me], similarity,
                 #                                     self.p_ME[me])
                 # else:
-                loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t, self.args.dataset[me], self.n_classes[me], similarity, self.p_ME[me])
+                loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t, self.args.dataset[me], self.n_classes[me], similarity, p_ME[me])
                 metrics["Model size"] = self.models_size[me]
                 metrics["Dataset size"] = len(self.valloader[me].dataset)
                 metrics["me"] = me
