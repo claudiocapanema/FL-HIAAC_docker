@@ -5,7 +5,7 @@ dataset: [CIFAR-10]
 framework: [Docker, torch]
 ---
 
-# FL-H.IAAC 
+# FL-H.IAAC
 
 <p align="center">
   <img src="https://flower.ai/_next/image/?url=%2F_next%2Fstatic%2Fmedia%2Fflower_white_border.c2012e70.png&w=640&q=75" width="140px" alt="Flower Website" />
@@ -14,7 +14,16 @@ framework: [Docker, torch]
 
 ## Introduction
 
-This project uses the Flower environment executes via docker. It is configured to simulate device heterogeneity. Additionally, it is configured to allow client containers to run the GPU. This project is based on a Flower official tutorial.
+This project uses the Flower framework for Federated Learning (FL) simulation. It is executed via docker to enable realistic distributed simulation. 
+
+### Highlights
+
+FL-H.IAAC highlights are presented as follows:
+- Reproductibility: run experiments with only one command.
+- Data heterogeneity: simulate non-IID data across devices.
+- System heterogeneity: simulate devices with heterogeneous resources.
+- MEFL: support for Multi-model Federated Learning.
+- GPU usage: it is configured to use GPU when available.
 
 ## Enabling containers to access GPU
 
@@ -45,7 +54,7 @@ Follow this tutorial (`https://docs.nvidia.com/datacenter/cloud-native/container
 
 Docker must be installed and the Docker daemon running on your server. If you don't already have Docker installed, you can get [installation instructions for your specific Linux distribution or macOS from Docker](https://docs.docker.com/engine/install/). Besides Docker, the only extra requirement is having Python installed. You don't need to create a new environment for this example since all dependencies will be installed inside Docker containers automatically.
 
-## Running the Example
+## Running the traditional FL Example
 
 Run the training with a single command:
 
@@ -55,26 +64,54 @@ Run the training with a single command:
 python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy="FedAvg" --dataset="CIFAR10" --model="CNN_3" --fraction_fit=0.3 --alpha=0.1
 ```
 
-## Saving the results locally:
+## Running the MEFL Example
 
-Save the results/ volume locally:
+In MEFL, the standard solution is the `MultiFedAvg`.
+For each additional task, add the fields `dataset`, `model`, and `alpha`:
 
 ```bash
 
-bash get_results.sh
+python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=10 --strategy="MultiFedAvg" --dataset="CIFAR10" --dataset="EMNIST" --model="CNN" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=0.1
+
+```
+
+or with more clients to accommodate 3 models:
+
+```bash
+
+python helpers/generate_docker_compose.py --total_clients=30 --number_of_rounds=40 --strategy="MultiFedAvg" --dataset="Gowalla" --dataset="WISDM-W" --dataset="ImageNet" --model="lstm" --model="gru" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=0.1 --alpha=0.1
+
+```
+
+### Concept drift simulation
+
+Optionally, you can simulate global concept drift informing the configuration identifier `--concept_drift_experiment_id=1`:
+
+```bash
+
+python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy="MultiFedAvg" --dataset="WISDM-W" --dataset="ImageNet" --model="gru" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=10.0 --concept_drift_experiment_id=1
+```
+
+## Saving the results locally:
+
+When the learning finishes, save the `results/` volume locally:
+
+```bash
+
+sudo bash get_results.sh
 ```
 
 Once you finish your simulation, type the following command:
 
 ```bash
 
-docker compose down
+sudo docker compose down
 ```
 
 In case your building is not working, try the following steps (one at a time):
 ```bash
 # Remove unused containers
-docker container prune -f
+sudo docker container prune -f
 
 ```
 
@@ -82,13 +119,13 @@ When changing strategy it is important to first remove existing images:
 
 ```bash
 # Remove images
-docker image prune -a
+sudo docker image prune -a
 
 ```
 
 ```bash
 # Remove everything (images, containers, networks)
-docker system prune -a --volumes
+sudo docker system prune -a --volumes
 
 ```
 

@@ -121,10 +121,10 @@ class FedAvg(flwr.server.strategy.FedAvg):
         self.local_epochs = args.local_epochs
         self.fraction_new_clients = args.fraction_new_clients
         self.round_new_clients = args.round_new_clients
-        self.alpha = args.alpha
+        self.alpha = args.alpha[0]
         self.total_clients = args.total_clients
-        self.dataset= args.dataset
-        self.model_name = args.model
+        self.dataset = args.dataset[0]
+        self.model_name = args.model[0]
         self.number_of_rounds = args.number_of_rounds
         self.cd = args.cd
         self.strategy_name = args.strategy
@@ -257,9 +257,9 @@ class FedAvg(flwr.server.strategy.FedAvg):
     def save_results(self, mode):
 
         # train
-        logger.info("""save results: {}""".format(self.results_test_metrics))
+        # logger.info("""save results: {}""".format(self.results_test_metrics))
         file_path, header, data = self.get_results( 'train', '')
-        logger.info("""dados: {} {}""".format(data, file_path))
+        # logger.info("""dados: {} {}""".format(data, file_path))
         self._write_header(file_path, header=header, mode=mode)
         self._write_outputs(file_path, data=data)
 
@@ -298,12 +298,12 @@ class FedAvg(flwr.server.strategy.FedAvg):
         if train_test == 'test':
 
             header = self.test_metrics_names
-            print(self.rs_test_acc)
-            print(self.rs_test_auc)
-            print(self.rs_train_loss)
+            # print(self.rs_test_acc)
+            # print(self.rs_test_auc)
+            # print(self.rs_train_loss)
             list_of_metrics = []
             for me in self.results_test_metrics:
-                print(me, len(self.results_test_metrics[me]))
+                # print(me, len(self.results_test_metrics[me]))
                 length = len(self.results_test_metrics[me])
                 list_of_metrics.append(self.results_test_metrics[me])
 
@@ -320,7 +320,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
                 header = self.train_metrics_names
                 list_of_metrics = []
                 for me in self.results_train_metrics:
-                    print(me, len(self.results_train_metrics[me]))
+                    # print(me, len(self.results_train_metrics[me]))
                     length = len(self.results_train_metrics[me])
                     list_of_metrics.append(self.results_train_metrics[me])
 
@@ -370,5 +370,5 @@ class FedAvg(flwr.server.strategy.FedAvg):
             for i in range(len(parameters)):
                 size += parameters[i].nbytes
             models_size.append(size)
-        print("models size: ", models_size)
+        # print("models size: ", models_size)
         self.models_size = models_size

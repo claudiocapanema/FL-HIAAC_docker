@@ -1,3 +1,4 @@
+import subprocess
 import argparse
 
 parser = argparse.ArgumentParser(description="Generated Docker Compose")
@@ -21,7 +22,10 @@ parser.add_argument(
     "--strategy", type=str, default='FedAvg', help="Strategy to use (default: FedAvg)"
 )
 parser.add_argument(
-    "--alpha", type=float, default=0.1, help="Dirichlet alpha"
+    "--alpha", action="append", help="Dirichlet alpha"
+)
+parser.add_argument(
+    "--concept_drift_experiment_id", type=int, default=0, help=""
 )
 parser.add_argument(
     "--round_new_clients", type=float, default=0.1, help=""
@@ -33,10 +37,10 @@ parser.add_argument(
     "--local_epochs", type=float, default=1, help=""
 )
 parser.add_argument(
-    "--dataset", type=str, default="CIFAR10"
+    "--dataset", action="append"
 )
 parser.add_argument(
-    "--model", type=str, default="CNN_3"
+    "--model", action="append"
 )
 parser.add_argument(
     "--cd", type=str, default="false"
@@ -53,21 +57,81 @@ parser.add_argument(
 parser.add_argument(
     "--learning_rate", type=float, default=0.01
 )
+parser.add_argument(
+    "--tw", type=int, default=15, help="TW window of rounds used in MultiFedEfficiency"
+)
+parser.add_argument(
+    "--reduction", type=int, default=3, help="Reduction in the number of training clients used in MultiFedEfficiency"
+)
+parser.add_argument(
+    "--df", type=float, default=0, help="Free budget redistribution factor used in MultiFedEfficiency"
+)
 
+def assert_args(args, strategy_name):
+    strategy_type = None
+    if strategy_name in ["FedAvg", "FedAvg+FP", "FedYogi", "FedYogi+FP", "FedPer", "FedKD", "FedKD+FP"]:
+        strategy_type = "FL"
+    elif strategy_name in ["MultiFedAvg", "FedFairMMFL", "MultiFedEfficiency"]:
+        strategy_type = "MEFL"
+
+    args_have_same_size = True if len(args.dataset) == len(args.model) == len(args.alpha) else False
+    if not args_have_same_size:
+        raise Exception(f"Number of datasets and models and alpha should be the same but you gave: {len(args.dataset)} dataset(s) {len(args.model)} model(s) and {len(args.alpha)} alpha(s)")
+    else:
+        if len(args.dataset) == 1 and strategy_type == "MEFL":
+            raise Exception(
+                f"Strategy {strategy_name} is MEFL but you gave only {len(args.dataset)} dataset {len(args.model)} model and {len(args.alpha)} alpha"
+            )
+        elif len(args.dataset) > 1 and strategy_type == "FL":
+            raise Exception(
+                f"Strategy {strategy_name} is single model FL but you gave {len(args.dataset)} dataset(s) {len(args.model)} model(s) and {len(args.alpha)} alpha(s)"
+            )
+
+
+def load_fedpredict_project():
+    return f'''# Defina o diretório de destino (você pode substituir por seu caminho de destino desejado)
+            DESTINO="/home/gustavo/PycharmProjects/FL-HIAAC_docker/fedpredict"
+            
+            # Encontre o diretório de origem (que está em um nível acima do diretório atual)
+            ORIGEM="/home/gustavo/PycharmProjects/fedpredict/"
+            if [ ! -d "$DESTINO" ]; then
+                mkdir -p "$DESTINO"
+                echo "Pasta de destino criada: $DESTINO"
+            else
+                # Se a pasta já existir, limpe o conteúdo
+                rm -rf "$DESTINO"/*
+                echo "Conteúdo da pasta de destino limpo: $DESTINO"
+            fi
+
+            
+            # Agora, vamos copiar os arquivos da pasta de origem para a pasta de destino
+            cp -r "$ORIGEM"/* "$DESTINO"
+            
+            echo "Arquivos copiados de $ORIGEM para $DESTINO"'''
 
 def create_docker_compose(args):
+    assert_args(args, args.strategy)
     # cpus is used to set the number of CPUs available to the container as a fraction of the total number of CPUs on the host machine.
     # mem_limit is used to set the memory limit for the container.
     client_configs = [
-        {"mem_limit": "1.2g", "cpus": 1} for i in range(args.total_clients)
+        {"mem_limit": "0.8g", "cpus": 1} for i in range(args.total_clients)
         # Add or modify the configurations depending on your host machine
+        # Warning: very low memory makes client's container to exit
+        # Reference table:
+        # Number of clients | mem_limit
+        #        30         |     0.6
     ]
 
     strategy_name = args.strategy
     client_file = "start_client.py"
     server_file = "start_server.py"
 
-    general_config = f"--total_clients={args.total_clients} --number_of_rounds={args.number_of_rounds} --data_percentage={args.data_percentage} --strategy='{strategy_name}' --alpha={args.alpha} --round_new_clients={args.round_new_clients} --fraction_new_clients={args.fraction_new_clients} --model='{args.model}' --cd='{args.cd}' --fraction_fit={args.fraction_fit} --batch_size={args.batch_size} --learning_rate={args.learning_rate} --dataset='{args.dataset}'"
+    mefl_string = " "
+    ME = len(args.dataset)
+    for me  in range(ME):
+        mefl_string += f" --dataset='{args.dataset[me]}' --model='{args.model[me]}' --alpha={float(args.alpha[me])} "
+
+    general_config = f"--total_clients={args.total_clients} --number_of_rounds={args.number_of_rounds} --data_percentage={args.data_percentage} --strategy='{strategy_name}' --round_new_clients={args.round_new_clients} --fraction_new_clients={args.fraction_new_clients} --cd='{args.cd}' --fraction_fit={args.fraction_fit} --batch_size={args.batch_size} --learning_rate={args.learning_rate} --tw={args.tw} --reduction={args.reduction} --df={args.df} --concept_drift_experiment_id={args.concept_drift_experiment_id}" + mefl_string
     print("config geral: ", general_config)
 
     docker_compose_content = f"""
@@ -200,8 +264,6 @@ services:
     with open(filename, "w") as file:
         file.write(docker_compose_content)
 
-    import subprocess
-
     # Caminho para o seu script bash
     script_up = f"sudo docker compose -f {filename} up --build && docker image prune -f"
 
@@ -222,5 +284,6 @@ services:
 
 
 if __name__ == "__main__":
+    # subprocess.Popen(load_fedpredict_project()).wait()
     args = parser.parse_args()
     create_docker_compose(args)

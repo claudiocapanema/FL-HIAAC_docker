@@ -20,71 +20,60 @@ logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
 
 def load_model(model_name, dataset, strategy):
+    if model_name == 'CNN':
+        if dataset in ['MNIST']:
+            input_shape = 1
+            mid_dim = 256
+            # mid_dim = 4
+            num_classes = 10
+            logger.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
+        elif dataset in ['EMNIST']:
+            input_shape = 1
+            mid_dim = 256
+            # mid_dim = 4
+            num_classes = 47
+            logger.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
+        elif dataset in ['GTSRB']:
+            input_shape = 1
+            mid_dim = 36
+            # mid_dim = 16
+            num_classes = 43
+            logger.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
+        else:
+            input_shape = 3
+            mid_dim = 400
+            # mid_dim = 16
+            num_classes = 10
+    elif model_name == 'CNN_3':
+        if dataset in ['MNIST']:
+            input_shape = 1
+            # mid_dim = 256
+            mid_dim = 4
+            num_classes = 10
+            logger.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
+        elif dataset in ['EMNIST']:
+            input_shape = 1
+            # mid_dim = 256
+            mid_dim = 4
+            num_classes = 47
+            logger.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
+        elif dataset in ['GTSRB']:
+            input_shape = 3
+            # mid_dim = 36
+            mid_dim = 16
+            num_classes = 43
+            logger.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
+        else:
+            input_shape = 3
+            # mid_dim = 400
+            mid_dim = 16
+            num_classes = 10
+            logger.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
 
-    try:
-        if model_name == 'CNN':
-            if dataset in ['MNIST']:
-                input_shape = 1
-                mid_dim = 256
-                # mid_dim = 4
-                num_classes = 10
-                logger.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            elif dataset in ['EMNIST']:
-                input_shape = 1
-                mid_dim = 256
-                # mid_dim = 4
-                num_classes = 47
-                logger.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            elif dataset in ['GTSRB']:
-                input_shape = 1
-                mid_dim = 36
-                # mid_dim = 16
-                num_classes = 43
-                logger.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            else:
-                input_shape = 3
-                mid_dim = 400
-                # mid_dim = 16
-                num_classes = 10
-            return CNN(input_shape, mid_dim, num_classes)
-        elif model_name == 'CNN_3':
-            if dataset in ['MNIST']:
-                input_shape = 1
-                # mid_dim = 256
-                mid_dim = 4
-                num_classes = 10
-                logger.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            elif dataset in ['EMNIST']:
-                input_shape = 1
-                # mid_dim = 256
-                mid_dim = 4
-                num_classes = 47
-                logger.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            elif dataset in ['GTSRB']:
-                input_shape = 3
-                # mid_dim = 36
-                mid_dim = 16
-                num_classes = 43
-                logger.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            else:
-                input_shape = 3
-                # mid_dim = 400
-                mid_dim = 16
-                num_classes = 10
-                logger.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
-
-            if "FedKD" in strategy:
-                return CNNDistillation(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes, dataset=dataset)
-            else:
-                return CNN_3(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
-
-        raise ValueError("""Model {} not found for dataset {}""".format(model_name, dataset))
-
-    except Exception as e:
-        logger.info("load_model error")
-        logger.error("""{}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
-
-
+        if "FedKD" in strategy:
+            return CNNDistillation(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes, dataset=dataset)
+        else:
+            return CNN_3(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
 
 
 fds = None

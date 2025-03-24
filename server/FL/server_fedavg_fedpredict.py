@@ -1,8 +1,5 @@
 import logging
 
-from typing import List, Tuple
-from flwr.common import Metrics
-
 from typing import Callable, Optional
 
 from flwr.common import (
@@ -11,7 +8,7 @@ from flwr.common import (
     Parameters,
     Scalar
 )
-from server.server_fedavg import FedAvg
+from server.FL.server_fedavg import FedAvg
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
