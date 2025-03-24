@@ -10,7 +10,7 @@ from fedpredict import fedpredict_client_torch
 # from fedpredict.utils.utils import cosine_similarity
 from numpy.linalg import norm
 
-from utils.models_utils import load_model, get_weights, load_data, set_weights, test, train
+from utils.models_utils import load_model, get_weights, load_data, set_weights, test, train, test_fedpredict
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
@@ -19,6 +19,11 @@ def cosine_similarity(p_1, p_2):
 
     # compute cosine similarity
     try:
+        p_1_size = np.array(p_1).shape
+        p_2_size = np.array(p_2).shape
+        if p_1_size != p_2_size:
+            raise Exception(f"Input sizes have different shapes: {p_1_size} and {p_2_size}. Please check your input data.")
+
         return np.dot(p_1, p_2) / (norm(p_1) * norm(p_2))
     except Exception as e:
         logger.error("cosine_similairty error")
@@ -34,14 +39,12 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
             self.global_model[me] = copy.deepcopy(self.model[me])
         self.previous_alpha = self.alpha
 
-        self.p_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes)
-
-        self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes)
+        self.p_ME, self.fc_ME, self.il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes)
 
     def fit(self, parameters, config):
         """Train the model with data of this client."""
         try:
-            self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes)
+            self.p_ME, self.fc_ME, self.il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes)
             parameters, size, results = super().fit(parameters, config)
             me = config['me']
             return parameters, size, results
@@ -58,19 +61,31 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
             evaluate_models = json.loads(config["evaluate_models"])
             tuple_me = {}
             logger.info("""modelos para cliente avaliar {} {} {}""".format(evaluate_models, type(parameters), parameters.keys()))
-            p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes)
             for me in evaluate_models:
                 me = int(me)
                 me_str = str(me)
-                self.alpha[me] = self._get_current_alpha(t, me)
+                alpha_me = self._get_current_alpha(t, me)
+                if self.alpha[me] != alpha_me:
+                    self.alpha[me] = alpha_me
+                    self.trainloader[me], self.valloader[me] = load_data(
+                        dataset_name=self.args.dataset[me],
+                        alpha=self.alpha[me],
+                        data_sampling_percentage=self.args.data_percentage,
+                        partition_id=self.args.client_id,
+                        num_partitions=self.args.total_clients + 1,
+                        batch_size=self.args.batch_size,
+                    )
+                    p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
+                                                                    self.n_classes)
+                else:
+                    p_ME, fc_ME, il_ME = self.p_ME, self.fc_ME, self.il_ME
                 nt = t - self.lt[me]
                 parameters_me = parameters[me_str]
                 set_weights(self.global_model[me], parameters_me)
-                logger.info(f"ta cos:{self.p_ME[me]} {p_ME[me]}")
                 similarity = cosine_similarity(self.p_ME[me], p_ME[me])
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device)
-                loss, metrics = test(combined_model, self.valloader[me], self.device, self.client_id, t, self.args.dataset[me], self.n_classes[me])
+                loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t, self.args.dataset[me], self.n_classes[me], similarity, p_ME[me])
                 metrics["Model size"] = self.models_size[me]
                 metrics["Dataset size"] = len(self.valloader[me].dataset)
                 metrics["me"] = me

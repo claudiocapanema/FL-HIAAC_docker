@@ -19,6 +19,7 @@ from typing import Callable, Optional
 from flwr.common import (
     FitIns,
     FitRes,
+    EvaluateIns,
     MetricsAggregationFn,
     NDArrays,
     Parameters,
@@ -138,10 +139,12 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
         inplace: bool = True,
     ) -> None:
         super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
-        self.need_for_training = [None] * self.ME
+        self.need_for_training = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
         self.min_training_clients_per_model = 3
         self.free_budget = int(self.fraction_fit * self.total_clients) - self.min_training_clients_per_model * self.ME
         self.ME_round_loss = {me: [] for me in range(self.ME)}
+        self.checkpoint_models = {me: {} for me in range(self.ME)}
+        self.round_initial_parameters = [None] * self.ME
 
     def configure_fit(
             self, server_round: int, parameters: dict, client_manager: ClientManager
@@ -210,6 +213,8 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             clients_m = []
             for me in range(self.ME):
                 sc = selected_clients_m[me]
+                if server_round > 1:
+                    self.round_initial_parameters[me] = parameters[me]
                 for client in sc:
                     self.selected_clients_m_ids_random[me].append(client.cid)
                     config = {"t": server_round, "me": me}
@@ -254,7 +259,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             for me in range(self.ME):
                 fc[me] = np.mean(fc[me])
                 il[me] = np.mean(il[me])
-                self.need_for_training[me] = False if fc[me] <= 0.94 and il[me] <= 0.4 else True
+                self.need_for_training[server_round][me] = round((fc[me] + (1 - il[me]))/2, 1)
 
             aggregated_ndarrays_mefl = {me: None for me in range(self.ME)}
             aggregated_ndarrays_mefl = {me: [] for me in range(self.ME)}
@@ -303,9 +308,72 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             self.parameters_aggregated_mefl = parameters_aggregated_mefl
             self.metrics_aggregated_mefl = metrics_aggregated_mefl
 
+            if server_round > 1:
+                if self.round_initial_parameters[me] is not None:
+                    self.checkpoint_models[me][self.need_for_training[server_round - 1][me]] = self.round_initial_parameters[me]
+
+                if abs(self.need_for_training[server_round][me] - self.need_for_training[server_round - 1][me]) >= 0.1:
+                    keys = self.checkpoint_models[me].keys()
+                    logger.info(f"keys {keys} server round {server_round} me {me} need for training {self.need_for_training[server_round][me]} {self.need_for_training[server_round - 1][me]}")
+                    if len(keys) > 0:
+                        key = min(keys, key=lambda num: abs(num - self.need_for_training[server_round][me]))
+                        model = self.checkpoint_models[me][key]
+                        parameters_aggregated_mefl[me] = model
+
             return parameters_aggregated_mefl, metrics_aggregated_mefl
         except Exception as e:
             logger.error("aggregate_fit error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def configure_evaluate(
+        self, server_round: int, parameters: Parameters, client_manager: ClientManager
+    ) -> list[tuple[ClientProxy, EvaluateIns]]:
+        """Configure the next round of evaluation."""
+        # Do not configure federated evaluation if fraction eval is 0.
+        try:
+            if self.fraction_evaluate == 0.0:
+                return []
+
+            logger.info("""inicio configure evaluate {}""".format(type(parameters)))
+            # Parameters and config
+            config = {}
+            if self.on_evaluate_config_fn is not None:
+                # Custom evaluation config function provided
+                config = self.on_evaluate_config_fn(server_round)
+
+            dict_ME = {}
+            me = 0
+            if type(parameters) is dict:
+                for key in parameters:
+                    parameters_me = parameters_to_ndarrays(parameters[key])
+                    dict_ME[str(key)] = parameters_me
+                logger.info(f"parameters is dict round {server_round} ke {parameters.keys()}")
+            else:
+                logger.info(f"parameters is not dict round {server_round} ke {type(parameters)}")
+            dict_ME = pickle.dumps(dict_ME)
+
+            config["evaluate_models"] = str([me for me in range(self.ME)])
+            config["t"] = server_round
+            logger.info("""config evaluate antes {}""".format(config))
+            config["parameters"] = dict_ME
+            evaluate_ins = EvaluateIns(parameters[0], config)
+
+
+            # Sample clients
+            sample_size, min_num_clients = self.num_evaluation_clients(
+                client_manager.num_available()
+            )
+
+            clients = client_manager.sample(
+                num_clients=sample_size, min_num_clients=min_num_clients
+            )
+
+            logger.info(f"final configure evaluate {server_round}")
+
+            # Return client/config pairs
+            return [(client, evaluate_ins) for client in clients]
+        except Exception as e:
+            logger.error("configure_evaluate error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def calculate_pseudo_t(self, t, losses):

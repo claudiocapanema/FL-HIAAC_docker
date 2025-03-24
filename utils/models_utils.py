@@ -21,6 +21,40 @@ import logging
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
 
+def fedpredict_client_weight_predictions_torch(output: torch.Tensor, t: int, current_proportion: np.array, similarity: float) -> np.array:
+    """
+        This function gives more weight to the predominant classes in the current dataset. This function is part of
+        FedPredict-Dynamic
+    Args:
+        output: torch.Tensor, required
+            The output of the model after applying 'softmax' activation function.
+        t: int, required
+            The current round.
+        current_proportion:  np.array, required
+            The classes proportion in the current training data.
+        similarity: float, required
+            The similarity between the old data (i.e., the one that the local model was previously trained on) and the new
+        data. Note that s \in [0, 1].
+
+    Returns:
+        np.array containing the weighted predictions
+
+    """
+
+    try:
+        _has_torch = True
+        if similarity != 1:
+            if _has_torch:
+                output = torch.multiply(output, torch.from_numpy(current_proportion * (1 - similarity)))
+            else:
+                raise ValueError("Framework 'torch' not found")
+
+        return output
+
+    except Exception as e:
+        logger.error("FedPredict client weight prediction")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
 DATASET_INPUT_MAP = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image", "Gowalla": "sequence", "WISDM-W": "sequence", "ImageNet": "image"}
 
 def load_model(model_name, dataset, strategy, device):
@@ -437,6 +471,52 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
         except Exception as e:
             logger.error("Error test_fedkd")
             logger.error('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+def test_fedpredict(model, testloader, device, client_id, t, dataset_name, n_classes, s, p):
+    try:
+        """Validate the utils on the test set."""
+        g = torch.Generator()
+        g.manual_seed(t)
+        torch.manual_seed(t)
+        model.eval()
+        model.to(device)  # move utils to GPU if available
+        criterion = torch.nn.CrossEntropyLoss().to(device)
+        correct, loss = 0, 0.0
+        y_prob = []
+        y_true = []
+        key = DATASET_INPUT_MAP[dataset_name]
+        with torch.no_grad():
+            for batch in testloader:
+                x = batch[key]
+                labels = batch["label"]
+                x = x.to(device)
+                labels = labels.to(device)
+                y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
+                outputs = model(x)
+                if s != 1 and s > 10:
+                    output = fedpredict_client_weight_predictions_torch(output=output, t=t,
+                                                                        current_proportion=p,
+                                                                        similarity=s)
+                y_prob.append(outputs.detach().cpu().numpy())
+                loss += criterion(outputs, labels).item()
+                correct += (torch.max(outputs.data, 1)[1] == labels).sum().item()
+        accuracy = correct / len(testloader.dataset)
+        loss = loss / len(testloader.dataset)
+        y_prob = np.concatenate(y_prob, axis=0)
+        y_true = np.concatenate(y_true, axis=0)
+        # test_auc = metrics.roc_auc_score(y_true, y_prob, average='micro')
+
+        y_prob = y_prob.argmax(axis=1)
+        y_true = y_true.argmax(axis=1)
+        balanced_accuracy = float(metrics.balanced_accuracy_score(y_true, y_prob))
+
+        test_metrics = {"Accuracy": accuracy, "Balanced accuracy": balanced_accuracy, "Loss": loss, "Round (t)": t}
+        # logger.info("""metricas cliente {} valores {}""".format(client_id, test_metrics))
+        return loss, test_metrics
+
+    except Exception as e:
+        logger.error(" error")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 
 def test_fedkd_fedpredict(lt, model, testloader, device, client_id, t, dataset_name, n_classes):

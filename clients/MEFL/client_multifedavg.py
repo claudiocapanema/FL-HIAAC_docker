@@ -26,8 +26,8 @@ def global_concept_dirft_config(ME, n_rounds, alphas, experiment_id, seed=0):
     np.random.seed(seed)
     if experiment_id > 0:
         if experiment_id == 1:
-            ME_concept_drift_rounds = [[int(n_rounds * 0.3), int(n_rounds * 0.6), int(n_rounds * 0.9)], [int(n_rounds) * 0.3, int(n_rounds) * 0.6, int(n_rounds * 0.9)]]
-            new_alphas = [[1.0, 5.0, 0.1], [0.1, 5.0, 1.0]]
+            ME_concept_drift_rounds = [[int(n_rounds * 0.4), int(n_rounds * 0.8)], [int(n_rounds * 0.4), int(n_rounds * 0.8)]]
+            new_alphas = [[10.0, 0.1], [0.1, 10.0]]
 
         config = {me: {"concept_drift_rounds": ME_concept_drift_rounds[me], "new_alphas": new_alphas[me]} for me in range(len(ME_concept_drift_rounds))}
     else:
@@ -83,7 +83,7 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
     def fit(self, parameters, config):
         """Train the model with data of this client."""
         try:
-            logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
+            # logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
             t = config['t']
             me = config['me']
             self.lt[me] = t - self.lt[me]
@@ -122,11 +122,24 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
             parameters = pickle.loads(config["parameters"])
             evaluate_models = json.loads(config["evaluate_models"])
             tuple_me = {}
-            logger.info("""modelos para cliente avaliar {} {} {}""".format(evaluate_models, type(parameters), parameters.keys()))
+            # logger.info("""modelos para cliente avaliar {} {} {}""".format(evaluate_models, type(parameters), parameters.keys()))
             for me in evaluate_models:
                 me = int(me)
                 # Update alpha to simulate global concept drift
-                self.alpha[me] = self._get_current_alpha(t, me)
+                alpha_me = self._get_current_alpha(t, me)
+                if self.alpha[me] != alpha_me:
+                    self.alpha[me] = alpha_me
+                    self.trainloader[me], self.valloader[me] = load_data(
+                        dataset_name=self.args.dataset[me],
+                        alpha=self.alpha[me],
+                        data_sampling_percentage=self.args.data_percentage,
+                        partition_id=self.args.client_id,
+                        num_partitions=self.args.total_clients + 1,
+                        batch_size=self.args.batch_size,
+                    )
+                    # logger.info("""leu dados cid: {} dataset: {} size:  {}""".format(self.args.client_id,
+                    #                                                                  self.args.dataset[me], len(
+                    #         self.trainloader[me].dataset)))
                 me_str = str(me)
                 nt = t - self.lt[me]
                 parameters_me = parameters[me_str]

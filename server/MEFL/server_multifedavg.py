@@ -365,7 +365,7 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
 
 
             # Aggregate loss
-            logging.info("""metricas recebidas rodada {}: {}""".format(server_round, results_mefl[0]))
+            # logging.info("""metricas recebidas rodada {}: {}""".format(server_round, results_mefl[0]))
             loss_aggregated_mefl = {me: 0. for me in range(self.ME)}
             for me in results_mefl.keys():
                 loss_aggregated = weighted_loss_avg(

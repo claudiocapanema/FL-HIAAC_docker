@@ -65,7 +65,7 @@ def table(df, write_path, metric, t=None):
 
     model_report = {i: {} for i in alphas}
     if t is not None:
-        df = df[df['Round (t)'] == t]
+        df = df[df['Round (t)'].isin(t)]
 
     df_test = df[
         ['Round (t)', 'Table', 'Balanced accuracy (%)', 'Accuracy (%)', 'Fraction fit', 'Dataset',
@@ -335,7 +335,7 @@ if __name__ == "__main__":
     concept_drift_experiment_id = 1
     cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
     total_clients = 20
-    alphas = [0.1, 1.0]
+    alphas = [0.1, 10.0]
     concept_drift_experiment_id = 1
     dataset = ["WISDM-W", "ImageNet"]
     # dataset = ["EMNIST", "CIFAR10"]
@@ -395,7 +395,14 @@ if __name__ == "__main__":
     df, hue_order = read_data(read_solutions, read_dataset_order)
     print(df)
 
+    cp_rounds = [40, 80]
+    cp_window = []
+    window = 5
+    for i in range(len(cp_rounds)):
+        cp_round = cp_rounds[i]
+        cp_window += [round_ for round_ in range(cp_round, cp_round + window + 1)]
+
     table(df, write_path, "Balanced accuracy (%)", t=None)
     table(df, write_path, "Accuracy (%)", t=None)
-    table(df, write_path, "Balanced accuracy (%)", t=number_of_rounds)
-    table(df, write_path, "Accuracy (%)", t=number_of_rounds)
+    table(df, write_path, "Balanced accuracy (%)", t=cp_window)
+    table(df, write_path, "Accuracy (%)", t=cp_window)
