@@ -102,7 +102,6 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 metrics["Alpha"] = self.alpha[me]
                 # logger.info("""eval cliente fim {} {} similaridade {}""".format(metrics["me"], metrics, similarity))
                 tuple_me[me_str] = pickle.dumps((loss, len(self.valloader[me].dataset), metrics))
-                self.p_ME, self.fc_ME, self.il_ME = p_ME, fc_ME, il_ME
             return loss, len(self.valloader[me].dataset), tuple_me
         except Exception as e:
             logger.error("evaluate error")
