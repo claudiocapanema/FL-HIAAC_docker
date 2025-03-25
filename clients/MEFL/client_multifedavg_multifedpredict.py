@@ -91,11 +91,11 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 set_weights(self.global_model[me], parameters_me)
                 similarity = cosine_similarity(self.p_ME[me], p_ME[me])
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
-                                                         t=t, T=100, nt=nt, similarity=similarity,
-                                                         device=self.device)
-                # loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t, self.args.dataset[me], self.n_classes[me], similarity, p_ME[me])
-                loss, metrics = test(combined_model, self.valloader[me], self.device, self.client_id, t,
-                                                self.args.dataset[me], self.n_classes[me])
+                                                         t=t, T=100, nt=nt, similarity=similarity, device=self.device)
+                loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t,
+                                                self.args.dataset[me], self.n_classes[me], similarity, p_ME[me])
+                # loss, metrics = test(combined_model, self.valloader[me], self.device, self.client_id, t,
+                #                                 self.args.dataset[me], self.n_classes[me])
                 metrics["Model size"] = self.models_size[me]
                 metrics["Dataset size"] = len(self.valloader[me].dataset)
                 metrics["me"] = me
@@ -112,10 +112,12 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
             p_ME = []
             fc_ME = []
             il_ME = []
+            rate_new_data = 0.5
             for me in range(ME):
                 labels_me = []
                 n_classes_me = n_classes[me]
                 p_me = {i: 0 for i in range(n_classes_me)}
+                size = len(trainloader[me])
                 for batch in trainloader[me]:
                     labels = batch["label"]
                     labels_me += labels.detach().cpu().numpy().tolist()
@@ -134,3 +136,32 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
         except Exception as e:
             logger.error("_get_datasets_metrics error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def combine_dataloaders(self, dataloader1, dataloader2, proportion1=0.6, proportion2=0.4):
+        # Extraindo os dados e rótulos dos dataloaders
+        data1, labels1 = next(iter(dataloader1))
+        data2, labels2 = next(iter(dataloader2))
+
+        # Calculando o número de amostras para cada DataLoader
+        num_samples1 = int(len(data1) * proportion1)
+        num_samples2 = int(len(data2) * proportion2)
+
+        # Selecionando as amostras do primeiro DataLoader (60%)
+        selected_data1 = data1[:num_samples1]
+        selected_labels1 = labels1[:num_samples1]
+
+        # Selecionando as amostras do segundo DataLoader (40%)
+        selected_data2 = data2[:num_samples2]
+        selected_labels2 = labels2[:num_samples2]
+
+        # Concatenando os dados e rótulos selecionados
+        combined_data = torch.cat((selected_data1, selected_data2), dim=0)
+        combined_labels = torch.cat((selected_labels1, selected_labels2), dim=0)
+
+        # Criando um novo TensorDataset com os dados combinados
+        combined_dataset = TensorDataset(combined_data, combined_labels)
+
+        # Criando um DataLoader para os dados combinados
+        combined_dataloader = DataLoader(combined_dataset, batch_size=32, shuffle=True)
+
+        return combined_dataloader

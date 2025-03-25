@@ -152,6 +152,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             self.ME_round_loss = {me: [] for me in range(self.ME)}
             self.checkpoint_models = {me: {} for me in range(self.ME)}
             self.round_initial_parameters = [None] * self.ME
+            self.last_drift = 0
         except Exception as e:
             logger.error("__init__ error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
@@ -318,17 +319,31 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             self.parameters_aggregated_mefl = parameters_aggregated_mefl
             self.metrics_aggregated_mefl = metrics_aggregated_mefl
 
-            if server_round > 1:
-                if self.round_initial_parameters[me] is not None:
-                    self.checkpoint_models[me][self.need_for_training[server_round - 1][me]] = self.round_initial_parameters[me]
+            layers = {0: -1, 1: -2}
 
-                if abs(self.need_for_training[server_round][me] - self.need_for_training[server_round - 1][me]) >= 0.1:
-                    keys = self.checkpoint_models[me].keys()
-                    logger.info(f"keys {keys} server round {server_round} me {me} need for training {self.need_for_training[server_round][me]} {self.need_for_training[server_round - 1][me]}")
-                    if len(keys) > 0:
-                        key = min(keys, key=lambda num: abs(num - self.need_for_training[server_round][me]))
-                        model = self.checkpoint_models[me][key]
-                        parameters_aggregated_mefl[me] = model
+            if server_round > 10:
+                for me in range(self.ME):
+                    if self.round_initial_parameters[me] is not None:
+                        # self.checkpoint_models[me][self.need_for_training[server_round - 1][me]] = parameters_to_ndarrays(self.round_initial_parameters[me])[layers:]
+                        self.checkpoint_models[me][server_round] = parameters_to_ndarrays(parameters_aggregated_mefl[me])[layers[me]:]
+
+            # if server_round == 80:
+            #     for me in range(self.ME):
+            #         model = self.checkpoint_models[me][39]
+            #         parameters_aggregated_mefl[me] = parameters_to_ndarrays(parameters_aggregated_mefl[me])
+            #         parameters_aggregated_mefl[me][layers[me]:] = model
+            #         parameters_aggregated_mefl[me] = ndarrays_to_parameters(parameters_aggregated_mefl[me])
+                # self.last_drift += 1
+                # if abs(self.need_for_training[server_round][me] - self.need_for_training[server_round - 1][me]) >= 0.1 and self.last_drift >= 10:
+                #     self.last_drift = 0
+                #     keys = self.checkpoint_models[me].keys()
+                #     logger.info(f"keys {keys} server round {server_round} me {me} need for training {self.need_for_training[server_round][me]} {self.need_for_training[server_round - 1][me]}")
+                #     if len(keys) > 0:
+                #         key = min(keys, key=lambda num: abs(num - self.need_for_training[server_round][me]))
+                #         model = self.checkpoint_models[me][key]
+                #         parameters_aggregated_mefl[me] = parameters_to_ndarrays(parameters_aggregated_mefl[me])
+                #         parameters_aggregated_mefl[me][layers:] = model
+                #         parameters_aggregated_mefl[me] = ndarrays_to_parameters(parameters_aggregated_mefl[me])
 
             return parameters_aggregated_mefl, metrics_aggregated_mefl
         except Exception as e:

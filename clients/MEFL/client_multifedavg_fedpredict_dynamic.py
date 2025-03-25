@@ -89,7 +89,10 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
                 similarity = cosine_similarity(self.p_ME[me], p_ME[me])
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device)
-                loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t, self.args.dataset[me], self.n_classes[me], similarity, p_ME[me])
+                loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t,
+                                                self.args.dataset[me], self.n_classes[me], similarity, p_ME[me])
+                # loss, metrics = test(combined_model, self.valloader[me], self.device, self.client_id, t,
+                #                                 self.args.dataset[me], self.n_classes[me])
                 metrics["Model size"] = self.models_size[me]
                 metrics["Dataset size"] = len(self.valloader[me].dataset)
                 metrics["me"] = me

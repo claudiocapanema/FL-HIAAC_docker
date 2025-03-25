@@ -168,8 +168,8 @@ class MultiFedAvg(flwr.server.strategy.FedAvg):
             self.selected_clients_m = []
             self.selected_clients_m_ids_random = [[] for me in range(self.ME)]
             # Concept drift parameters
-            self.concept_drift_experiment_id = args.concept_drift_experiment_id
-            self.concept_drift_config = global_concept_dirft_config(self.ME, self.number_of_rounds, self.alpha, self.concept_drift_experiment_id, 0)
+            self.concept_drift_experiment_id = 2
+            # self.concept_drift_config = global_concept_dirft_config(self.ME, self.number_of_rounds, self.alpha, self.concept_drift_experiment_id, 0)
         except Exception as e:
             logger.error("__init__ error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
