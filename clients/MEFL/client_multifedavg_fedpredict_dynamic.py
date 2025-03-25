@@ -49,8 +49,9 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
         """Train the model with data of this client."""
         try:
             # Update the metrics that characterize the local dataset that the client will train
-            self.p_ME, self.fc_ME, self.il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes)
             parameters, size, results = super().fit(parameters, config)
+            self.p_ME, self.fc_ME, self.il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
+                                                                           self.n_classes)
             return parameters, size, results
         except Exception as e:
             logger.error("fit error")

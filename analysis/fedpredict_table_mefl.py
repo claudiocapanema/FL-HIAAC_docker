@@ -332,11 +332,13 @@ def idmax(df, n_solutions):
 
 
 if __name__ == "__main__":
-    concept_drift_experiment_id = 1
+    concept_drift_experiment_id = 2
     cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
     total_clients = 20
-    alphas = [0.1, 10.0]
+    # alphas = [0.1, 10.0]
+    alphas = [0.1, 0.1]
     concept_drift_experiment_id = 1
+    # dataset = ["WISDM-W", "CIFAR10"]
     dataset = ["WISDM-W", "ImageNet"]
     # dataset = ["EMNIST", "CIFAR10"]
     # models_names = ["cnn_c"]

@@ -50,8 +50,9 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
     def fit(self, parameters, config):
         """Train the model with data of this client."""
         try:
-            self.p_ME, self.fc_ME, self.il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes)
             parameters, size, results = super().fit(parameters, config)
+            self.p_ME, self.fc_ME, self.il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
+                                                                           self.n_classes)
             me = config['me']
             results["fc"] = self.fc_ME[me]
             results["il"] = self.il_ME[me]
@@ -72,6 +73,25 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 me = int(me)
                 me_str = str(me)
                 alpha_me = self._get_current_alpha(t, me)
+                # if self.alpha[me] != alpha_me or t in self.concept_drift_config[me]["concept_drift_rounds"]:
+                #     self.alpha[me] = alpha_me
+                #     index = 0
+                #     if t in self.concept_drift_config[me][
+                #         "concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
+                #         index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][
+                #                     0] + 1
+                #     self.recent_trainloader[me], self.valloader[me] = load_data(
+                #         dataset_name=self.args.dataset[me],
+                #         alpha=self.alpha[me],
+                #         data_sampling_percentage=self.args.data_percentage,
+                #         partition_id=int((self.args.client_id + index) % self.args.total_clients),
+                #         num_partitions=self.args.total_clients + 1,
+                #         batch_size=self.args.batch_size,
+                #     )
+                #     p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
+                #                                                     self.n_classes)
+                # else:
+                #     p_ME, fc_ME, il_ME = self.p_ME, self.fc_ME, self.il_ME
                 if self.alpha[me] != alpha_me:
                     self.alpha[me] = alpha_me
                     self.trainloader[me], self.valloader[me] = load_data(
@@ -90,6 +110,7 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 parameters_me = parameters[me_str]
                 set_weights(self.global_model[me], parameters_me)
                 similarity = cosine_similarity(self.p_ME[me], p_ME[me])
+                similarity = 0.5
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device)
                 loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t,
