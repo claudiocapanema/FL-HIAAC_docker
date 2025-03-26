@@ -67,6 +67,7 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
             self.recent_trainloader = [None] * self.ME
             self.valloader = [None] * self.ME
             self.optimizer = [None] * self.ME
+            self.index = 0
             for me in range(self.ME):
                 self.trainloader[me], self.valloader[me] = load_data(
                     dataset_name=self.args.dataset[me],
@@ -106,7 +107,22 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
             me = config['me']
             self.lt[me] = t - self.lt[me]
             # Update alpha to simulate global concept drift
-            self.alpha[me] = self._get_current_alpha(t, me)
+            alpha_me = self._get_current_alpha(t, me)
+            if self.alpha[me] != alpha_me or t in self.concept_drift_config[me]["concept_drift_rounds"]:
+                self.alpha[me] = alpha_me
+                self.index = {0: 1, 1: 2, 2: 3, 3: 0}[self.index]
+                index = self.index
+                if t in self.concept_drift_config[me]["concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
+                    # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
+                    index = 1
+                self.recent_trainloader[me], self.valloader[me] = load_data(
+                    dataset_name=self.args.dataset[me],
+                    alpha=self.alpha[me],
+                    data_sampling_percentage=self.args.data_percentage,
+                    partition_id=int((self.args.client_id + index) % self.args.total_clients),
+                    num_partitions=self.args.total_clients + 1,
+                    batch_size=self.args.batch_size,
+                )
             self.trainloader[me] = self.recent_trainloader[me]
             if len(parameters) > 0:
                 set_weights(self.model[me], parameters)
@@ -149,9 +165,11 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                 logger.info(f"config concept drift {self.concept_drift_config}")
                 if self.alpha[me] != alpha_me or t in self.concept_drift_config[me]["concept_drift_rounds"]:
                     self.alpha[me] = alpha_me
-                    index = 0
-                    if t in self.concept_drift_config[me]["concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
-                        index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
+                    self.index = {0: 1, 1: 2, 2: 3, 3: 0}[self.index]
+                    index = self.index
+                    # if t in self.concept_drift_config[me]["concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
+                    #     # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
+                    #     index = 1
                     self.recent_trainloader[me], self.valloader[me] = load_data(
                         dataset_name=self.args.dataset[me],
                         alpha=self.alpha[me],

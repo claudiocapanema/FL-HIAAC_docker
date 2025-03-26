@@ -29,14 +29,41 @@ def cosine_similarity(p_1, p_2):
         logger.error("cosine_similairty error")
         logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
+def aggregate_p(p_new, p_old, mean_similarity):
+
+    # compute cosine similarity
+    try:
+        p = p_new * mean_similarity + p_old * (1 - mean_similarity)
+        return p / np.sum(p)
+    except Exception as e:
+        logger.error("aggregate_p error")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+def mean_p(p_ME_list, ME):
+
+    # compute cosine similarity
+    try:
+        p_ME_average = [None] * ME
+        for me in range(ME):
+            if len(p_ME_list[me]) > 0:
+                p_ME_average[me] = np.sum(p_ME_list[me], axis=0)
+                p_ME_average[me] = p_ME_average[me] / np.sum(p_ME_average[me])
+        return p_ME_average
+    except Exception as e:
+        logger.error(f"mean_p error {p_ME_list}")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
 class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
     def __init__(self, args):
         try:
             super(ClientMultiFedAvgMultiFedPredict, self).__init__(args)
             self.global_model = [None] * self.ME
             self.p_ME = [None] * self.ME
+            self.p_ME_list = {me: [] for me in range(self.ME)}
             self.fc_ME = [0] * self.ME
             self.il_ME = [0] * self.ME
+            self.similarity_ME = [[]] * self.ME
+            self.mean_p_ME = [None] * self.ME
             for me in range(self.ME):
                 # Copy of randomly initialized parameters
                 self.global_model[me] = copy.deepcopy(self.model[me])
@@ -53,6 +80,14 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
             parameters, size, results = super().fit(parameters, config)
             self.p_ME, self.fc_ME, self.il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
                                                                            self.n_classes)
+            for me in range(self.ME):
+                if len(self.p_ME_list[me]) > 0:
+                    if self.p_ME_list[me][-1] != self.p_ME[me]:
+                        self.p_ME_list[me].append(self.p_ME[me])
+                    elif len(self.p_ME_list[me]) == 0:
+                        self.p_ME_list[me].append(self.p_ME[me])
+
+            self.mean_p_ME = mean_p(self.p_ME_list, self.ME)
             me = config['me']
             results["fc"] = self.fc_ME[me]
             results["il"] = self.il_ME[me]
@@ -73,32 +108,19 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 me = int(me)
                 me_str = str(me)
                 alpha_me = self._get_current_alpha(t, me)
-                # if self.alpha[me] != alpha_me or t in self.concept_drift_config[me]["concept_drift_rounds"]:
-                #     self.alpha[me] = alpha_me
-                #     index = 0
-                #     if t in self.concept_drift_config[me][
-                #         "concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
-                #         index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][
-                #                     0] + 1
-                #     self.recent_trainloader[me], self.valloader[me] = load_data(
-                #         dataset_name=self.args.dataset[me],
-                #         alpha=self.alpha[me],
-                #         data_sampling_percentage=self.args.data_percentage,
-                #         partition_id=int((self.args.client_id + index) % self.args.total_clients),
-                #         num_partitions=self.args.total_clients + 1,
-                #         batch_size=self.args.batch_size,
-                #     )
-                #     p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
-                #                                                     self.n_classes)
-                # else:
-                #     p_ME, fc_ME, il_ME = self.p_ME, self.fc_ME, self.il_ME
-                if self.alpha[me] != alpha_me:
+                if self.alpha[me] != alpha_me or t in self.concept_drift_config[me]["concept_drift_rounds"]:
                     self.alpha[me] = alpha_me
-                    self.trainloader[me], self.valloader[me] = load_data(
+                    self.index = {0: 1, 1: 2, 2: 3, 3: 0}[self.index]
+                    index = self.index
+                    # if t in self.concept_drift_config[me][
+                    #     "concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
+                    #     # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
+                    #     index = 1
+                    self.recent_trainloader[me], self.valloader[me] = load_data(
                         dataset_name=self.args.dataset[me],
                         alpha=self.alpha[me],
                         data_sampling_percentage=self.args.data_percentage,
-                        partition_id=self.args.client_id,
+                        partition_id=int((self.args.client_id + index) % self.args.total_clients),
                         num_partitions=self.args.total_clients + 1,
                         batch_size=self.args.batch_size,
                     )
@@ -106,13 +128,34 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                                                                     self.n_classes)
                 else:
                     p_ME, fc_ME, il_ME = self.p_ME, self.fc_ME, self.il_ME
+                # if self.alpha[me] != alpha_me:
+                #     self.alpha[me] = alpha_me
+                #     self.trainloader[me], self.valloader[me] = load_data(
+                #         dataset_name=self.args.dataset[me],
+                #         alpha=self.alpha[me],
+                #         data_sampling_percentage=self.args.data_percentage,
+                #         partition_id=self.args.client_id,
+                #         num_partitions=self.args.total_clients + 1,
+                #         batch_size=self.args.batch_size,
+                #     )
+                #     p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
+                #                                                     self.n_classes)
+                # else:
+                #     p_ME, fc_ME, il_ME = self.p_ME, self.fc_ME, self.il_ME
                 nt = t - self.lt[me]
                 parameters_me = parameters[me_str]
                 set_weights(self.global_model[me], parameters_me)
                 similarity = cosine_similarity(self.p_ME[me], p_ME[me])
-                similarity = 0.5
+                # similarity = pow(max(similarity-0.1, 0.001), nt) # ruim
+                if nt == 0:
+                    d = 1
+                else:
+                    d = nt
+                similarity = (1/d) * similarity
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device)
+                # if self.mean_p_ME[me] is not None:
+                #     p_ME[me] = self.mean_p_ME[me]
                 loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t,
                                                 self.args.dataset[me], self.n_classes[me], similarity, p_ME[me])
                 # loss, metrics = test(combined_model, self.valloader[me], self.device, self.client_id, t,
