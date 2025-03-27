@@ -1,3 +1,4 @@
+import random
 import json
 import time
 from collections import OrderedDict
@@ -184,6 +185,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
         while True:
             attempts += 1
             try:
+                time.sleep(random.randint(1, 1))
                 partition = fds.load_partition(partition_id)
                 logger.info("""Loaded dataset {} in the {} attempt for client {}""".format(dataset_name, attempts, partition_id))
                 break

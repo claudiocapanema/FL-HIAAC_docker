@@ -146,7 +146,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
                              accept_failures=accept_failures, initial_parameters=initial_parameters,
                              fit_metrics_aggregation_fn=fit_metrics_aggregation_fn,
                              evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
-            self.need_for_training = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
+            self.homogeneity_degree = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
             self.min_training_clients_per_model = 3
             self.free_budget = int(self.fraction_fit * self.total_clients) - self.min_training_clients_per_model * self.ME
             self.ME_round_loss = {me: [] for me in range(self.ME)}
@@ -349,13 +349,13 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             for me in range(self.ME):
                 fc[me] = float(np.sum(fc[me]) / len(fc[me]))
                 il[me] = float(np.sum(il[me]) / len(il[me]))
-                logger.info(f"fc {fc} il {il} {self.need_for_training[server_round]}")
-                self.need_for_training[server_round][me] = (fc[me] + (1 - il[me]))/2
+                logger.info(f"fc {fc} il {il} {self.homogeneity_degree[server_round]}")
+                self.homogeneity_degree[server_round][me] = (fc[me] + (1 - il[me])) / 2
 
-            logger.info(f"need {self.need_for_training} rodada {server_round}")
-            self.need_for_training[server_round] = np.array(self.need_for_training[server_round]) / np.sum(np.array(self.need_for_training[server_round]))
+            logger.info(f"need {self.homogeneity_degree[server_round]} rodada {server_round}")
+            self.homogeneity_degree[server_round] = np.array(self.homogeneity_degree[server_round]) / np.sum(np.array(self.homogeneity_degree[server_round]))
 
-            logger.info(f"need normalizado {self.need_for_training} rodada {server_round}")
+            # logger.info(f"need normalizado {self.need_for_training} rodada {server_round}")
             if server_round == 100:
                 exit()
 
@@ -468,6 +468,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             config["t"] = server_round
             logger.info("""config evaluate antes {}""".format(config))
             config["parameters"] = dict_ME
+            config["homogeneity_degree"] = pickle.dumps(self.homogeneity_degree[server_round])
             evaluate_ins = EvaluateIns(parameters[0], config)
 
 
