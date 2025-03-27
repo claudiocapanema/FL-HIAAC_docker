@@ -234,19 +234,54 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             # else:
             #     training_intensity_me = [5, 3]
 
-            # experimento 2 simultaneo
-            if server_round < 20:
-                training_intensity_me = [4, 2]
-            elif server_round < 30:
-                training_intensity_me = [3, 3]
-            elif server_round < 50:
-                training_intensity_me = [2, 4]
-            elif server_round < 60:
-                training_intensity_me = [3, 3]
-            elif server_round >= 60 and server_round < 70:
-                training_intensity_me = [4, 2]
-            else:
-                training_intensity_me = [3, 3]
+            # # experimento 2 simultaneo config 1
+            # if server_round < 20:
+            #     training_intensity_me = [4, 2]
+            # elif server_round < 30:
+            #     training_intensity_me = [3, 3]
+            # elif server_round < 50:
+            #     training_intensity_me = [2, 4]
+            # elif server_round < 60:
+            #     training_intensity_me = [3, 3]
+            # elif server_round >= 60 and server_round < 70:
+            #     training_intensity_me = [4, 2]
+            # else:
+            #     training_intensity_me = [3, 3]
+            # experimento 2 simultaneo config 2
+            # if server_round < 10:
+            #     training_intensity_me = [4, 2]
+            # elif server_round < 20:
+            #     training_intensity_me = [3, 3]
+            # elif server_round < 30:
+            #     training_intensity_me = [4, 2]
+            # elif server_round < 40:
+            #     training_intensity_me = [2, 4]
+            # elif server_round < 50:
+            #     training_intensity_me = [2, 4]
+            # elif server_round < 60:
+            #     training_intensity_me = [3, 3]
+            # elif server_round >= 60 and server_round < 70:
+            #     training_intensity_me = [4, 2]
+            # else:
+            #     training_intensity_me = [3, 3]
+
+            # # experimento 2 simultaneo config 3
+            # if server_round < 10:
+            #     training_intensity_me = [4, 2]
+            # elif server_round < 20:
+            #     training_intensity_me = [4, 2]
+            # elif server_round < 30:
+            #     training_intensity_me = [4, 2]
+            # elif server_round < 40:
+            #     training_intensity_me = [2, 4]
+            # elif server_round < 50:
+            #     training_intensity_me = [2, 4]
+            # elif server_round < 60:
+            #     training_intensity_me = [3, 3]
+            # elif server_round >= 60 and server_round < 70:
+            #     training_intensity_me = [4, 2]
+            # else:
+            #     training_intensity_me = [3, 3]
 
             selected_clients_m = []
             i = 0
@@ -317,9 +352,12 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
                 logger.info(f"fc {fc} il {il} {self.need_for_training[server_round]}")
                 self.need_for_training[server_round][me] = (fc[me] + (1 - il[me]))/2
 
+            logger.info(f"need {self.need_for_training} rodada {server_round}")
             self.need_for_training[server_round] = np.array(self.need_for_training[server_round]) / np.sum(np.array(self.need_for_training[server_round]))
 
-            logger.info(f"need {self.need_for_training} rodada {server_round}")
+            logger.info(f"need normalizado {self.need_for_training} rodada {server_round}")
+            if server_round == 100:
+                exit()
 
             aggregated_ndarrays_mefl = {me: None for me in range(self.ME)}
             aggregated_ndarrays_mefl = {me: [] for me in range(self.ME)}

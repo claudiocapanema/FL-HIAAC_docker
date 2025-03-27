@@ -397,7 +397,7 @@ if __name__ == "__main__":
     df, hue_order = read_data(read_solutions, read_dataset_order)
     print(df)
 
-    cp_rounds = [40, 80]
+    cp_rounds = [20, 30, 60, 70]
     cp_window = []
     window = 5
     for i in range(len(cp_rounds)):

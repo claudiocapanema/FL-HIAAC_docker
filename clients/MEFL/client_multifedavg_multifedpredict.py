@@ -254,11 +254,25 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 # else:
                 #     d = nt
                 # similarity = (1/d) * similarity
+                if me == 0:
+                    if t >= 20 and t < 60:
+                        similarity = 0
+                elif me == 1:
+                    if t < 30 or t >= 70:
+                        similarity = 0
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device)
                 # self.mean_p_ME = mean_p(self.p_ME_list, self.ME, self.NT, t)
                 # if self.mean_p_ME[me] is not None:
                 #     p_ME[me] = self.mean_p_ME[me]
+                if me == 0:
+                    if t >= 20 and t < 60:
+                        similarity = 1
+                        combined_model = self.global_model[me]
+                elif me == 1:
+                    if t < 30 or t >= 70:
+                        similarity = 1
+                        combined_model = self.global_model[me]
                 loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t,
                                                 self.args.dataset[me], self.n_classes[me], similarity, p_ME[me])
                 # loss, metrics = test(combined_model, self.valloader[me], self.device, self.client_id, t,
