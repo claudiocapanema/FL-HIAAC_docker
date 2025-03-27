@@ -219,18 +219,34 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             #         training_intensity_me = [3, 3]
             # else:
             #     training_intensity_me = [4, 2]
-            if server_round < 40:
-                if server_round < 20:
-                    training_intensity_me = [5, 3]
-                else:
-                    training_intensity_me = [4, 4]
-            elif server_round >= 40 and server_round < 80:
-                if server_round < 60:
-                    training_intensity_me = [3, 5]
-                else:
-                    training_intensity_me = [4, 4]
+
+            # # experimento 2 simultaneo
+            # if server_round < 40:
+            #     if server_round < 20:
+            #         training_intensity_me = [5, 3]
+            #     else:
+            #         training_intensity_me = [4, 4]
+            # elif server_round >= 40 and server_round < 80:
+            #     if server_round < 60:
+            #         training_intensity_me = [3, 5]
+            #     else:
+            #         training_intensity_me = [4, 4]
+            # else:
+            #     training_intensity_me = [5, 3]
+
+            # experimento 2 simultaneo
+            if server_round < 20:
+                training_intensity_me = [4, 2]
+            elif server_round < 30:
+                training_intensity_me = [3, 3]
+            elif server_round < 50:
+                training_intensity_me = [2, 4]
+            elif server_round < 60:
+                training_intensity_me = [3, 3]
+            elif server_round >= 60 and server_round < 70:
+                training_intensity_me = [4, 2]
             else:
-                training_intensity_me = [5, 3]
+                training_intensity_me = [3, 3]
 
             selected_clients_m = []
             i = 0
