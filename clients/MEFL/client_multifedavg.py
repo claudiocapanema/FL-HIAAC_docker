@@ -23,7 +23,7 @@ def global_concept_drift_config(ME, n_rounds, alphas, experiment_id, seed=0):
                 ME_concept_drift_rounds = [[int(n_rounds * 0.4), int(n_rounds * 0.8)], [int(n_rounds * 0.4), int(n_rounds * 0.8)]]
                 new_alphas = [[10.0, 0.1], [0.1, 10.0]]
 
-            config = {me: {"concept_drift_rounds": ME_concept_drift_rounds[me], "new_alphas": new_alphas[me]} for me in range(len(ME_concept_drift_rounds))}
+            config = {me: {"concept_drift_rounds": ME_concept_drift_rounds[me], "new_alphas": new_alphas[me]} for me in range(ME)}
         else:
             config = {}
         return config
@@ -41,7 +41,7 @@ def local_concept_drift_config(ME, n_rounds, alphas, experiment_id, seed=0):
                 ME_concept_drift_rounds = [[] for me in range(ME)]
                 for me in range(ME):
                     # ME_concept_drift_rounds[me] += np.random.choice([i for i in range(1, n_rounds + 1)], n_concept_drifts).tolist()
-                    ME_concept_drift_rounds[me] += [10, 20, 30, 40, 50, 60, 70, 80, 90]
+                    ME_concept_drift_rounds[me] += [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95]
                 config = {me: {"concept_drift_rounds": ME_concept_drift_rounds[me], "new_alphas": [alphas[me]] * n_concept_drifts} for me in range(ME)}
         else:
             config = {}
@@ -93,8 +93,9 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                  "ImageNet_v2": 15, "Gowalla": 7}[dataset] for dataset in
                 self.args.dataset]
             # Concept drift parameters
-            self.concept_drift_experiment_id = 2
-            self.concept_drift_config = local_concept_drift_config(self.ME, self.number_of_rounds, self.initial_alpha, self.concept_drift_experiment_id, 0)
+            self.concept_drift_experiment_id = 1
+            self.concept_drift_config = global_concept_drift_config(self.ME, self.number_of_rounds, self.alpha, self.concept_drift_experiment_id)
+            logger.info(f"concept drift config {self.concept_drift_config}")
         except Exception as e:
             logger.error("__init__ error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
@@ -110,11 +111,12 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
             alpha_me = self._get_current_alpha(t, me)
             if self.alpha[me] != alpha_me or t in self.concept_drift_config[me]["concept_drift_rounds"]:
                 self.alpha[me] = alpha_me
-                self.index = {0: 1, 1: 2, 2: 3, 3: 0}[self.index]
-                index = self.index
-                if t in self.concept_drift_config[me]["concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
-                    # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
-                    index = 1
+                # self.index = {0: 1, 1: 2, 2: 0}[self.index]
+                # index = self.index
+                # if t in self.concept_drift_config[me]["concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
+                #     # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
+                #     index = 0
+                index = 0
                 self.recent_trainloader[me], self.valloader[me] = load_data(
                     dataset_name=self.args.dataset[me],
                     alpha=self.alpha[me],
@@ -165,11 +167,12 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                 logger.info(f"config concept drift {self.concept_drift_config}")
                 if self.alpha[me] != alpha_me or t in self.concept_drift_config[me]["concept_drift_rounds"]:
                     self.alpha[me] = alpha_me
-                    self.index = {0: 1, 1: 2, 2: 3, 3: 0}[self.index]
-                    index = self.index
-                    # if t in self.concept_drift_config[me]["concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
-                    #     # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
-                    #     index = 1
+                    # self.index = {0: 1, 1: 2, 2: 0}[self.index]
+                    # index = self.index
+                    # # if t in self.concept_drift_config[me]["concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
+                    # #     # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
+                    # #     index = 1
+                    index = 0
                     self.recent_trainloader[me], self.valloader[me] = load_data(
                         dataset_name=self.args.dataset[me],
                         alpha=self.alpha[me],
@@ -197,22 +200,21 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
     def _get_current_alpha(self, server_round, me):
 
         try:
-            return self.alpha[me]
             if self.concept_drift_experiment_id == 0:
                 return self.alpha[me]
             else:
                 config = self.concept_drift_config[me]
                 alpha = None
-                for i, round_ in enumerate(config["concept_drift_rounds"][me]):
+                for i, round_ in enumerate(config["concept_drift_rounds"]):
                     if server_round >= round_:
-                        alpha = config["new_alphas"][me][i]
+                        alpha = config["new_alphas"][i]
 
                 if alpha is None:
                     alpha = self.alpha[me]
 
                 return alpha
         except Exception as e:
-            logger.error("_get_current_alpha error")
+            logger.error(f"_get_current_alpha error {self.concept_drift_config}")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 

@@ -9,6 +9,7 @@ from clients.MEFL.client_multifedavg import ClientMultiFedAvg
 from fedpredict import fedpredict_client_torch
 # from fedpredict.utils.utils import cosine_similarity
 from numpy.linalg import norm
+from sklearn.cluster import KMeans
 
 from utils.models_utils import load_model, get_weights, load_data, set_weights, test_fedpredict, test, train
 
@@ -39,15 +40,105 @@ def aggregate_p(p_new, p_old, mean_similarity):
         logger.error("aggregate_p error")
         logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-def mean_p(p_ME_list, ME):
+def calcular_media_intervalos(lista, valor):
+    try:
+        # Variáveis para armazenar a soma e a quantidade de intervalos
+        soma_intervalos = 0
+        quantidade_intervalos = 0
+
+        # Variável para controlar o intervalo atual de posições consecutivas sem o valor
+        contador = 0
+        dentro_do_intervalo = False
+
+        for i in range(len(lista)):
+            if lista[i] == valor:
+                if dentro_do_intervalo:
+                    soma_intervalos += contador
+                    quantidade_intervalos += 1
+                    dentro_do_intervalo = False
+                contador = 0
+            else:
+                contador += 1
+                dentro_do_intervalo = True
+
+        # Se o último intervalo terminar no final da lista
+        if dentro_do_intervalo:
+            soma_intervalos += contador
+            quantidade_intervalos += 1
+
+        # Calcular a média
+        if quantidade_intervalos > 0:
+            media = soma_intervalos / quantidade_intervalos
+        else:
+            media = 0
+
+        return media
+    except Exception as e:
+        logger.error(f"media intervalos error")
+        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+def mean_p(p_ME_list, ME, NT, t):
 
     # compute cosine similarity
     try:
         p_ME_average = [None] * ME
         for me in range(ME):
+            nt = NT[me]
             if len(p_ME_list[me]) > 0:
-                p_ME_average[me] = np.sum(p_ME_list[me], axis=0)
-                p_ME_average[me] = p_ME_average[me] / np.sum(p_ME_average[me])
+                if nt == 100:
+                    p_ME_average[me] = p_ME_list[me][-1]
+                else:
+                    # weight_i_list = []
+                    # size = len(p_ME_list[me])
+                    # for i in range(size):
+                    #     weight = pow(nt, (size - i))
+                    #     weight_i_list.append(1 - weight)
+                    #
+                    # weight_i_list = np.array(weight_i_list) / np.sum(weight_i_list)
+                    #
+                    # p_ME_average[me] = np.sum(p_ME_list[me] * weight_i_list, axis=0)
+
+                    p_ME_average[me] = np.sum(p_ME_list[me], axis=0)
+                    p_ME_average[me] = p_ME_average[me] / np.sum(p_ME_average[me])
+                    # k = 3
+                    # if len(p_ME_list[me]) % k == 0:
+                    #
+                    #     kmeans = KMeans(n_clusters=k, random_state=0)
+                    #
+                    #     # Ajuste do modelo aos dados
+                    #     kmeans.fit(np.array(p_ME_list[me]))
+                    #
+                    #     # Obter os centróides (centros dos clusters)
+                    #     centroides = kmeans.cluster_centers_
+                    #
+                    #     # Obter as etiquetas (que cluster cada ponto pertence)
+                    #     etiquetas = kmeans.labels_
+                    #     concept_drift_period = {i: 1 for i in range(k)}
+                    #     for label_ in concept_drift_period:
+                    #         concept_drift_period[label_] = calcular_media_intervalos(etiquetas, label_)
+                    #     round_labels = [0] * 100
+                    #     count = 0
+                    #     label_ = 0
+                    #     for i in range(len(round_labels)):
+                    #
+                    #         round_labels[i] = label_
+                    #         count += 1
+                    #         if count == int(concept_drift_period[label_] * 3.333):
+                    #             label_ += 1
+                    #             count = 0
+                    #         if label_ == k:
+                    #             label_ = 0
+                    #     ground_true = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                    #     correct = 0
+                    #     for i in range(len(round_labels)):
+                    #         if round_labels[i] == ground_true[i] and i in [9, 19, 29, 39, 49, 59, 69, 79, 89]:
+                    #             correct += 1
+                    #
+                    #     logger.info(f"concept_drift_period acertos {correct/9}")
+                    #     logger.info(f"roundlab {round_labels}")
+
+
+
         return p_ME_average
     except Exception as e:
         logger.error(f"mean_p error {p_ME_list}")
@@ -64,6 +155,7 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
             self.il_ME = [0] * self.ME
             self.similarity_ME = [[]] * self.ME
             self.mean_p_ME = [None] * self.ME
+            self.NT = [None] * self.ME
             for me in range(self.ME):
                 # Copy of randomly initialized parameters
                 self.global_model[me] = copy.deepcopy(self.model[me])
@@ -78,16 +170,23 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
         """Train the model with data of this client."""
         try:
             parameters, size, results = super().fit(parameters, config)
-            self.p_ME, self.fc_ME, self.il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
+            p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
                                                                            self.n_classes)
-            for me in range(self.ME):
-                if len(self.p_ME_list[me]) > 0:
-                    if self.p_ME_list[me][-1] != self.p_ME[me]:
-                        self.p_ME_list[me].append(self.p_ME[me])
-                    elif len(self.p_ME_list[me]) == 0:
-                        self.p_ME_list[me].append(self.p_ME[me])
+            # for me in range(self.ME):
+                # if len(self.p_ME_list[me]) > 0:
+                #     if self.p_ME_list[me][-1] != self.p_ME[me]:
+                #         self.p_ME_list[me].append(self.p_ME[me])
+                #     elif len(self.p_ME_list[me]) == 0:
+                #         self.p_ME_list[me].append(self.p_ME[me])
+            me = config['me']
+            t = config['t']
+            self.p_ME[me] = p_ME[me]
+            self.fc_ME[me] = fc_ME[me]
+            self.il_ME[me] = il_ME[me]
+            self.p_ME_list[me].append(self.p_ME[me])
 
-            self.mean_p_ME = mean_p(self.p_ME_list, self.ME)
+            self.NT[me] = 0
+            self.mean_p_ME = mean_p(self.p_ME_list, self.ME, self.NT, t)
             me = config['me']
             results["fc"] = self.fc_ME[me]
             results["il"] = self.il_ME[me]
@@ -104,18 +203,20 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
             parameters = pickle.loads(config["parameters"])
             evaluate_models = json.loads(config["evaluate_models"])
             tuple_me = {}
+            for me in range(self.ME):
+                self.NT[me] = t - self.lt[me]
             for me in evaluate_models:
                 me = int(me)
                 me_str = str(me)
                 alpha_me = self._get_current_alpha(t, me)
                 if self.alpha[me] != alpha_me or t in self.concept_drift_config[me]["concept_drift_rounds"]:
                     self.alpha[me] = alpha_me
-                    self.index = {0: 1, 1: 2, 2: 3, 3: 0}[self.index]
-                    index = self.index
-                    # if t in self.concept_drift_config[me][
-                    #     "concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
-                    #     # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
-                    #     index = 1
+                    # self.index = {0: 1, 1: 2, 2: 0}[self.index]
+                    # index = self.index
+                    # # if t in self.concept_drift_config[me]["concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
+                    # #     # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
+                    # #     index = 1
+                    index = 0
                     self.recent_trainloader[me], self.valloader[me] = load_data(
                         dataset_name=self.args.dataset[me],
                         alpha=self.alpha[me],
@@ -147,13 +248,15 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 set_weights(self.global_model[me], parameters_me)
                 similarity = cosine_similarity(self.p_ME[me], p_ME[me])
                 # similarity = pow(max(similarity-0.1, 0.001), nt) # ruim
-                if nt == 0:
-                    d = 1
-                else:
-                    d = nt
-                similarity = (1/d) * similarity
+                # nt, fc, pc, ciclos
+                # if nt == 0:
+                #     d = 1
+                # else:
+                #     d = nt
+                # similarity = (1/d) * similarity
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device)
+                # self.mean_p_ME = mean_p(self.p_ME_list, self.ME, self.NT, t)
                 # if self.mean_p_ME[me] is not None:
                 #     p_ME[me] = self.mean_p_ME[me]
                 loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t,

@@ -50,8 +50,13 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
         try:
             # Update the metrics that characterize the local dataset that the client will train
             parameters, size, results = super().fit(parameters, config)
-            self.p_ME, self.fc_ME, self.il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
+            p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
                                                                            self.n_classes)
+            me = config['me']
+            self.p_ME[me] = p_ME[me]
+            self.fc_ME[me] = fc_ME[me]
+            self.il_ME[me] = il_ME[me]
+
             return parameters, size, results
         except Exception as e:
             logger.error("fit error")
@@ -72,12 +77,12 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
                 alpha_me = self._get_current_alpha(t, me)
                 if self.alpha[me] != alpha_me or t in self.concept_drift_config[me]["concept_drift_rounds"]:
                     self.alpha[me] = alpha_me
-                    self.index = {0: 1, 1: 2, 2: 3, 3: 0}[self.index]
-                    index = self.index
-                    # if t in self.concept_drift_config[me][
-                    #     "concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
-                    #     # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
-                    #     index = 1
+                    # self.index = {0: 1, 1: 2, 2: 0}[self.index]
+                    # index = self.index
+                    # # if t in self.concept_drift_config[me]["concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
+                    # #     # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
+                    # #     index = 1
+                    index = 0
                     self.recent_trainloader[me], self.valloader[me] = load_data(
                         dataset_name=self.args.dataset[me],
                         alpha=self.alpha[me],

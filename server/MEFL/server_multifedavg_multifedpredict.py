@@ -206,12 +206,39 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             #
             # logger.info(f"training intensity me {training_intensity_me} rodada {server_round} free budget {self.free_budget} train more models {train_more_models} need for training {self.need_for_training}")
             # i = 0
-            # selected_clients_m = []
-            # for me in range(self.ME):
-            #     training_intensity = training_intensity_me[me]
-            #     j = i + training_intensity
-            #     selected_clients_m.append(clients[i:j])
-            #     i = j
+            training_intensity_me = [int((self.fraction_fit * self.total_clients)/self.ME)] * self.ME
+            # if server_round < 40:
+            #     if server_round < 20:
+            #         training_intensity_me = [4, 2]
+            #     else:
+            #         training_intensity_me = [3, 3]
+            # elif server_round >= 40 and server_round < 80:
+            #     if server_round < 60:
+            #         training_intensity_me = [2, 4]
+            #     else:
+            #         training_intensity_me = [3, 3]
+            # else:
+            #     training_intensity_me = [4, 2]
+            if server_round < 40:
+                if server_round < 20:
+                    training_intensity_me = [5, 3]
+                else:
+                    training_intensity_me = [4, 4]
+            elif server_round >= 40 and server_round < 80:
+                if server_round < 60:
+                    training_intensity_me = [3, 5]
+                else:
+                    training_intensity_me = [4, 4]
+            else:
+                training_intensity_me = [5, 3]
+
+            selected_clients_m = []
+            i = 0
+            for me in range(self.ME):
+                training_intensity = training_intensity_me[me]
+                j = i + training_intensity
+                selected_clients_m.append(clients[i:j])
+                i = j
 
 
 
@@ -267,10 +294,16 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
                 self.selected_clients_m[me].append(client_id)
                 results_mefl[me].append(results[i])
 
+            logger.info(f"antes fc {fc} il {il} rodada {server_round}")
             for me in range(self.ME):
-                fc[me] = np.mean(fc[me])
-                il[me] = np.mean(il[me])
-                self.need_for_training[server_round][me] = round((fc[me] + (1 - il[me]))/2, 1)
+                fc[me] = float(np.sum(fc[me]) / len(fc[me]))
+                il[me] = float(np.sum(il[me]) / len(il[me]))
+                logger.info(f"fc {fc} il {il} {self.need_for_training[server_round]}")
+                self.need_for_training[server_round][me] = (fc[me] + (1 - il[me]))/2
+
+            self.need_for_training[server_round] = np.array(self.need_for_training[server_round]) / np.sum(np.array(self.need_for_training[server_round]))
+
+            logger.info(f"need {self.need_for_training} rodada {server_round}")
 
             aggregated_ndarrays_mefl = {me: None for me in range(self.ME)}
             aggregated_ndarrays_mefl = {me: [] for me in range(self.ME)}
