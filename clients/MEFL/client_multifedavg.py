@@ -28,6 +28,12 @@ def global_concept_drift_config(ME, n_rounds, alphas, experiment_id, seed=0):
             if experiment_id == 3:
                 ME_concept_drift_rounds = [[int(n_rounds * 0.2), int(n_rounds * 0.6)], [int(n_rounds * 0.3), int(n_rounds * 0.7)]]
                 new_alphas = [[10.0, 0.1], [0.1, 10.0]]
+            elif experiment_id == 4:
+                if experiment_id == 4:
+                    ME_concept_drift_rounds = [[int(n_rounds * 0.2), int(n_rounds * 0.6)],
+                                               [int(n_rounds * 0.3), int(n_rounds * 0.7)]]
+                    new_alphas = [[10.0, 0.1], [0.1, 10.0], [1.0, 5.0]]
+
 
             config = {me: {"concept_drift_rounds": ME_concept_drift_rounds[me], "new_alphas": new_alphas[me]} for me in range(ME)}
         else:

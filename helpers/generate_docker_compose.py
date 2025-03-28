@@ -114,7 +114,7 @@ def create_docker_compose(args):
     # cpus is used to set the number of CPUs available to the container as a fraction of the total number of CPUs on the host machine.
     # mem_limit is used to set the memory limit for the container.
     client_configs = [
-        {"mem_limit": "0.8g", "cpus": 1} for i in range(args.total_clients)
+        {"mem_limit": "0.75g", "cpus": 1} for i in range(args.total_clients)
         # Add or modify the configurations depending on your host machine
         # Warning: very low memory makes client's container to exit
         # Reference table:
