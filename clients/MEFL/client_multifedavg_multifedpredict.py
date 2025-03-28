@@ -203,6 +203,8 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
             parameters = pickle.loads(config["parameters"])
             evaluate_models = json.loads(config["evaluate_models"])
             homogeneity_degree = pickle.loads(config["homogeneity_degree"])
+            fc = pickle.loads(config["fc"])
+            il = pickle.loads(config["il"])
             tuple_me = {}
             for me in range(self.ME):
                 self.NT[me] = t - self.lt[me]
@@ -254,7 +256,7 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 # elif me == 1:
                 #     if t < 30 or t >= 70:
                 #         similarity = 0
-                if homogeneity_degree[me] >= 0.5:
+                if fc[me] >= 0.9 and il[me] < 0.39:
                     similarity = 0
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device)
@@ -269,7 +271,7 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 #     if t < 30 or t >= 70:
                 #         similarity = 1
                 #         combined_model = self.global_model[me]
-                if homogeneity_degree[me] >= 0.5:
+                if fc[me] >= 0.93 and il[me] < 0.39:
                     similarity = 1
                     combined_model = self.global_model[me]
                 loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t,

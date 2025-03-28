@@ -147,6 +147,8 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
                              fit_metrics_aggregation_fn=fit_metrics_aggregation_fn,
                              evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
             self.homogeneity_degree = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
+            self.fc = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
+            self.il = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
             self.min_training_clients_per_model = 3
             self.free_budget = int(self.fraction_fit * self.total_clients) - self.min_training_clients_per_model * self.ME
             self.ME_round_loss = {me: [] for me in range(self.ME)}
@@ -351,6 +353,8 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
                 il[me] = float(np.sum(il[me]) / len(il[me]))
                 logger.info(f"fc {fc} il {il} {self.homogeneity_degree[server_round]}")
                 self.homogeneity_degree[server_round][me] = (fc[me] + (1 - il[me])) / 2
+                self.fc[server_round][me] = fc[me]
+                self.il[server_round][me] = il[me]
 
             logger.info(f"need {self.homogeneity_degree[server_round]} rodada {server_round}")
             self.homogeneity_degree[server_round] = self.homogeneity_degree[server_round]
@@ -467,6 +471,8 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             logger.info("""config evaluate antes {}""".format(config))
             config["parameters"] = dict_ME
             config["homogeneity_degree"] = pickle.dumps(self.homogeneity_degree[server_round])
+            config["fc"] = pickle.dumps(self.fc[server_round])
+            config["il"] = pickle.dumps(self.il[server_round])
             evaluate_ins = EvaluateIns(parameters[0], config)
 
 
