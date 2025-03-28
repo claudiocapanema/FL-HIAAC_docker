@@ -353,11 +353,9 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
                 self.homogeneity_degree[server_round][me] = (fc[me] + (1 - il[me])) / 2
 
             logger.info(f"need {self.homogeneity_degree[server_round]} rodada {server_round}")
-            self.homogeneity_degree[server_round] = np.array(self.homogeneity_degree[server_round]) / np.sum(np.array(self.homogeneity_degree[server_round]))
+            self.homogeneity_degree[server_round] = self.homogeneity_degree[server_round]
 
             # logger.info(f"need normalizado {self.need_for_training} rodada {server_round}")
-            if server_round == 100:
-                exit()
 
             aggregated_ndarrays_mefl = {me: None for me in range(self.ME)}
             aggregated_ndarrays_mefl = {me: [] for me in range(self.ME)}

@@ -99,7 +99,7 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                  "ImageNet_v2": 15, "Gowalla": 7}[dataset] for dataset in
                 self.args.dataset]
             # Concept drift parameters
-            self.concept_drift_experiment_id = 3
+            self.concept_drift_experiment_id = 1
             self.concept_drift_config = global_concept_drift_config(self.ME, self.number_of_rounds, self.alpha, self.concept_drift_experiment_id)
             logger.info(f"concept drift config {self.concept_drift_config}")
         except Exception as e:
