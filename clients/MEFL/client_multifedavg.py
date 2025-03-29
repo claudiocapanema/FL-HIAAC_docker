@@ -30,9 +30,15 @@ def global_concept_drift_config(ME, n_rounds, alphas, experiment_id, seed=0):
                 new_alphas = [[10.0, 0.1], [0.1, 10.0]]
         elif experiment_id == 4:
             if experiment_id == 4:
-                ME_concept_drift_rounds = [[int(n_rounds * 0.3), int(n_rounds * 0.5), int(n_rounds * 0.7)],
-                                           [int(n_rounds * 0.3), int(n_rounds * 0.5), int(n_rounds * 0.7)]]
+                ME_concept_drift_rounds = [[int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)],
+                                           [int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)]]
                 new_alphas = [[10.0, 1.0, 0.1], [0.1, 1.0, 10.0]]
+
+        elif experiment_id == 5:
+            if experiment_id == 5:
+                ME_concept_drift_rounds = [[int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)],
+                                           [int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)]]
+                new_alphas = [[0.1, 1.0, 10.0], [10.0, 1.0, 0.1]]
 
 
             config = {me: {"concept_drift_rounds": ME_concept_drift_rounds[me], "new_alphas": new_alphas[me]} for me in range(ME)}
@@ -105,7 +111,7 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                  "ImageNet_v2": 15, "Gowalla": 7}[dataset] for dataset in
                 self.args.dataset]
             # Concept drift parameters
-            self.concept_drift_experiment_id = 4
+            self.concept_drift_experiment_id = 5
             self.concept_drift_config = global_concept_drift_config(self.ME, self.number_of_rounds, self.alpha, self.concept_drift_experiment_id)
             logger.info(f"concept drift config {self.concept_drift_config}")
         except Exception as e:
