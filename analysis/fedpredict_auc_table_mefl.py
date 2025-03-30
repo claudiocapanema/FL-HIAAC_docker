@@ -2,6 +2,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import scipy.stats as st
+from numpy import trapz
 
 import copy
 
@@ -54,6 +55,13 @@ def read_data(read_solutions, read_dataset_order):
 
     return df_concat, hue_order
 
+def group_by(df, metric):
+
+    area = round(trapz(df[metric].to_numpy(), dx=1), 1)
+
+    return str(area)
+
+
 
 def table(df, write_path, metric, t=None):
     datasets = df["Dataset"].unique().tolist()
@@ -89,9 +97,10 @@ def table(df, write_path, metric, t=None):
         models_datasets_dict = {dt: {} for dt in datasets}
         for column in columns:
             for dt in datasets:
-                models_datasets_dict[dt][column] = t_distribution((filter(df_test, dt,
-                                                                          alpha=float(alpha), strategy=column)[
-                    metric]).tolist(), ci)
+                # models_datasets_dict[dt][column] = t_distribution((filter(df_test, dt,
+                #                                                           alpha=float(alpha), strategy=column)[
+                #     metric]).tolist(), ci)
+                models_datasets_dict[dt][column] = group_by(df_test.query(f"Dataset == '{dt}' and Alpha == {alpha} and Table == '{column}'"), metric=metric)
 
         model_metrics = []
 
@@ -103,6 +112,7 @@ def table(df, write_path, metric, t=None):
 
     print(models_dict)
     print(index)
+    # exit()
 
     df_table = pd.DataFrame(models_dict, index=index).round(4)
     print("df table: ", df_table)
@@ -170,9 +180,9 @@ def table(df, write_path, metric, t=None):
 
     Path(write_path).mkdir(parents=True, exist_ok=True)
     if t is not None:
-        filename = """{}latex_round_{}_{}.txt""".format(write_path, t, metric)
+        filename = """{}latex_round_auc_{}_{}.txt""".format(write_path, t, metric)
     else:
-        filename = """{}latex_{}.txt""".format(write_path, metric)
+        filename = """{}latex_auc_{}.txt""".format(write_path, metric)
     pd.DataFrame({'latex': [latex]}).to_csv(filename, header=False, index=False)
 
     improvements(df_table, datasets, metric)
@@ -294,7 +304,7 @@ def select_mean(index, column_values, columns, n_solutions):
     for i in range(len(column_values)):
         print("valor: ", column_values[i])
         value = float(str(str(column_values[i])[:4]).replace(u"\u00B1", ""))
-        interval = float(str(column_values[i])[5:8])
+        interval = 0
         minimum = value - interval
         maximum = value + interval
         list_of_means.append((value, minimum, maximum))
