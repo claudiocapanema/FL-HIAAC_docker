@@ -256,7 +256,8 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 # elif me == 1:
                 #     if t < 30 or t >= 70:
                 #         similarity = 0
-                if fc[me] >= 0.9 and il[me] < 0.39:
+                if fc[me] >= 0.94 and il[me] <= 24:
+                # if homogeneity_degree[me] >= 0.6:
                     similarity = 0
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device)
@@ -271,7 +272,8 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 #     if t < 30 or t >= 70:
                 #         similarity = 1
                 #         combined_model = self.global_model[me]
-                if fc[me] >= 0.93 and il[me] < 0.39:
+                if fc[me] >= 0.94 and il[me] <= 0.24:
+                # if homogeneity_degree[me] >= 0.6:
                     similarity = 1
                     combined_model = self.global_model[me]
                 loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t,

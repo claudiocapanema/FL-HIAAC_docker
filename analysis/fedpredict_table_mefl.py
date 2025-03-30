@@ -332,12 +332,12 @@ def idmax(df, n_solutions):
 
 
 if __name__ == "__main__":
-    concept_drift_experiment_id = 4
+    concept_drift_experiment_id = 7
     cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
     total_clients = 20
     # alphas = [0.1, 10.0]
-    alphas = [0.1, 10.0]
-    concept_drift_experiment_id = 1
+    alphas = [10.0, 10.0]
+    alphas = [0.1, 0.1]
     # dataset = ["WISDM-W", "CIFAR10"]
     dataset = ["WISDM-W", "ImageNet"]
     # dataset = ["EMNIST", "CIFAR10"]
@@ -397,7 +397,7 @@ if __name__ == "__main__":
     df, hue_order = read_data(read_solutions, read_dataset_order)
     print(df)
 
-    cp_rounds = [20, 30, 60, 70]
+    cp_rounds = [20, 50, 80]
     cp_window = []
     window = 5
     for i in range(len(cp_rounds)):

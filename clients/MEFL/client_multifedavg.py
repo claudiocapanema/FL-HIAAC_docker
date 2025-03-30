@@ -19,31 +19,37 @@ def global_concept_drift_config(ME, n_rounds, alphas, experiment_id, seed=0):
     try:
         np.random.seed(seed)
         if experiment_id == 1:
-            if experiment_id == 1:
-                ME_concept_drift_rounds = [[int(n_rounds * 0.4), int(n_rounds * 0.8)], [int(n_rounds * 0.4), int(n_rounds * 0.8)]]
-                new_alphas = [[10.0, 0.1], [0.1, 10.0]]
+            ME_concept_drift_rounds = [[int(n_rounds * 0.4), int(n_rounds * 0.8)], [int(n_rounds * 0.4), int(n_rounds * 0.8)]]
+            new_alphas = [[10.0, 0.1], [0.1, 10.0]]
 
             config = {me: {"concept_drift_rounds": ME_concept_drift_rounds[me], "new_alphas": new_alphas[me]} for me in range(ME)}
         elif experiment_id == 3:
-            if experiment_id == 3:
-                ME_concept_drift_rounds = [[int(n_rounds * 0.2), int(n_rounds * 0.6)], [int(n_rounds * 0.3), int(n_rounds * 0.7)]]
-                new_alphas = [[10.0, 0.1], [0.1, 10.0]]
+            ME_concept_drift_rounds = [[int(n_rounds * 0.2), int(n_rounds * 0.6)], [int(n_rounds * 0.3), int(n_rounds * 0.7)]]
+            new_alphas = [[10.0, 0.1], [0.1, 10.0]]
         elif experiment_id == 4:
-            if experiment_id == 4:
-                ME_concept_drift_rounds = [[int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)],
-                                           [int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)]]
-                new_alphas = [[10.0, 1.0, 0.1], [0.1, 1.0, 10.0]]
+            ME_concept_drift_rounds = [[int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)],
+                                       [int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)]]
+            new_alphas = [[10.0, 1.0, 0.1], [0.1, 1.0, 10.0]]
 
         elif experiment_id == 5:
-            if experiment_id == 5:
-                ME_concept_drift_rounds = [[int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)],
-                                           [int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)]]
-                new_alphas = [[0.1, 1.0, 10.0], [10.0, 1.0, 0.1]]
+            ME_concept_drift_rounds = [[int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)],
+                                       [int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)]]
+            new_alphas = [[0.1, 1.0, 10.0], [10.0, 1.0, 0.1]]
+
+        elif experiment_id == 6:
+            ME_concept_drift_rounds = [[int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)],
+                                       [int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)]]
+            new_alphas = [[0.1, 1.0, 10.0], [0.1, 1.0, 10.0]]
+
+        elif experiment_id == 7:
+            ME_concept_drift_rounds = [[int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)],
+                                       [int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)]]
+            new_alphas = [[10.0, 1.0, 0.1], [10.0, 1.0, 0.1]]
 
 
-            config = {me: {"concept_drift_rounds": ME_concept_drift_rounds[me], "new_alphas": new_alphas[me]} for me in range(ME)}
-        else:
-            config = {}
+        config = {me: {"concept_drift_rounds": ME_concept_drift_rounds[me], "new_alphas": new_alphas[me]} for me in range(ME)}
+        # else:
+        #     config = {}
         return config
 
     except Exception as e:
@@ -86,6 +92,22 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
             self.valloader = [None] * self.ME
             self.optimizer = [None] * self.ME
             self.index = 0
+            self.local_epochs = self.args.local_epochs
+            self.lr = self.args.learning_rate
+            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            self.lt = [0] * self.ME
+            logger.info("ler model size")
+            self.models_size = self._get_models_size()
+            logger.info("leu model size")
+            self.n_classes = [
+                {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'ImageNet': 15,
+                 "ImageNet_v2": 15, "Gowalla": 7}[dataset] for dataset in
+                self.args.dataset]
+            # Concept drift parameters
+            self.concept_drift_experiment_id = self.args.concept_drift_experiment_id
+
+            self.concept_drift_config = global_concept_drift_config(self.ME, self.number_of_rounds, self.alpha, self.concept_drift_experiment_id)
+            logger.info(f"concept drift config {self.concept_drift_config} concept drift id {self.concept_drift_experiment_id}")
             for me in range(self.ME):
                 self.trainloader[me], self.valloader[me] = load_data(
                     dataset_name=self.args.dataset[me],
@@ -99,21 +121,6 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                 self.optimizer[me] = self._get_optimizer(dataset_name=self.args.dataset[me], me=me)
                 logger.info("""leu dados cid: {} dataset: {} size:  {}""".format(self.args.client_id, self.args.dataset[me], len(self.trainloader[me].dataset)))
 
-            self.local_epochs = self.args.local_epochs
-            self.lr = self.args.learning_rate
-            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-            self.lt = [0] * self.ME
-            logger.info("ler model size")
-            self.models_size = self._get_models_size()
-            logger.info("leu model size")
-            self.n_classes = [
-                {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'ImageNet': 15,
-                 "ImageNet_v2": 15, "Gowalla": 7}[dataset] for dataset in
-                self.args.dataset]
-            # Concept drift parameters
-            self.concept_drift_experiment_id = 5
-            self.concept_drift_config = global_concept_drift_config(self.ME, self.number_of_rounds, self.alpha, self.concept_drift_experiment_id)
-            logger.info(f"concept drift config {self.concept_drift_config}")
         except Exception as e:
             logger.error("__init__ error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
