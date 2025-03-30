@@ -212,22 +212,23 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 me = int(me)
                 me_str = str(me)
                 alpha_me = self._get_current_alpha(t, me)
-                if self.alpha[me] != alpha_me or t in self.concept_drift_config[me]["concept_drift_rounds"]:
-                    self.alpha[me] = alpha_me
-                    # self.index = {0: 1, 1: 2, 2: 0}[self.index]
-                    # index = self.index
-                    # # if t in self.concept_drift_config[me]["concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
-                    # #     # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
-                    # #     index = 1
-                    index = 0
-                    self.recent_trainloader[me], self.valloader[me] = load_data(
-                        dataset_name=self.args.dataset[me],
-                        alpha=self.alpha[me],
-                        data_sampling_percentage=self.args.data_percentage,
-                        partition_id=int((self.args.client_id + index) % self.args.total_clients),
-                        num_partitions=self.args.total_clients + 1,
-                        batch_size=self.args.batch_size,
-                    )
+                if self.concept_drift_config != {}:
+                    if self.alpha[me] != alpha_me or t in self.concept_drift_config[me]["concept_drift_rounds"]:
+                        self.alpha[me] = alpha_me
+                        # self.index = {0: 1, 1: 2, 2: 0}[self.index]
+                        # index = self.index
+                        # if t in self.concept_drift_config[me]["concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
+                        #     # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
+                        #     index = 0
+                        index = 0
+                        self.recent_trainloader[me], self.valloader[me] = load_data(
+                            dataset_name=self.args.dataset[me],
+                            alpha=self.alpha[me],
+                            data_sampling_percentage=self.args.data_percentage,
+                            partition_id=int((self.args.client_id + index) % self.args.total_clients),
+                            num_partitions=self.args.total_clients + 1,
+                            batch_size=self.args.batch_size,
+                        )
                     p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
                                                                     self.n_classes)
                 else:
