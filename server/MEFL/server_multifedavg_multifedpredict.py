@@ -155,6 +155,24 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             self.checkpoint_models = {me: {} for me in range(self.ME)}
             self.round_initial_parameters = [None] * self.ME
             self.last_drift = 0
+
+            self.test_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
+                                       "# training clients", "training clients and models", "Model size", "Alpha", "FC", "IL", "DH"]
+            self.train_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
+                                        "# training clients", "training clients and models", "Model size", "Alpha"]
+            self.rs_test_acc = {me: [] for me in range(self.ME)}
+            self.rs_test_auc = {me: [] for me in range(self.ME)}
+            self.rs_train_loss = {me: [] for me in range(self.ME)}
+            self.results_train_metrics = {me: {metric: [] for metric in self.train_metrics_names} for me in
+                                          range(self.ME)}
+            self.results_train_metrics_w = {me: {metric: [] for metric in self.train_metrics_names} for me in
+                                            range(self.ME)}
+            self.results_test_metrics = {me: {metric: [] for metric in self.test_metrics_names} for me in
+                                         range(self.ME)}
+            self.results_test_metrics_w = {me: {metric: [] for metric in self.test_metrics_names} for me in
+                                           range(self.ME)}
+            self.clients_results_test_metrics = {me: {metric: [] for metric in self.test_metrics_names} for me in
+                                                 range(self.ME)}
         except Exception as e:
             logger.error("__init__ error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
@@ -491,6 +509,21 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             return [(client, evaluate_ins) for client in clients]
         except Exception as e:
             logger.error("configure_evaluate error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def add_metrics(self, server_round, metrics_aggregated, me):
+        try:
+            metrics_aggregated[me]["Fraction fit"] = self.fraction_fit
+            metrics_aggregated[me]["# training clients"] = self.n_trained_clients
+            metrics_aggregated[me]["training clients and models"] = self.selected_clients_m[me]
+            metrics_aggregated[me]["FC"] = self.fc[server_round][me]
+            metrics_aggregated[me]["IL"] = self.il[server_round][me]
+            metrics_aggregated[me]["DH"] = self.homogeneity_degree[server_round][me]
+
+            for metric in metrics_aggregated[me]:
+                self.results_test_metrics[me][metric].append(metrics_aggregated[me][metric])
+        except Exception as e:
+            logger.error("add_metrics error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def calculate_pseudo_t(self, t, losses):
