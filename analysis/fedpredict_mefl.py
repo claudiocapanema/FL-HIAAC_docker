@@ -56,7 +56,7 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
     datasets = df["Dataset"].unique().tolist()
 
-    fig, axs = plt.subplots(len(datasets), sharex='all', figsize=(12, 6))
+    fig, axs = plt.subplots(len(datasets), sharex='all', figsize=(9, 6))
     hue_order = ["MultiFedAvg"]
 
     for j in range(len(datasets)):
@@ -107,8 +107,7 @@ if __name__ == "__main__":
     cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
     total_clients = 20
     # alphas = [0.1, 10.0]
-    alphas = [10.0, 10.0]
-    # alphas = [0.1, 0.1]
+    alphas = {6: [10.0, 10.0], 7: [0.1, 0.1]}[concept_drift_experiment_id]
     # dataset = ["WISDM-W", "CIFAR10"]
     dataset = ["WISDM-W", "ImageNet"]
     # dataset = ["EMNIST", "CIFAR10"]
