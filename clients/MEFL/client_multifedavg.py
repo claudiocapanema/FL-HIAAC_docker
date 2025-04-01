@@ -38,6 +38,7 @@ def global_concept_drift_config(ME, n_rounds, alphas, experiment_id, seed=0):
                 new_alphas = [[0.1, 1.0, 10.0], [10.0, 1.0, 0.1]]
 
             elif experiment_id == 6:
+                # Melhor
                 ME_concept_drift_rounds = [[int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)],
                                            [int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)]]
                 new_alphas = [[0.1, 1.0, 10.0], [0.1, 1.0, 10.0]]
@@ -46,6 +47,11 @@ def global_concept_drift_config(ME, n_rounds, alphas, experiment_id, seed=0):
                 ME_concept_drift_rounds = [[int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)],
                                            [int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)]]
                 new_alphas = [[10.0, 1.0, 0.1], [10.0, 1.0, 0.1]]
+
+            elif experiment_id == 8:
+                ME_concept_drift_rounds = [[int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)],
+                                           [int(n_rounds * 0.2), int(n_rounds * 0.5), int(n_rounds * 0.8)]]
+                new_alphas = [[10.0, 10.0, 10.0], [10.0, 10.0, 10.0]]
 
 
             config = {me: {"concept_drift_rounds": ME_concept_drift_rounds[me], "new_alphas": new_alphas[me]} for me in range(ME)}
@@ -108,6 +114,7 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                 self.args.dataset]
             # Concept drift parameters
             self.concept_drift_experiment_id = self.args.concept_drift_experiment_id
+            self.concept_drift_window = [0] * self.ME
 
             self.concept_drift_config = global_concept_drift_config(self.ME, self.number_of_rounds, self.alpha, self.concept_drift_experiment_id)
             logger.info(f"concept drift config {self.concept_drift_config} concept drift id {self.concept_drift_experiment_id}")
@@ -134,11 +141,11 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
             # logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
             t = config['t']
             me = config['me']
-            self.lt[me] = t - self.lt[me]
+            self.lt[me] = t
             # Update alpha to simulate global concept drift
             alpha_me = self._get_current_alpha(t, me)
             if self.concept_drift_config != {}:
-                if self.alpha[me] != alpha_me or t in self.concept_drift_config[me]["concept_drift_rounds"]:
+                if self.alpha[me] != alpha_me or (t in self.concept_drift_config[me]["concept_drift_rounds"] and self.concept_drift_experiment_id != 8):
                     self.alpha[me] = alpha_me
                     # self.index = {0: 1, 1: 2, 2: 0}[self.index]
                     # index = self.index
@@ -154,6 +161,9 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                         num_partitions=self.args.total_clients + 1,
                         batch_size=self.args.batch_size,
                     )
+                elif t in self.concept_drift_config[me]["concept_drift_rounds"] and self.concept_drift_experiment_id == 8:
+                    self.concept_drift_window[me] += 1
+
             self.trainloader[me] = self.recent_trainloader[me]
             if len(parameters) > 0:
                 set_weights(self.model[me], parameters)
@@ -169,7 +179,8 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                 self.client_id,
                 t,
                 self.args.dataset[me],
-                self.n_classes[me]
+                self.n_classes[me],
+                self.concept_drift_window[me]
             )
             results["me"] = me
             results["client_id"] = self.client_id
@@ -195,7 +206,8 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                 alpha_me = self._get_current_alpha(t, me)
                 logger.info(f"config concept drift {self.concept_drift_config}")
                 if self.concept_drift_config != {}:
-                    if self.alpha[me] != alpha_me or t in self.concept_drift_config[me]["concept_drift_rounds"]:
+                    if self.alpha[me] != alpha_me or (t in self.concept_drift_config[me][
+                        "concept_drift_rounds"] and self.concept_drift_experiment_id != 8):
                         self.alpha[me] = alpha_me
                         # self.index = {0: 1, 1: 2, 2: 0}[self.index]
                         # index = self.index
@@ -211,11 +223,15 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                             num_partitions=self.args.total_clients + 1,
                             batch_size=self.args.batch_size,
                         )
+                    elif t in self.concept_drift_config[me][
+                        "concept_drift_rounds"] and self.concept_drift_experiment_id == 8 and t - self.lt[me] > 0:
+                        self.concept_drift_window[me] += 1
                 me_str = str(me)
                 nt = t - self.lt[me]
                 parameters_me = parameters[me_str]
                 set_weights(self.model[me], parameters_me)
-                loss, metrics = test(self.model[me], self.valloader[me], self.device, self.client_id, t, self.args.dataset[me], self.n_classes[me])
+                loss, metrics = test(self.model[me], self.valloader[me], self.device, self.client_id, t,
+                                     self.args.dataset[me], self.n_classes[me], self.concept_drift_window[me])
                 metrics["Model size"] = self.models_size[me]
                 metrics["Dataset size"] = len(self.valloader[me].dataset)
                 metrics["me"] = me

@@ -258,7 +258,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
         logger.error("load_data error")
         logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-def train(model, trainloader, valloader, optimizer, epochs, learning_rate, device, client_id, t, dataset_name, n_classes):
+def train(model, trainloader, valloader, optimizer, epochs, learning_rate, device, client_id, t, dataset_name, n_classes, concept_drift_window=0):
     try:
         """Train the utils on the training set."""
         model.to(device)  # move utils to GPU if available
@@ -277,6 +277,8 @@ def train(model, trainloader, valloader, optimizer, epochs, learning_rate, devic
                 # logger.info("""tamanho images {} tamanho labels {}""".format(images.shape, labels.shape))
                 x = x.to(device)
                 labels = labels.to(device)
+                if concept_drift_window > 0:
+                    labels = (labels + concept_drift_window) % n_classes
 
                 optimizer.zero_grad()
                 outputs = model(x)
@@ -389,7 +391,7 @@ def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, cl
         logger.error('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 
-def test(model, testloader, device, client_id, t, dataset_name, n_classes):
+def test(model, testloader, device, client_id, t, dataset_name, n_classes, concept_drift_window=0):
     try:
         """Validate the utils on the test set."""
         g = torch.Generator()
@@ -408,6 +410,8 @@ def test(model, testloader, device, client_id, t, dataset_name, n_classes):
                 labels = batch["label"]
                 x = x.to(device)
                 labels = labels.to(device)
+                if concept_drift_window > 0:
+                    labels = (labels + concept_drift_window) % n_classes
                 y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
                 outputs = model(x)
                 y_prob.append(outputs.detach().cpu().numpy())
@@ -474,7 +478,7 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
             logger.error("Error test_fedkd")
             logger.error('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-def test_fedpredict(model, testloader, device, client_id, t, dataset_name, n_classes, s, p):
+def test_fedpredict(model, testloader, device, client_id, t, dataset_name, n_classes, s, p, concept_drift_window=0):
     try:
         """Validate the utils on the test set."""
         g = torch.Generator()
@@ -493,6 +497,8 @@ def test_fedpredict(model, testloader, device, client_id, t, dataset_name, n_cla
                 labels = batch["label"]
                 x = x.to(device)
                 labels = labels.to(device)
+                if concept_drift_window > 0:
+                    labels = (labels + concept_drift_window) % n_classes
                 y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
                 outputs = model(x)
                 if s != 1 and s > 10:
