@@ -16,6 +16,7 @@ from clients.MEFL.client_multifedavgrr import ClientMultiFedAvgRR
 from clients.MEFL.client_fedfairmmfl import ClientFedFairMMFL
 from clients.MEFL.client_multifedavg_multifedpredict import ClientMultiFedAvgMultiFedPredict
 from clients.MEFL.client_multifedavg_fedpredict_dynamic import ClientMultiFedAvgFedPredictDynamic
+from clients.MEFL.client_multifedavg_fedpredict import ClientMultiFedAvgFedPredict
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
@@ -125,6 +126,8 @@ def get_client(strategy_name):
         return ClientMultiFedAvgFedPredictDynamic
     elif strategy_name == "MultiFedAvg+MFP":
         return ClientMultiFedAvgMultiFedPredict
+    elif strategy_name == "MultiFedAvg+FP":
+        return ClientMultiFedAvgFedPredict
 
 # Function to Start the Client
 def start_fl_client():

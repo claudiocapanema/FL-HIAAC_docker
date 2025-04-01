@@ -19,6 +19,7 @@ from server.MEFL.server_multifedavgrr import MultiFedAvgRR
 from server.MEFL.server_fedfairmmfl import FedFairMMFL
 from server.MEFL.server_multifedavg_fedpredict_dynamic import MultiFedAvgFedPredictDynamic
 from server.MEFL.server_multifedavg_multifedpredict import MultiFedAvgMultiFedPredict
+from server.MEFL.server_multifedavg_fedpredict import MultiFedAvgFedPredict
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
@@ -172,6 +173,10 @@ def get_server(strategy_name):
         return MultiFedAvgFedPredictDynamic
     elif strategy_name == "MultiFedAvg+MFP":
         return MultiFedAvgMultiFedPredict
+    elif strategy_name == "MultiFedAvg+FP":
+        return MultiFedAvgFedPredict
+    else:
+        raise Exception(f"Invalid strategy name: {strategy_name}")
 
 # Main Function
 if __name__ == "__main__":

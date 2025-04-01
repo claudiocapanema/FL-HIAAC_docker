@@ -30,10 +30,10 @@ def cosine_similarity(p_1, p_2):
         logger.error("cosine_similairty error")
         logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
+class ClientMultiFedAvgFedPredict(ClientMultiFedAvg):
     def __init__(self, args):
         try:
-            super(ClientMultiFedAvgFedPredictDynamic, self).__init__(args)
+            super(ClientMultiFedAvgFedPredict, self).__init__(args)
             self.global_model = [None] * self.ME
             self.p_ME = [None] * self.ME
             for me in range(self.ME):
@@ -96,26 +96,16 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
                             batch_size=self.args.batch_size,
                         )
                     elif t in self.concept_drift_config[me][
-                        "concept_drift_rounds"] and self.concept_drift_experiment_id in [8,9] and t - self.lt[me] > 0:
+                        "concept_drift_rounds"] and self.concept_drift_experiment_id in [8, 9] and t - self.lt[me] > 0:
                         self.concept_drift_window[me] += 1
-                        p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
-                                                                    self.n_classes, self.concept_drift_window)
-                    else:
-                        p_ME, fc_ME, il_ME = self.p_ME, self.fc_ME, self.il_ME
-                else:
-                    p_ME, fc_ME, il_ME = self.p_ME, self.fc_ME, self.il_ME
                 nt = t - self.lt[me]
                 parameters_me = parameters[me_str]
                 set_weights(self.global_model[me], parameters_me)
-                similarity = cosine_similarity(self.p_ME[me], p_ME[me])
-                # similarity = 1
-                logger.info(f"check rodada {t} cliente {self.client_id} window {self.concept_drift_window} similarit {similarity}")
+                logger.info(f"check rodada {t} cliente {self.client_id} window {self.concept_drift_window}")
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
-                                                         t=t, T=100, nt=nt, similarity=similarity, device=self.device)
-                loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t,
-                                                self.args.dataset[me], self.n_classes[me], similarity, p_ME[me], self.concept_drift_window[me])
-                # loss, metrics = test(combined_model, self.valloader[me], self.device, self.client_id, t,
-                #                                 self.args.dataset[me], self.n_classes[me], self.concept_drift_window[me])
+                                                         t=t, T=100, nt=nt, device=self.device)
+                loss, metrics = test(combined_model, self.valloader[me], self.device, self.client_id, t,
+                                                self.args.dataset[me], self.n_classes[me], self.concept_drift_window[me])
                 # if t == 25:
                 #     exit()
                 metrics["Model size"] = self.models_size[me]
