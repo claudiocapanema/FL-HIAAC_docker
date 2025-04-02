@@ -76,6 +76,7 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
                 me = int(me)
                 me_str = str(me)
                 alpha_me = self._get_current_alpha(t, me)
+                # Comment to simulate the `Delayed labeling`
                 self.trainloader[me] = self.recent_trainloader[me]
                 if self.concept_drift_config != {}:
                     if self.alpha[me] != alpha_me or (t in self.concept_drift_config[me][
