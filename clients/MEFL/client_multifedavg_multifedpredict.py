@@ -181,6 +181,7 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 #         self.p_ME_list[me].append(self.p_ME[me])
             me = config['me']
             t = config['t']
+            similarity = cosine_similarity(self.p_ME[me], p_ME[me])
             self.p_ME[me] = p_ME[me]
             self.fc_ME[me] = fc_ME[me]
             self.il_ME[me] = il_ME[me]
@@ -191,6 +192,7 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
             me = config['me']
             results["fc"] = self.fc_ME[me]
             results["il"] = self.il_ME[me]
+            results["similarity"] = similarity
             return parameters, size, results
         except Exception as e:
             logger.error("fit error")
@@ -206,6 +208,7 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
             homogeneity_degree = pickle.loads(config["homogeneity_degree"])
             fc = pickle.loads(config["fc"])
             il = pickle.loads(config["il"])
+            server_similarity = pickle.loads(config["similarity"])
             tuple_me = {}
             for me in range(self.ME):
                 self.NT[me] = t - self.lt[me]
@@ -214,7 +217,7 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 me_str = str(me)
                 alpha_me = self._get_current_alpha(t, me)
                 # Comment to simulate the `Delayed labeling`
-                self.trainloader[me] = self.recent_trainloader[me]
+                # self.trainloader[me] = self.recent_trainloader[me]
                 if self.concept_drift_config != {}:
                     if self.alpha[me] != alpha_me or (t in self.concept_drift_config[me][
                         "concept_drift_rounds"] and self.concept_drift_config[me]["type"] in ["label_shift"]):
@@ -232,8 +235,9 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                         "concept_drift_rounds"] and self.concept_drift_config[me]["type"] in ["concept_drift"] and t - \
                             self.lt[me] > 0:
                         self.concept_drift_window[me] += 1
-                        p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
-                                                                        self.n_classes, self.concept_drift_window)
+                        # p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
+                        #                                             self.n_classes, self.concept_drift_window)
+                        p_ME, fc_ME, il_ME = self.p_ME, self.fc_ME, self.il_ME
                     else:
                         p_ME, fc_ME, il_ME = self.p_ME, self.fc_ME, self.il_ME
                 else:

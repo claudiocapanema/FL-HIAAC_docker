@@ -149,6 +149,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             self.homogeneity_degree = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
             self.fc = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
             self.il = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
+            self.similarity = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
             self.min_training_clients_per_model = 3
             self.free_budget = int(self.fraction_fit * self.total_clients) - self.min_training_clients_per_model * self.ME
             self.ME_round_loss = {me: [] for me in range(self.ME)}
@@ -356,6 +357,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             results_mefl = {me: [] for me in range(self.ME)}
             fc = {me: [] for me in range(self.ME)}
             il = {me: [] for me in range(self.ME)}
+            similarity = {me: [] for me in range(self.ME)}
             for i in range(len(results)):
                 _, result = results[i]
                 me = result.metrics["me"]
@@ -369,10 +371,12 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             for me in range(self.ME):
                 fc[me] = float(np.sum(fc[me]) / len(fc[me]))
                 il[me] = float(np.sum(il[me]) / len(il[me]))
+                similarity[me] = float(np.sum(similarity[me]) / len(similarity[me]))
                 logger.info(f"fc {fc} il {il} {self.homogeneity_degree[server_round]}")
                 self.homogeneity_degree[server_round][me] = (fc[me] + (1 - il[me])) / 2
                 self.fc[server_round][me] = fc[me]
                 self.il[server_round][me] = il[me]
+                self.similarity[server_round][me] = similarity[me]
 
             logger.info(f"need {self.homogeneity_degree[server_round]} rodada {server_round}")
             self.homogeneity_degree[server_round] = self.homogeneity_degree[server_round]
@@ -491,6 +495,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             config["homogeneity_degree"] = pickle.dumps(self.homogeneity_degree[server_round])
             config["fc"] = pickle.dumps(self.fc[server_round])
             config["il"] = pickle.dumps(self.il[server_round])
+            config["similarity"] = pickle.dumps(self.similarity[server_round])
             evaluate_ins = EvaluateIns(parameters[0], config)
 
 
