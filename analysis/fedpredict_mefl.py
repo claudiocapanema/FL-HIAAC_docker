@@ -81,7 +81,7 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
         ls = lines[i].get_ls()
         if ls not in ["o"]:
             ls = "o"
-    markers = ["", "-", "--", "dotted"]
+    markers = ["", "-", "--", "-.", "dotted"]
 
     f = lambda m, c: plt.plot([], [], marker=m, color=c, ls="none")[0]
     handles = [f("o", colors[i]) for i in range(len(hue_order) + 1)]
@@ -104,11 +104,11 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
 
 if __name__ == "__main__":
-    concept_drift_experiment_id = 9
+    concept_drift_experiment_id = 8
     cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
     total_clients = 20
     # alphas = [0.1, 10.0]
-    alphas = {6: [10.0, 10.0], 7: [0.1, 0.1], 8: [10.0, 10.0], 9: [0.1, 0.1]}[concept_drift_experiment_id]
+    alphas = {6: [10.0, 10.0], 7: [0.1, 0.1], 8: [10.0, 10.0], 9: [0.1, 0.1], 10: [1.0, 1.0]}[concept_drift_experiment_id]
     # dataset = ["WISDM-W", "CIFAR10"]
     dataset = ["WISDM-W", "ImageNet"]
     # dataset = ["EMNIST", "CIFAR10"]

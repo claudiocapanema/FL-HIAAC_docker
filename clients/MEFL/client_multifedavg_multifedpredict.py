@@ -215,13 +215,8 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 alpha_me = self._get_current_alpha(t, me)
                 if self.concept_drift_config != {}:
                     if self.alpha[me] != alpha_me or (t in self.concept_drift_config[me][
-                        "concept_drift_rounds"] and self.concept_drift_experiment_id not in [8, 9]):
+                        "concept_drift_rounds"] and self.concept_drift_config[me]["type"] in ["label_shift"]):
                         self.alpha[me] = alpha_me
-                        # self.index = {0: 1, 1: 2, 2: 0}[self.index]
-                        # index = self.index
-                        # if t in self.concept_drift_config[me]["concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
-                        #     # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
-                        #     index = 0
                         index = 0
                         self.recent_trainloader[me], self.valloader[me] = load_data(
                             dataset_name=self.args.dataset[me],
@@ -232,7 +227,8 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                             batch_size=self.args.batch_size,
                         )
                     elif t in self.concept_drift_config[me][
-                        "concept_drift_rounds"] and self.concept_drift_experiment_id in [8, 9] and t - self.lt[me] > 0:
+                        "concept_drift_rounds"] and self.concept_drift_config[me]["type"] in ["concept_drift"] and t - \
+                            self.lt[me] > 0:
                         self.concept_drift_window[me] += 1
                         p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
                                                                         self.n_classes, self.concept_drift_window)
@@ -258,34 +254,15 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 parameters_me = parameters[me_str]
                 set_weights(self.global_model[me], parameters_me)
                 similarity = cosine_similarity(self.p_ME[me], p_ME[me])
-                # if me == 0:
-                #     if t >= 20 and t < 60:
-                #         similarity = 0
-                # elif me == 1:
-                #     if t < 30 or t >= 70:
-                #         similarity = 0
                 if fc[me] >= 0.97 and il[me] < 59:
-                # if homogeneity_degree[me] >= 0.6:
                     similarity = 0
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device)
-                # self.mean_p_ME = mean_p(self.p_ME_list, self.ME, self.NT, t)
-                # if self.mean_p_ME[me] is not None:
-                #     p_ME[me] = self.mean_p_ME[me]
-                # if me == 0:
-                #     if t >= 20 and t < 60:
-                #         similarity = 1
-                #         combined_model = self.global_model[me]
-                # elif me == 1:
-                #     if t < 30 or t >= 70:
-                #         similarity = 1
-                #         combined_model = self.global_model[me]
                 if fc[me] >= 0.97 and il[me] < 0.59:
-                # if homogeneity_degree[me] >= 0.6:
                     similarity = 1
                     combined_model = self.global_model[me]
                 loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t,
-                                                self.args.dataset[me], self.n_classes[me], similarity, p_ME[me])
+                                                self.args.dataset[me], self.n_classes[me], similarity, p_ME[me], self.concept_drift_window[me])
                 # loss, metrics = test(combined_model, self.valloader[me], self.device, self.client_id, t,
                 #                                 self.args.dataset[me], self.n_classes[me])
                 metrics["Model size"] = self.models_size[me]

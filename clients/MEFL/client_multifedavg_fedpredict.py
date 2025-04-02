@@ -79,13 +79,8 @@ class ClientMultiFedAvgFedPredict(ClientMultiFedAvg):
                 self.trainloader[me] = self.recent_trainloader[me]
                 if self.concept_drift_config != {}:
                     if self.alpha[me] != alpha_me or (t in self.concept_drift_config[me][
-                        "concept_drift_rounds"] and self.concept_drift_experiment_id not in [8, 9]):
+                        "concept_drift_rounds"] and self.concept_drift_config[me]["type"] in ["label_shift"]):
                         self.alpha[me] = alpha_me
-                        # self.index = {0: 1, 1: 2, 2: 0}[self.index]
-                        # index = self.index
-                        # if t in self.concept_drift_config[me]["concept_drift_rounds"] and self.concept_drift_experiment_id == 2:
-                        #     # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
-                        #     index = 0
                         index = 0
                         self.recent_trainloader[me], self.valloader[me] = load_data(
                             dataset_name=self.args.dataset[me],
@@ -96,7 +91,8 @@ class ClientMultiFedAvgFedPredict(ClientMultiFedAvg):
                             batch_size=self.args.batch_size,
                         )
                     elif t in self.concept_drift_config[me][
-                        "concept_drift_rounds"] and self.concept_drift_experiment_id in [8, 9] and t - self.lt[me] > 0:
+                        "concept_drift_rounds"] and self.concept_drift_config[me]["type"] in ["concept_drift"] and t - \
+                            self.lt[me] > 0:
                         self.concept_drift_window[me] += 1
                 nt = t - self.lt[me]
                 parameters_me = parameters[me_str]
