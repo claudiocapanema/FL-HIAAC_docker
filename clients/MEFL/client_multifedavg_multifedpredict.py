@@ -170,18 +170,21 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
     def fit(self, parameters, config):
         """Train the model with data of this client."""
         try:
+            p_old = self.p_ME
+            me = config['me']
             parameters, size, results = super().fit(parameters, config)
             p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
-                                                                           self.n_classes)
+                                                                           self.n_classes, self.concept_drift_window)
+            self.p_ME, self.fc_ME, self.il_ME = p_ME, fc_ME, il_ME
             # for me in range(self.ME):
                 # if len(self.p_ME_list[me]) > 0:
                 #     if self.p_ME_list[me][-1] != self.p_ME[me]:
                 #         self.p_ME_list[me].append(self.p_ME[me])
                 #     elif len(self.p_ME_list[me]) == 0:
                 #         self.p_ME_list[me].append(self.p_ME[me])
-            me = config['me']
+
             t = config['t']
-            similarity = cosine_similarity(self.p_ME[me], p_ME[me])
+            similarity = cosine_similarity(self.p_ME[me], p_old[me])
             self.p_ME[me] = p_ME[me]
             self.fc_ME[me] = fc_ME[me]
             self.il_ME[me] = il_ME[me]
@@ -208,7 +211,8 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
             homogeneity_degree = pickle.loads(config["homogeneity_degree"])
             fc = pickle.loads(config["fc"])
             il = pickle.loads(config["il"])
-            server_similarity = pickle.loads(config["similarity"])
+            # It is the probability of the current client has suferred a concept drift or label shift
+            data_shift_probalibity = pickle.loads(config["similarity"])
             tuple_me = {}
             for me in range(self.ME):
                 self.NT[me] = t - self.lt[me]
@@ -260,11 +264,14 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 parameters_me = parameters[me_str]
                 set_weights(self.global_model[me], parameters_me)
                 similarity = cosine_similarity(self.p_ME[me], p_ME[me])
-                if fc[me] >= 0.97 and il[me] < 59:
+
+                logger.info(f"data shift probability {data_shift_probalibity}")
+                #  or (data_shift_probalibity[me] < 0.8 and nt > 0 and t > 10)
+                if (fc[me] >= 0.97 and il[me] < 49) or (data_shift_probalibity[me] < 0.8 and nt > 0 and t > 10 and homogeneity_degree[me] > 0.7):
                     similarity = 0
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device)
-                if fc[me] >= 0.97 and il[me] < 0.59:
+                if (fc[me] >= 0.97 and il[me] < 0.49) or (data_shift_probalibity[me] < 0.8 and nt > 0 and t > 10 and homogeneity_degree[me] > 0.7):
                     similarity = 1
                     combined_model = self.global_model[me]
                 loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t,

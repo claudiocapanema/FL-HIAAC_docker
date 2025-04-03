@@ -158,7 +158,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             self.last_drift = 0
 
             self.test_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
-                                       "# training clients", "training clients and models", "Model size", "Alpha", "FC", "IL", "DH"]
+                                       "# training clients", "training clients and models", "Model size", "Alpha", "fc", "il", "dh", "Similarity"]
             self.train_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
                                         "# training clients", "training clients and models", "Model size", "Alpha"]
             self.rs_test_acc = {me: [] for me in range(self.ME)}
@@ -364,6 +364,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
                 client_id = result.metrics["client_id"]
                 fc[me].append(result.metrics["fc"])
                 il[me].append(result.metrics["il"])
+                similarity[me].append(result.metrics["similarity"])
                 self.selected_clients_m[me].append(client_id)
                 results_mefl[me].append(results[i])
 
@@ -372,6 +373,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
                 fc[me] = float(np.sum(fc[me]) / len(fc[me]))
                 il[me] = float(np.sum(il[me]) / len(il[me]))
                 similarity[me] = float(np.sum(similarity[me]) / len(similarity[me]))
+                similarity[me] = 1 if similarity[me] >= 0.98 else similarity[me]
                 logger.info(f"fc {fc} il {il} {self.homogeneity_degree[server_round]}")
                 self.homogeneity_degree[server_round][me] = (fc[me] + (1 - il[me])) / 2
                 self.fc[server_round][me] = fc[me]
@@ -521,9 +523,10 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             metrics_aggregated[me]["Fraction fit"] = self.fraction_fit
             metrics_aggregated[me]["# training clients"] = self.n_trained_clients
             metrics_aggregated[me]["training clients and models"] = self.selected_clients_m[me]
-            metrics_aggregated[me]["FC"] = self.fc[server_round][me]
-            metrics_aggregated[me]["IL"] = self.il[server_round][me]
-            metrics_aggregated[me]["DH"] = self.homogeneity_degree[server_round][me]
+            metrics_aggregated[me]["fc"] = self.fc[server_round][me]
+            metrics_aggregated[me]["il"] = self.il[server_round][me]
+            metrics_aggregated[me]["Similarity"] = self.similarity[server_round][me]
+            metrics_aggregated[me]["dh"] = self.homogeneity_degree[server_round][me]
 
             for metric in metrics_aggregated[me]:
                 self.results_test_metrics[me][metric].append(metrics_aggregated[me][metric])
