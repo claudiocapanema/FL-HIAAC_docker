@@ -267,11 +267,11 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
 
                 logger.info(f"data shift probability {data_shift_probalibity}")
                 #  or (data_shift_probalibity[me] < 0.8 and nt > 0 and t > 10)
-                if (fc[me] >= 0.97 and il[me] < 49) or (data_shift_probalibity[me] < 0.8 and nt > 0 and t > 10 and homogeneity_degree[me] > 0.7):
+                if (fc[me] >= 0.97 and il[me] < 49) or (data_shift_probalibity[me] < 0.8 and nt > 0 and t > 10 and homogeneity_degree[me] > 0.6):
                     similarity = 0
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device)
-                if (fc[me] >= 0.97 and il[me] < 0.49) or (data_shift_probalibity[me] < 0.8 and nt > 0 and t > 10 and homogeneity_degree[me] > 0.7):
+                if (fc[me] >= 0.97 and il[me] < 0.49) or (data_shift_probalibity[me] < 0.8 and nt > 0 and t > 10 and homogeneity_degree[me] > 0.6):
                     similarity = 1
                     combined_model = self.global_model[me]
                 loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t,
