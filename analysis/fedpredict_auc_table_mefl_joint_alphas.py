@@ -342,12 +342,9 @@ def idmax(df, n_solutions):
 
 
 if __name__ == "__main__":
-    concept_drift_experiment_id = 8
-    cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
+    concept_drift_experiment_id = [8, 9, 10]
     total_clients = 20
     # alphas = [0.1, 10.0]
-    alphas = {6: [10.0, 10.0], 7: [0.1, 0.1], 8: [10.0, 10.0], 9: [0.1, 0.1], 10: [1.0, 1.0]}[
-        concept_drift_experiment_id]
     # dataset = ["WISDM-W", "CIFAR10"]
     dataset = ["WISDM-W", "ImageNet"]
     # dataset = ["EMNIST", "CIFAR10"]
@@ -356,34 +353,38 @@ if __name__ == "__main__":
     fraction_fit = 0.3
     number_of_rounds = 100
     local_epochs = 1
-    fraction_new_clients = alphas[0]
     round_new_clients = 0
     train_test = "test"
     # solutions = ["MultiFedAvg+MFP", "MultiFedAvg+FPD", "MultiFedAvg+FP", "MultiFedAvg", "MultiFedAvgRR"]
     solutions = ["MultiFedAvg+MFP", "MultiFedAvg+FPD", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}
-    read_dataset_order = []
-    for solution in solutions:
-        for dt in dataset:
-            algo = dt + "_" + solution
+    for experiment_id in concept_drift_experiment_id:
+        cd = "false" if experiment_id == 0 else f"true_experiment_id_{experiment_id}"
+        read_dataset_order = []
+        for solution in solutions:
+            for dt in dataset:
+                algo = dt + "_" + solution
+                alphas = {6: [10.0, 10.0], 7: [0.1, 0.1], 8: [10.0, 10.0], 9: [0.1, 0.1], 10: [1.0, 1.0]}[
+                    experiment_id]
+                fraction_new_clients = alphas[0]
+                read_path = """../results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+                    cd,
+                    0.1,
+                    0.1,
+                    total_clients,
+                    alphas,
+                    dataset,
+                    model_name,
+                    fraction_fit,
+                    number_of_rounds,
+                    local_epochs,
+                    train_test)
+                read_dataset_order.append(dt)
 
-            read_path = """../results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
-                cd,
-                0.1,
-                0.1,
-                total_clients,
-                alphas,
-                dataset,
-                model_name,
-                fraction_fit,
-                number_of_rounds,
-                local_epochs,
-                train_test)
-            read_dataset_order.append(dt)
+                read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution))
 
-            read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution))
-
+    cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
     write_path = """plots/MEFL/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/concept_drift_experiment_id_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
         cd,
         fraction_new_clients,

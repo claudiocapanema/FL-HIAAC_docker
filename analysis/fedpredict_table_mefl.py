@@ -333,7 +333,7 @@ def idmax(df, n_solutions):
 
 
 if __name__ == "__main__":
-    concept_drift_experiment_id = 10
+    concept_drift_experiment_id = 8
     cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
     total_clients = 20
     # alphas = [0.1, 10.0]
@@ -350,8 +350,8 @@ if __name__ == "__main__":
     fraction_new_clients = alphas[0]
     round_new_clients = 0
     train_test = "test"
-    solutions = ["MultiFedAvg+MFP", "MultiFedAvg+FPD", "MultiFedAvg+FP", "MultiFedAvg", "MultiFedAvgRR"]
-    # solutions = ["MultiFedAvg+FPD", "MultiFedAvg+FP", "MultiFedAvg"]
+    # solutions = ["MultiFedAvg+MFP", "MultiFedAvg+FPD", "MultiFedAvg+FP", "MultiFedAvg", "MultiFedAvgRR"]
+    solutions = ["MultiFedAvg+MFP", "MultiFedAvg+FPD", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}
     read_dataset_order = []
