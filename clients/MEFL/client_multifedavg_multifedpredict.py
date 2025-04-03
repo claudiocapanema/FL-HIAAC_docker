@@ -196,6 +196,7 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
             results["fc"] = self.fc_ME[me]
             results["il"] = self.il_ME[me]
             results["similarity"] = similarity
+            results["alpha"] = self.alpha[me]
             return parameters, size, results
         except Exception as e:
             logger.error("fit error")

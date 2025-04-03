@@ -150,6 +150,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             self.fc = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
             self.il = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
             self.similarity = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
+            self.client_metrics = {cid: {me: {alpha: {"fc": None, "il": None, "Similarity": None} for alpha in [0.1, 1.0, 10.0]} for me in range(self.ME)} for cid in range(1, self.total_clients + 1)}
             self.min_training_clients_per_model = 3
             self.free_budget = int(self.fraction_fit * self.total_clients) - self.min_training_clients_per_model * self.ME
             self.ME_round_loss = {me: [] for me in range(self.ME)}
@@ -358,6 +359,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             fc = {me: [] for me in range(self.ME)}
             il = {me: [] for me in range(self.ME)}
             similarity = {me: [] for me in range(self.ME)}
+            dh = {me: [] for me in range(self.ME)}
             for i in range(len(results)):
                 _, result = results[i]
                 me = result.metrics["me"]
@@ -365,6 +367,11 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
                 fc[me].append(result.metrics["fc"])
                 il[me].append(result.metrics["il"])
                 similarity[me].append(result.metrics["similarity"])
+                alpha = result.metrics["alpha"]
+                self.client_metrics[client_id][me][alpha]["fc"] = fc[me]
+                self.client_metrics[client_id][me][alpha]["il"] = il[me]
+                self.client_metrics[client_id][me][alpha]["similarity"] = similarity[me]
+
                 self.selected_clients_m[me].append(client_id)
                 results_mefl[me].append(results[i])
 
@@ -431,6 +438,8 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
 
             self.parameters_aggregated_mefl = parameters_aggregated_mefl
             self.metrics_aggregated_mefl = metrics_aggregated_mefl
+
+            self._save_data_metrics()
 
             layers = {0: -1, 1: -2}
 
@@ -547,4 +556,23 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
 
         except Exception as e:
             logger.error("calculate_pseudo_t error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def _save_data_metrics(self):
+
+        try:
+            result_path = self.get_result_path("test")
+
+            head = ["cid", "me", "alpha", "fc", "il", "Similarity"]
+            rows = []
+            for cid in range(1, self.total_clients + 1):
+                for me in range(self.ME):
+                    for alpha in self.alpha:
+                        row = [cid, me, alpha, self.client_metrics[cid][me][alpha]["fc"], self.client_metrics[cid][me][alpha]["il"], self.client_metrics[cid][me][alpha]["Similarity"]]
+                        rows.append(row)
+
+            logger.info(f"rows {rows}")
+
+        except Exception as e:
+            logger.error("_save_data_metrics error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
