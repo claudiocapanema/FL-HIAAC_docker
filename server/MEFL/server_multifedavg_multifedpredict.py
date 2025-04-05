@@ -150,7 +150,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             self.fc = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
             self.il = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
             self.similarity = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
-            self.client_metrics = {cid: {me: {alpha: {"fc": None, "il": None, "Similarity": None} for alpha in [0.1, 1.0, 10.0]} for me in range(self.ME)} for cid in range(1, self.total_clients + 1)}
+            self.client_metrics = {cid: {me: {alpha: {"fc": None, "il": None, "similarity": None} for alpha in [0.1, 1.0, 10.0]} for me in range(self.ME)} for cid in range(1, self.total_clients + 1)}
             self.min_training_clients_per_model = 3
             self.free_budget = int(self.fraction_fit * self.total_clients) - self.min_training_clients_per_model * self.ME
             self.ME_round_loss = {me: [] for me in range(self.ME)}
@@ -159,7 +159,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             self.last_drift = 0
 
             self.test_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
-                                       "# training clients", "training clients and models", "Model size", "Alpha", "fc", "il", "dh", "Similarity"]
+                                       "# training clients", "training clients and models", "Model size", "Alpha", "fc", "il", "dh", "ps"]
             self.train_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
                                         "# training clients", "training clients and models", "Model size", "Alpha"]
             self.rs_test_acc = {me: [] for me in range(self.ME)}
@@ -356,6 +356,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             self.selected_clients_m = [[] for me in range(self.ME)]
 
             results_mefl = {me: [] for me in range(self.ME)}
+            num_samples = {me: [] for me in range(self.ME)}
             fc = {me: [] for me in range(self.ME)}
             il = {me: [] for me in range(self.ME)}
             similarity = {me: [] for me in range(self.ME)}
@@ -363,23 +364,26 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             for i in range(len(results)):
                 _, result = results[i]
                 me = result.metrics["me"]
+                num_samples[me].append(result.num_examples)
                 client_id = result.metrics["client_id"]
                 fc[me].append(result.metrics["fc"])
                 il[me].append(result.metrics["il"])
                 similarity[me].append(result.metrics["similarity"])
                 alpha = result.metrics["alpha"]
-                self.client_metrics[client_id][me][alpha]["fc"] = fc[me]
-                self.client_metrics[client_id][me][alpha]["il"] = il[me]
-                self.client_metrics[client_id][me][alpha]["similarity"] = similarity[me]
+                self.client_metrics[client_id][me][alpha]["fc"] = result.metrics["fc"]
+                self.client_metrics[client_id][me][alpha]["il"] = result.metrics["il"]
+                self.client_metrics[client_id][me][alpha]["similarity"] = result.metrics["similarity"]
+                s = result.metrics["similarity"]
+                logger.info(f"similaridade do cliente {client_id} e {s} rodada {server_round}")
 
                 self.selected_clients_m[me].append(client_id)
                 results_mefl[me].append(results[i])
 
             logger.info(f"antes fc {fc} il {il} rodada {server_round}")
             for me in range(self.ME):
-                fc[me] = float(np.sum(fc[me]) / len(fc[me]))
-                il[me] = float(np.sum(il[me]) / len(il[me]))
-                similarity[me] = float(np.sum(similarity[me]) / len(similarity[me]))
+                fc[me] = self._weighted_average(fc[me], num_samples[me])
+                il[me] = self._weighted_average(il[me], num_samples[me])
+                similarity[me] = self._weighted_average(similarity[me], num_samples[me])
                 similarity[me] = 1 if similarity[me] >= 0.98 else similarity[me]
                 logger.info(f"fc {fc} il {il} {self.homogeneity_degree[server_round]}")
                 self.homogeneity_degree[server_round][me] = (fc[me] + (1 - il[me])) / 2
@@ -439,7 +443,8 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             self.parameters_aggregated_mefl = parameters_aggregated_mefl
             self.metrics_aggregated_mefl = metrics_aggregated_mefl
 
-            self._save_data_metrics()
+            if server_round > 10:
+                self._save_data_metrics()
 
             layers = {0: -1, 1: -2}
 
@@ -534,7 +539,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             metrics_aggregated[me]["training clients and models"] = self.selected_clients_m[me]
             metrics_aggregated[me]["fc"] = self.fc[server_round][me]
             metrics_aggregated[me]["il"] = self.il[server_round][me]
-            metrics_aggregated[me]["Similarity"] = self.similarity[server_round][me]
+            metrics_aggregated[me]["ps"] = self.similarity[server_round][me]
             metrics_aggregated[me]["dh"] = self.homogeneity_degree[server_round][me]
 
             for metric in metrics_aggregated[me]:
@@ -561,18 +566,42 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
     def _save_data_metrics(self):
 
         try:
-            result_path = self.get_result_path("test")
-
-            head = ["cid", "me", "alpha", "fc", "il", "Similarity"]
-            rows = []
-            for cid in range(1, self.total_clients + 1):
-                for me in range(self.ME):
-                    for alpha in self.alpha:
-                        row = [cid, me, alpha, self.client_metrics[cid][me][alpha]["fc"], self.client_metrics[cid][me][alpha]["il"], self.client_metrics[cid][me][alpha]["Similarity"]]
+            for me in range(self.ME):
+                algo = self.dataset[me] + "_" + self.strategy_name
+                result_path = self.get_result_path("test")
+                file_path = result_path + "{}_metrics.csv".format(algo)
+                rows = []
+                head = ["cid", "me", "Alpha", "fc", "il", "ps", "dh"]
+                self._write_header(file_path, head, mode='w')
+                for cid in range(1, self.total_clients + 1):
+                    for alpha in [0.1, 1.0, 10.0]:
+                        fc = self.client_metrics[cid][me][alpha]["fc"]
+                        il = self.client_metrics[cid][me][alpha]["il"]
+                        if fc is not None and il is not None:
+                            dh = (fc + (1 - il)) / 2
+                        else:
+                            dh = None
+                        row = [cid, me, alpha, fc, il, self.client_metrics[cid][me][alpha]["similarity"], dh]
                         rows.append(row)
+
+                self._write_outputs(file_path, rows)
 
             logger.info(f"rows {rows}")
 
         except Exception as e:
             logger.error("_save_data_metrics error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+            exit()
+
+    def _weighted_average(self, values, weights):
+
+        try:
+            values = np.array([i * j for i, j in zip(values, weights)])
+            values = np.sum(values) / np.sum(weights)
+            return float(values)
+
+        except Exception as e:
+            logger.error("_weighted_average error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+
