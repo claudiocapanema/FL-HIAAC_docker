@@ -33,7 +33,7 @@ def read_data(read_solutions, read_dataset_order):
                 path = paths[i]
                 df = pd.read_csv(path)
                 df["Solution"] = np.array([solution] * len(df))
-                df["Dataset"] = np.array([dataset] * len(df))
+                df["Dataset"] = np.array([dataset.replace("WISDM-W", "WISDM")] * len(df))
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))
                 df["Version"] = np.array([solution_strategy_version[solution]["Version"]] * len(df))
                 try:
