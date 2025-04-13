@@ -34,7 +34,7 @@ def read_data(read_solutions, read_dataset_order):
                 df["Solution"] = np.array([solution] * len(df))
                 df["Accuracy (%)"] = df["Accuracy"] * 100
                 df["Balanced accuracy (%)"] = df["Balanced accuracy"] * 100
-                df["Dataset"] = np.array([dataset] * len(df))
+                df["Dataset"] = np.array([dataset.replace("WISDM-W", "WISDM").replace("ImageNet", "ImageNet-15")] * len(df))
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))
                 df["Version"] = np.array([solution_strategy_version[solution]["Version"]] * len(df))
 
@@ -108,7 +108,7 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
 
 if __name__ == "__main__":
-    concept_drift_experiment_id = 6
+    concept_drift_experiment_id = 9
     cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
     total_clients = 20
     # alphas = [0.1, 10.0]

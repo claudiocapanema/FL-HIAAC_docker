@@ -213,7 +213,7 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
             fc = pickle.loads(config["fc"])
             il = pickle.loads(config["il"])
             # It is the probability of the current client has suferred a concept drift or label shift
-            data_shift_probalibity = pickle.loads(config["similarity"])
+            ps = pickle.loads(config["similarity"])
             tuple_me = {}
             for me in range(self.ME):
                 self.NT[me] = t - self.lt[me]
@@ -268,13 +268,27 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 set_weights(self.global_model[me], parameters_me)
                 similarity = cosine_similarity(self.p_ME[me], p_ME[me])
 
-                logger.info(f"data shift probability {data_shift_probalibity}")
+                logger.info(f"data shift probability {ps}")
                 #  or (data_shift_probalibity[me] < 0.8 and nt > 0 and t > 10)
-                if (fc[me] >= 0.97 and il[me] < 55 and homogeneity_degree[me] > 0.7) or (data_shift_probalibity[me] < 0.8 and nt > 0 and t > 10 and homogeneity_degree[me] > 0.6):
+                a = 0.97
+                b = [0.54, 0.56]
+                c = [0.72, 0.65]
+                d = 0.8
+                #                 if data_shift_probalibity[me] > 0.2 and self.drift_round[me] == 0:
+                #                     self.drift_round[me] = t
+                #                 elif data_shift_probalibity[me] <= 0.2 and self.drift_round[me] > 0:
+                #                     self.drift_round[me] = 0
+                #                 rounds_since_drift = self.lt[me] - self.drift_round[me]
+                # if (fc[me] >= 0.97 and il[me] < 0.55 and homogeneity_degree[me] > c[me]) or (data_shift_probalibity[me] < 0.81 and nt > 0 and t > 10 and homogeneity_degree[me] > c[me] or (t in [50, 51, 52, 53, 54, 80, 81, 82, 83, 84])):
+                if (fc[me] >= 0.97 and il[me] < 0.55 and homogeneity_degree[me] > c[me]) or (
+                        ps[me] < 0.81 and nt > 0 and t > 10 and homogeneity_degree[me] > c[me]):
                     similarity = 0
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device)
-                if (fc[me] >= 0.97 and il[me] < 0.55 and homogeneity_degree[me] > 0.7) or (data_shift_probalibity[me] < 0.8 and nt > 0 and t > 10 and homogeneity_degree[me] > 0.6):
+                # combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
+                #                                          t=t, T=100, nt=nt, similarity=similarity, fc={'local': fc[me], 'reference': a}, il={'local': il[me], 'reference': b}, dh={'local': homogeneity_degree[me], 'reference': c}, ps={'local': homogeneity_degree[me], 'reference': d}, device=self.device)
+                if (fc[me] >= 0.97 and il[me] < 0.55 and homogeneity_degree[me] > c[me]) or (
+                        ps[me] < 0.81 and nt > 0 and t > 10 and homogeneity_degree[me] > c[me]):
                     similarity = 1
                     combined_model = self.global_model[me]
                 loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t,
