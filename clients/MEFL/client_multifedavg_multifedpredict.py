@@ -279,10 +279,16 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 #         ps[me] < 0.81 and nt > 0 and t > 10 and homogeneity_degree[me] > c[me]):
                 if t <= 10:
                     s = 0
+                if s > 1:
+                    s = 1
+                elif s < 0:
+                    s = 0
                 # combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                 #                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device)
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, s=s, fc={'global': fc[me], 'reference': a}, il={'global': il[me], 'reference': b[me]}, dh={'global': homogeneity_degree[me], 'reference': c[me]}, ps={'global': homogeneity_degree[me], 'reference': d}, device=self.device, logs=True)
+                if combined_model is None:
+                    raise Exception("Combined model is None")
                 if (fc[me] >= 0.97 and il[me] < 0.55 and homogeneity_degree[me] > c[me]) or (
                         ps[me] < 0.81 and nt > 0 and t > 10 and homogeneity_degree[me] > c[me]):
                     s = 1
