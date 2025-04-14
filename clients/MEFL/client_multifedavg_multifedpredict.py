@@ -266,33 +266,29 @@ class ClientMultiFedAvgMultiFedPredict(ClientMultiFedAvg):
                 #     p_ME, fc_ME, il_ME = self.p_ME, self.fc_ME, self.il_ME
                 parameters_me = parameters[me_str]
                 set_weights(self.global_model[me], parameters_me)
-                similarity = cosine_similarity(self.p_ME[me], p_ME[me])
+                s = cosine_similarity(self.p_ME[me], p_ME[me])
 
                 logger.info(f"data shift probability {ps}")
                 #  or (data_shift_probalibity[me] < 0.8 and nt > 0 and t > 10)
                 a = 0.97
-                b = [0.54, 0.56]
+                # b = [0.54, 0.56]
+                b = [0.55, 0.55]
                 c = [0.72, 0.65]
-                d = 0.8
-                #                 if data_shift_probalibity[me] > 0.2 and self.drift_round[me] == 0:
-                #                     self.drift_round[me] = t
-                #                 elif data_shift_probalibity[me] <= 0.2 and self.drift_round[me] > 0:
-                #                     self.drift_round[me] = 0
-                #                 rounds_since_drift = self.lt[me] - self.drift_round[me]
-                # if (fc[me] >= 0.97 and il[me] < 0.55 and homogeneity_degree[me] > c[me]) or (data_shift_probalibity[me] < 0.81 and nt > 0 and t > 10 and homogeneity_degree[me] > c[me] or (t in [50, 51, 52, 53, 54, 80, 81, 82, 83, 84])):
-                if (fc[me] >= 0.97 and il[me] < 0.55 and homogeneity_degree[me] > c[me]) or (
-                        ps[me] < 0.81 and nt > 0 and t > 10 and homogeneity_degree[me] > c[me]):
-                    similarity = 0
-                combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
-                                                         t=t, T=100, nt=nt, similarity=similarity, device=self.device)
+                d = 0.81
+                # if (fc[me] >= 0.97 and il[me] < 0.55 and homogeneity_degree[me] > c[me]) or (
+                #         ps[me] < 0.81 and nt > 0 and t > 10 and homogeneity_degree[me] > c[me]):
+                if t <= 10:
+                    s = 0
                 # combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
-                #                                          t=t, T=100, nt=nt, similarity=similarity, fc={'local': fc[me], 'reference': a}, il={'local': il[me], 'reference': b}, dh={'local': homogeneity_degree[me], 'reference': c}, ps={'local': homogeneity_degree[me], 'reference': d}, device=self.device)
+                #                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device)
+                combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
+                                                         t=t, T=100, nt=nt, s=s, fc={'global': fc[me], 'reference': a}, il={'global': il[me], 'reference': b[me]}, dh={'global': homogeneity_degree[me], 'reference': c[me]}, ps={'global': homogeneity_degree[me], 'reference': d}, device=self.device, logs=True)
                 if (fc[me] >= 0.97 and il[me] < 0.55 and homogeneity_degree[me] > c[me]) or (
                         ps[me] < 0.81 and nt > 0 and t > 10 and homogeneity_degree[me] > c[me]):
-                    similarity = 1
+                    s = 1
                     combined_model = self.global_model[me]
                 loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t,
-                                                self.args.dataset[me], self.n_classes[me], similarity, p_ME[me], self.concept_drift_window[me])
+                                                self.args.dataset[me], self.n_classes[me], s, p_ME[me], self.concept_drift_window[me])
                 # loss, metrics = test(combined_model, self.valloader[me], self.device, self.client_id, t,
                 #                                 self.args.dataset[me], self.n_classes[me])
                 metrics["Model size"] = self.models_size[me]
