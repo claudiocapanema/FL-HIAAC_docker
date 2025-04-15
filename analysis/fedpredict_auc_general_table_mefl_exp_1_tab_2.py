@@ -2,6 +2,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import scipy.stats as st
+from numpy import trapz
 
 import copy
 
@@ -20,7 +21,6 @@ def read_data(read_solutions, read_dataset_order):
         "FedKD+FP": {"Strategy": "FedKD", "Version": "FP", "Table": "FedKD+FP"},
         "MultiFedAvg+MFP": {"Strategy": "MultiFedAvg", "Version": "MFP", "Table": "MultiFedAvg+MFP"},
         "MultiFedAvg+FPD": {"Strategy": "MultiFedAvg", "Version": "FPD", "Table": "MultiFedAvg+FPD"},
-        "MultiFedAvg+FP": {"Strategy": "MultiFedAvg", "Version": "FP", "Table": "MultiFedAvg+FP"},
         "MultiFedAvg": {"Strategy": "MultiFedAvg", "Version": "Original", "Table": "MultiFedAvg"},
         "MultiFedAvgRR": {"Strategy": "MultiFedAvgRR", "Version": "Original", "Table": "MultiFedAvgRR"}
     }
@@ -40,6 +40,7 @@ def read_data(read_solutions, read_dataset_order):
                 df["Table"] = np.array([solution_strategy_version[solution]["Table"]] * len(df))
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))
                 df["Version"] = np.array([solution_strategy_version[solution]["Version"]] * len(df))
+                df["Alpha"] = np.array([0.1] * len(df))
 
                 if df_concat is None:
                     df_concat = df
@@ -54,6 +55,13 @@ def read_data(read_solutions, read_dataset_order):
                 print(e)
 
     return df_concat, hue_order
+
+def group_by(df, metric):
+
+    area = trapz(df[metric].to_numpy(), dx=1)
+
+    return area
+
 
 
 def table(df, write_path, metric, t=None):
@@ -86,24 +94,29 @@ def table(df, write_path, metric, t=None):
     models_dict = {}
     ci = 0.95
 
-    for alpha in model_report:
-        models_datasets_dict = {dt: {} for dt in datasets}
-        for column in columns:
-            for dt in datasets:
-                models_datasets_dict[dt][column] = t_distribution((filter(df_test, dt,
-                                                                          alpha=float(alpha), strategy=column)[
-                    metric]).tolist(), ci)
-
-        model_metrics = []
-
+    # for alpha in model_report:
+    models_datasets_dict = {dt: {} for dt in datasets}
+    for column in columns:
         for dt in datasets:
-            for column in columns:
-                model_metrics.append(models_datasets_dict[dt][column])
+            # models_datasets_dict[dt][column] = t_distribution((filter(df_test, dt,
+            #                                                           alpha=float(alpha), strategy=column)[
+            #     metric]).tolist(), ci)
+            filtered = df_test.query(f"Dataset == '{dt}' and Table == '{column}'")
+            size = filtered.shape[0]
+            re = group_by(filtered, metric=metric)
+            models_datasets_dict[dt][column] = re / size
 
-        models_dict[alpha] = model_metrics
+    model_metrics = []
+
+    for dt in datasets:
+        for column in columns:
+            model_metrics.append(str(round(models_datasets_dict[dt][column], 2)))
+
+    models_dict[0.1] = model_metrics
 
     print(models_dict)
     print(index)
+    # exit()
 
     df_table = pd.DataFrame(models_dict, index=index).round(4)
     print("df table: ", df_table)
@@ -171,9 +184,9 @@ def table(df, write_path, metric, t=None):
 
     Path(write_path).mkdir(parents=True, exist_ok=True)
     if t is not None:
-        filename = """{}latex_round_{}_{}.txt""".format(write_path, t, metric)
+        filename = """{}latex_round_auc_general_{}_{}.txt""".format(write_path, t, metric)
     else:
-        filename = """{}latex_{}.txt""".format(write_path, metric)
+        filename = """{}latex_auc_general_{}.txt""".format(write_path, metric)
     pd.DataFrame({'latex': [latex]}).to_csv(filename, header=False, index=False)
 
     improvements(df_table, datasets, metric)
@@ -275,9 +288,9 @@ def accuracy_improvement(df, datasets):
 
             for column in columns:
                 difference = str(round(float(df.loc[reference_index, column].replace(u"\u00B1", "")[:4]) - float(
-                    df.loc[target_index, column].replace(u"\u00B1", "")[:4]), 1))
+                    df.loc[target_index, column].replace(u"\u00B1", "")[:4]), 2))
                 difference = str(
-                    round(float(difference) * 100 / float(df.loc[target_index, column][:4].replace(u"\u00B1", "")), 1))
+                    round(float(difference) * 100 / float(df.loc[target_index, column][:4].replace(u"\u00B1", "")), 2))
                 if difference[0] != "-":
                     difference = r"\textuparrow" + difference
                 else:
@@ -295,7 +308,7 @@ def select_mean(index, column_values, columns, n_solutions):
     for i in range(len(column_values)):
         print("valor: ", column_values[i])
         value = float(str(str(column_values[i])[:4]).replace(u"\u00B1", ""))
-        interval = float(str(column_values[i])[5:8])
+        interval = 0
         minimum = value - interval
         maximum = value + interval
         list_of_means.append((value, minimum, maximum))
@@ -333,7 +346,7 @@ def idmax(df, n_solutions):
 
 
 if __name__ == "__main__":
-    concept_drift_experiment_id = 8
+    concept_drift_experiment_id = 6
     cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
     total_clients = 20
     # alphas = [0.1, 10.0]
@@ -395,7 +408,7 @@ if __name__ == "__main__":
 
     cp_rounds = [20, 50, 80]
     cp_window = []
-    window = 1
+    window = 2
     for i in range(len(cp_rounds)):
         cp_round = cp_rounds[i]
         cp_window += [round_ for round_ in range(cp_round, cp_round + window + 1)]

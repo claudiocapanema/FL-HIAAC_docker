@@ -57,9 +57,9 @@ def read_data(read_solutions, read_dataset_order):
 
 def group_by(df, metric):
 
-    area = round(trapz(df[metric].to_numpy(), dx=1), 1)
+    area = trapz(df[metric].to_numpy(), dx=1)
 
-    return str(area)
+    return area
 
 
 
@@ -100,13 +100,16 @@ def table(df, write_path, metric, t=None):
                 # models_datasets_dict[dt][column] = t_distribution((filter(df_test, dt,
                 #                                                           alpha=float(alpha), strategy=column)[
                 #     metric]).tolist(), ci)
-                models_datasets_dict[dt][column] = group_by(df_test.query(f"Dataset == '{dt}' and Alpha == {alpha} and Table == '{column}'"), metric=metric)
+                filtered = df_test.query(f"Dataset == '{dt}' and Alpha == {alpha} and Table == '{column}'")
+                size = filtered.shape[0]
+                re = group_by(filtered, metric=metric)
+                models_datasets_dict[dt][column] = re / size
 
         model_metrics = []
 
         for dt in datasets:
             for column in columns:
-                model_metrics.append(models_datasets_dict[dt][column])
+                model_metrics.append(str(round(models_datasets_dict[dt][column], 2)))
 
         models_dict[alpha] = model_metrics
 
@@ -284,9 +287,9 @@ def accuracy_improvement(df, datasets):
 
             for column in columns:
                 difference = str(round(float(df.loc[reference_index, column].replace(u"\u00B1", "")[:4]) - float(
-                    df.loc[target_index, column].replace(u"\u00B1", "")[:4]), 1))
+                    df.loc[target_index, column].replace(u"\u00B1", "")[:4]), 2))
                 difference = str(
-                    round(float(difference) * 100 / float(df.loc[target_index, column][:4].replace(u"\u00B1", "")), 1))
+                    round(float(difference) * 100 / float(df.loc[target_index, column][:4].replace(u"\u00B1", "")), 2))
                 if difference[0] != "-":
                     difference = r"\textuparrow" + difference
                 else:

@@ -2,7 +2,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import scipy.stats as st
-from numpy import trapz
 
 import copy
 
@@ -21,6 +20,7 @@ def read_data(read_solutions, read_dataset_order):
         "FedKD+FP": {"Strategy": "FedKD", "Version": "FP", "Table": "FedKD+FP"},
         "MultiFedAvg+MFP": {"Strategy": "MultiFedAvg", "Version": "MFP", "Table": "MultiFedAvg+MFP"},
         "MultiFedAvg+FPD": {"Strategy": "MultiFedAvg", "Version": "FPD", "Table": "MultiFedAvg+FPD"},
+        "MultiFedAvg+FP": {"Strategy": "MultiFedAvg", "Version": "FP", "Table": "MultiFedAvg+FP"},
         "MultiFedAvg": {"Strategy": "MultiFedAvg", "Version": "Original", "Table": "MultiFedAvg"},
         "MultiFedAvgRR": {"Strategy": "MultiFedAvgRR", "Version": "Original", "Table": "MultiFedAvgRR"}
     }
@@ -54,13 +54,6 @@ def read_data(read_solutions, read_dataset_order):
                 print(e)
 
     return df_concat, hue_order
-
-def group_by(df, metric):
-
-    area = round(trapz(df[metric].to_numpy(), dx=1), 1)
-
-    return str(area)
-
 
 
 def table(df, write_path, metric, t=None):
@@ -97,10 +90,9 @@ def table(df, write_path, metric, t=None):
         models_datasets_dict = {dt: {} for dt in datasets}
         for column in columns:
             for dt in datasets:
-                # models_datasets_dict[dt][column] = t_distribution((filter(df_test, dt,
-                #                                                           alpha=float(alpha), strategy=column)[
-                #     metric]).tolist(), ci)
-                models_datasets_dict[dt][column] = group_by(df_test.query(f"Dataset == '{dt}' and Alpha == {alpha} and Table == '{column}'"), metric=metric)
+                models_datasets_dict[dt][column] = t_distribution((filter(df_test, dt,
+                                                                          alpha=float(alpha), strategy=column)[
+                    metric]).tolist(), ci)
 
         model_metrics = []
 
@@ -112,7 +104,6 @@ def table(df, write_path, metric, t=None):
 
     print(models_dict)
     print(index)
-    # exit()
 
     df_table = pd.DataFrame(models_dict, index=index).round(4)
     print("df table: ", df_table)
@@ -176,13 +167,13 @@ def table(df, write_path, metric, t=None):
         "&  \\", "& - \\").replace(" - " + r"\textbf", " " + r"\textbf").replace("_{dc}", r"_{\text{dc}}").replace(
         "\multirow[t]{" + n_strategies + "}{*}{EMNIST}", "EMNIST").replace(
         "\multirow[t]{" + n_strategies + "}{*}{CIFAR10}", "CIFAR10").replace(
-        "\multirow[t]{" + n_strategies + "}{*}{GTSRB}", "GTSRB").replace("\cline{1-4}", "\hline").replace("\cline{1-5}", "\hline").replace("\multirow[t]", "\multirow")
+        "\multirow[t]{" + n_strategies + "}{*}{GTSRB}", "GTSRB").replace("\cline{1-4}", "\hline").replace("\cline{1-5}", "\hline").replace("\multirow[t]", "\multirow").replace("\multirow[t]", "\multirow").replace(u"\u00B10.0", "")
 
     Path(write_path).mkdir(parents=True, exist_ok=True)
     if t is not None:
-        filename = """{}latex_round_auc_{}_{}.txt""".format(write_path, t, metric)
+        filename = """{}latex_round_joint_{}_{}.txt""".format(write_path, t, metric)
     else:
-        filename = """{}latex_auc_{}.txt""".format(write_path, metric)
+        filename = """{}latex_joint_{}.txt""".format(write_path, metric)
     pd.DataFrame({'latex': [latex]}).to_csv(filename, header=False, index=False)
 
     improvements(df_table, datasets, metric)
@@ -304,7 +295,7 @@ def select_mean(index, column_values, columns, n_solutions):
     for i in range(len(column_values)):
         print("valor: ", column_values[i])
         value = float(str(str(column_values[i])[:4]).replace(u"\u00B1", ""))
-        interval = 0
+        interval = float(str(column_values[i])[5:8])
         minimum = value - interval
         maximum = value + interval
         list_of_means.append((value, minimum, maximum))
@@ -403,12 +394,7 @@ if __name__ == "__main__":
     df, hue_order = read_data(read_solutions, read_dataset_order)
     print(df)
 
-    cp_rounds = [20, 50, 80]
-    cp_window = []
-    window = 5
-    for i in range(len(cp_rounds)):
-        cp_round = cp_rounds[i]
-        cp_window += [round_ for round_ in range(cp_round, cp_round + window + 1)]
+    cp_window = [51]
 
     table(df, write_path, "Balanced accuracy (%)", t=None)
     table(df, write_path, "Accuracy (%)", t=None)

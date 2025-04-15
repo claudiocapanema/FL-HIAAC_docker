@@ -167,7 +167,7 @@ def table(df, write_path, metric, t=None):
         "&  \\", "& - \\").replace(" - " + r"\textbf", " " + r"\textbf").replace("_{dc}", r"_{\text{dc}}").replace(
         "\multirow[t]{" + n_strategies + "}{*}{EMNIST}", "EMNIST").replace(
         "\multirow[t]{" + n_strategies + "}{*}{CIFAR10}", "CIFAR10").replace(
-        "\multirow[t]{" + n_strategies + "}{*}{GTSRB}", "GTSRB").replace("\cline{1-4}", "\hline").replace("\cline{1-5}", "\hline").replace("\multirow[t]", "\multirow")
+        "\multirow[t]{" + n_strategies + "}{*}{GTSRB}", "GTSRB").replace("\cline{1-4}", "\hline").replace("\cline{1-5}", "\hline").replace("\multirow[t]", "\multirow").replace(u"\u00B10.0", "")
 
     Path(write_path).mkdir(parents=True, exist_ok=True)
     if t is not None:
@@ -333,7 +333,7 @@ def idmax(df, n_solutions):
 
 
 if __name__ == "__main__":
-    concept_drift_experiment_id = 8
+    concept_drift_experiment_id = 6
     cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
     total_clients = 20
     # alphas = [0.1, 10.0]
@@ -393,12 +393,7 @@ if __name__ == "__main__":
     df, hue_order = read_data(read_solutions, read_dataset_order)
     print(df)
 
-    cp_rounds = [20, 50, 80]
-    cp_window = []
-    window = 1
-    for i in range(len(cp_rounds)):
-        cp_round = cp_rounds[i]
-        cp_window += [round_ for round_ in range(cp_round, cp_round + window + 1)]
+    cp_window = [21, 51, 81]
 
     table(df, write_path, "Balanced accuracy (%)", t=None)
     table(df, write_path, "Accuracy (%)", t=None)
