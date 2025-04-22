@@ -235,10 +235,16 @@ class MultiFedEfficiency(MultiFedAvg):
                         self.clients_metrics[client_id]["fraction_of_classes"][int(me)] = fraction_of_classes
                         self.clients_metrics[client_id]["imbalance_level"][int(me)] = imbalance_level
                         self.clients_metrics[client_id]["train_class_count"][int(me)] = train_class_count
-                self.calculate_non_iid_degree_of_models()
-            if server_round >= 2:
-                self.process(server_round)
 
+            if server_round >= 2:
+                if server_round == 2:
+                    self.calculate_non_iid_degree_of_models()
+                self.process(server_round)
+            if server_round == 12:
+            #     logger.info("""Média fraction of classes: {}""".format(np.mean(self.fraction_of_classes, axis=1)))
+            #     logger.info("""Média imbalance level: {}""".format(np.mean(self.imbalance_level, axis=1)))
+            #     logger.info("""Need for training: {}""".format(self.need_for_training))
+                exit()
 
             return super().aggregate_evaluate(server_round, results, failures)
         except Exception as e:
@@ -361,11 +367,11 @@ class MultiFedEfficiency(MultiFedAvg):
 
             logger.info("""cm i: {}""".format(cm))
 
-            if self.free_budget_distribution_factor > 0:
-                free_budget = self.total_clients - np.sum(cm)
+            if self.free_budget_distribution_factor > 0 and t >= 3:
+                free_budget = (self.total_clients * self.fraction_fit) - np.sum(cm)
                 k_nt = len(np.argwhere(self.need_for_training >= 0.5))
                 free_budget_k = int(int(free_budget * self.free_budget_distribution_factor) / k_nt)
-                rest = free_budget - free_budget_k * k_nt
+                rest = free_budget - int(free_budget_k * k_nt)
 
                 logger.info(f"Free budget: {free_budget},  k nt: {k_nt}, Free budget k: {free_budget_k}, resto: {rest}")
 
