@@ -369,19 +369,20 @@ class MultiFedEfficiency(MultiFedAvg):
 
             if self.free_budget_distribution_factor > 0 and t >= 3:
                 free_budget = int((self.total_clients * self.fraction_fit) - np.sum(cm))
-                k_nt = len(np.argwhere(self.need_for_training >= 0.5))
-                free_budget_k = int(int(free_budget * self.free_budget_distribution_factor) / k_nt)
-                rest = free_budget - int(free_budget_k * k_nt)
+                k_nt = len(np.argwhere(self.need_for_training >= 0.34))
+                if free_budget > 0 and k_nt > 0:
+                    free_budget_k = int(int(free_budget * self.free_budget_distribution_factor) / k_nt)
+                    rest = free_budget - int(free_budget_k * k_nt)
 
-                logger.info(f"Free budget: {free_budget},  k nt: {k_nt}, Free budget k: {free_budget_k}, resto: {rest}")
+                    logger.info(f"Free budget: {free_budget},  k nt: {k_nt}, Free budget k: {free_budget_k}, resto: {rest}")
 
-                for me in range(self.ME):
-                    if self.need_for_training[me] >= 0.5 and cm[me] == budget:
-                        cm[me] = int(cm[me] + free_budget_k)
-                        if rest > 0:
-                            cm[me] += 1
-                            rest -= 1
-                            rest = max(rest, 0)
+                    for me in range(self.ME):
+                        if self.need_for_training[me] >= 0.5 and cm[me] == budget:
+                            cm[me] = int(cm[me] + free_budget_k)
+                            if rest > 0:
+                                cm[me] += 1
+                                rest -= 1
+                                rest = max(rest, 0)
 
             selected_clients = np.random.choice(clients, int(self.fraction_fit * self.total_clients), replace=False).tolist()
             selected_clients = [i for i in selected_clients]
