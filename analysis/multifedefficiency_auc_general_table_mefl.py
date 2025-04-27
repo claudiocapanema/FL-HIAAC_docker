@@ -19,6 +19,7 @@ def read_data(read_solutions, read_dataset_order):
         "FedPer": {"Strategy": "FedPer", "Version": "Original", "Table": "FedPer"},
         "FedKD": {"Strategy": "FedKD", "Version": "Original", "Table": "FedKD"},
         "FedKD+FP": {"Strategy": "FedKD", "Version": "FP", "Table": "FedKD+FP"},
+        "MultiFedAvg+FP": {"Strategy": "MultiFedAvg", "Version": "FP", "Table": "MultiFedAvg+FP"},
         "MultiFedAvg+MFP": {"Strategy": "MultiFedAvg", "Version": "MFP", "Table": "MultiFedAvg+MFP"},
         "MultiFedAvg+FPD": {"Strategy": "MultiFedAvg", "Version": "FPD", "Table": "MultiFedAvg+FPD"},
         "MultiFedAvg": {"Strategy": "MultiFedAvg", "Version": "Original", "Table": "MultiFedAvg"},
@@ -197,7 +198,7 @@ def table(df, write_path, metric, t=None):
 
 def improvements(df, datasets, metric):
     # , "FedKD+FP": "FedKD"
-    strategies = {"MultiFedEfficiency": "MultiFedAvg"}
+    strategies = {"MultiFedEfficiency": "MultiFedAvg", "MultiFedAvg+FP": "MultiFedAvg"}
     # strategies = {r"MultiFedAvg+FP": "MultiFedAvg"}
     columns = df.columns.tolist()
     improvements_dict = {'Dataset': [], 'Table': [], 'Original strategy': [], 'Alpha': [], metric: []}
@@ -277,7 +278,7 @@ def accuracy_improvement(df, datasets):
     # reference_solutions = {"MultiFedAvg+FP": "MultiFedAvg", "MultiFedAvgGlobalModelEval+FP": "MultiFedAvgGlobalModelEval"}
     # ,
     #                            "FedKD+FP": "FedKD"
-    reference_solutions = {"MultiFedEfficiency": "MultiFedAvg"}
+    reference_solutions = {"MultiFedEfficiency": "MultiFedAvg", "MultiFedAvg+FP": "MultiFedAvg"}
 
     print(df_difference)
     # exit()
@@ -358,13 +359,13 @@ if __name__ == "__main__":
     # models_names = ["cnn_c"]
     model_name = ["gru", "CNN"]
     fraction_fit = 0.3
-    number_of_rounds = 40
+    number_of_rounds = 100
     local_epochs = 1
     fraction_new_clients = alphas[0]
     round_new_clients = 0
     train_test = "test"
     # solutions = ["MultiFedAvg+MFP", "MultiFedAvg+FPD", "MultiFedAvg+FP", "MultiFedAvg", "MultiFedAvgRR"]
-    solutions = ["MultiFedEfficiency", "MultiFedAvg"]
+    solutions = ["MultiFedEfficiency", "MultiFedAvg+FP", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}
     read_dataset_order = []
@@ -407,4 +408,4 @@ if __name__ == "__main__":
 
     table(df, write_path, "Balanced accuracy (%)", t=None)
     table(df, write_path, "Accuracy (%)", t=None)
-    table(df, write_path, "Accuracy (%)", t=[39,40])
+    table(df, write_path, "Accuracy (%)", t=[i for i in range(80,100)])

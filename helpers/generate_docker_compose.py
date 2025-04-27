@@ -268,15 +268,15 @@ services:
     script_up = f"sudo docker compose -f {filename} up --build && docker image prune -f"
 
     script_down = f"sudo docker compose -f {filename} down"
-    subprocess.Popen(script_up, shell=True).wait()
+
     try:
         # Chamar o script bash usando subprocess
+        subprocess.Popen(script_down, shell=True).wait()
         subprocess.Popen(script_up, shell=True).wait()
-        subprocess.Popen("sudo docker compose down", shell=True).wait()
-        # subprocess.Popen("sudo bash get_results.sh", shell=True).wait()
+        subprocess.Popen("sudo bash get_results.sh", shell=True).wait()
     except Exception as e:
         # print(e)
-        subprocess.Popen("sudo docker compose down", shell=True)
+        # subprocess.Popen(script_down, shell=True)
         pass
     print(script_down)
 

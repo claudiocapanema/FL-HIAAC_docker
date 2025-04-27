@@ -211,99 +211,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
 
             n = len(clients) // self.ME
             selected_clients_m = np.array_split(clients, self.ME)
-            # train_more_models = []
-            # for i, v in enumerate(self.need_for_training):
-            #     if v == True:
-            #         train_more_models.append(i)
-            #
-            # if len(train_more_models) > 0:
-            #     distributed_budget = self.free_budget // len(train_more_models)
-            # else:
-            #     distributed_budget = 0
-            # training_intensity_me = [self.min_training_clients_per_model] * self.ME
-            #
-            # for me in train_more_models:
-            #     if me in train_more_models:
-            #         training_intensity_me[me] += distributed_budget
-            #
-            # logger.info(f"training intensity me {training_intensity_me} rodada {server_round} free budget {self.free_budget} train more models {train_more_models} need for training {self.need_for_training}")
-            # i = 0
             training_intensity_me = [int((self.fraction_fit * self.total_clients)/self.ME)] * self.ME
-            # if server_round < 40:
-            #     if server_round < 20:
-            #         training_intensity_me = [4, 2]
-            #     else:
-            #         training_intensity_me = [3, 3]
-            # elif server_round >= 40 and server_round < 80:
-            #     if server_round < 60:
-            #         training_intensity_me = [2, 4]
-            #     else:
-            #         training_intensity_me = [3, 3]
-            # else:
-            #     training_intensity_me = [4, 2]
-
-            # # experimento 2 simultaneo
-            # if server_round < 40:
-            #     if server_round < 20:
-            #         training_intensity_me = [5, 3]
-            #     else:
-            #         training_intensity_me = [4, 4]
-            # elif server_round >= 40 and server_round < 80:
-            #     if server_round < 60:
-            #         training_intensity_me = [3, 5]
-            #     else:
-            #         training_intensity_me = [4, 4]
-            # else:
-            #     training_intensity_me = [5, 3]
-
-            # # experimento 2 simultaneo config 1
-            # if server_round < 20:
-            #     training_intensity_me = [4, 2]
-            # elif server_round < 30:
-            #     training_intensity_me = [3, 3]
-            # elif server_round < 50:
-            #     training_intensity_me = [2, 4]
-            # elif server_round < 60:
-            #     training_intensity_me = [3, 3]
-            # elif server_round >= 60 and server_round < 70:
-            #     training_intensity_me = [4, 2]
-            # else:
-            #     training_intensity_me = [3, 3]
-            # experimento 2 simultaneo config 2
-            # if server_round < 10:
-            #     training_intensity_me = [4, 2]
-            # elif server_round < 20:
-            #     training_intensity_me = [3, 3]
-            # elif server_round < 30:
-            #     training_intensity_me = [4, 2]
-            # elif server_round < 40:
-            #     training_intensity_me = [2, 4]
-            # elif server_round < 50:
-            #     training_intensity_me = [2, 4]
-            # elif server_round < 60:
-            #     training_intensity_me = [3, 3]
-            # elif server_round >= 60 and server_round < 70:
-            #     training_intensity_me = [4, 2]
-            # else:
-            #     training_intensity_me = [3, 3]
-
-            # # experimento 2 simultaneo config 3
-            # if server_round < 10:
-            #     training_intensity_me = [4, 2]
-            # elif server_round < 20:
-            #     training_intensity_me = [4, 2]
-            # elif server_round < 30:
-            #     training_intensity_me = [4, 2]
-            # elif server_round < 40:
-            #     training_intensity_me = [2, 4]
-            # elif server_round < 50:
-            #     training_intensity_me = [2, 4]
-            # elif server_round < 60:
-            #     training_intensity_me = [3, 3]
-            # elif server_round >= 60 and server_round < 70:
-            #     training_intensity_me = [4, 2]
-            # else:
-            #     training_intensity_me = [3, 3]
 
             selected_clients_m = []
             i = 0
@@ -385,7 +293,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
                 il[me] = self._weighted_average(il[me], num_samples[me])
                 similarity[me] = self._weighted_average(similarity[me], num_samples[me])
                 similarity[me] = 1 if similarity[me] >= 0.98 else similarity[me]
-                logger.info(f"fc {fc} il {il} {self.homogeneity_degree[server_round]}")
+                logger.info(f"fc {fc} il {il}  homogeneity degree {self.homogeneity_degree[server_round]}")
                 self.homogeneity_degree[server_round][me] = (fc[me] + (1 - il[me])) / 2
                 self.fc[server_round][me] = fc[me]
                 self.il[server_round][me] = il[me]
@@ -453,24 +361,6 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
                     if self.round_initial_parameters[me] is not None:
                         # self.checkpoint_models[me][self.need_for_training[server_round - 1][me]] = parameters_to_ndarrays(self.round_initial_parameters[me])[layers:]
                         self.checkpoint_models[me][server_round] = parameters_to_ndarrays(parameters_aggregated_mefl[me])[layers[me]:]
-
-            # if server_round == 80:
-            #     for me in range(self.ME):
-            #         model = self.checkpoint_models[me][39]
-            #         parameters_aggregated_mefl[me] = parameters_to_ndarrays(parameters_aggregated_mefl[me])
-            #         parameters_aggregated_mefl[me][layers[me]:] = model
-            #         parameters_aggregated_mefl[me] = ndarrays_to_parameters(parameters_aggregated_mefl[me])
-                # self.last_drift += 1
-                # if abs(self.need_for_training[server_round][me] - self.need_for_training[server_round - 1][me]) >= 0.1 and self.last_drift >= 10:
-                #     self.last_drift = 0
-                #     keys = self.checkpoint_models[me].keys()
-                #     logger.info(f"keys {keys} server round {server_round} me {me} need for training {self.need_for_training[server_round][me]} {self.need_for_training[server_round - 1][me]}")
-                #     if len(keys) > 0:
-                #         key = min(keys, key=lambda num: abs(num - self.need_for_training[server_round][me]))
-                #         model = self.checkpoint_models[me][key]
-                #         parameters_aggregated_mefl[me] = parameters_to_ndarrays(parameters_aggregated_mefl[me])
-                #         parameters_aggregated_mefl[me][layers:] = model
-                #         parameters_aggregated_mefl[me] = ndarrays_to_parameters(parameters_aggregated_mefl[me])
 
             return parameters_aggregated_mefl, metrics_aggregated_mefl
         except Exception as e:

@@ -54,7 +54,7 @@ def read_data(read_solutions, read_dataset_order):
     return df_concat, hue_order
 
 
-def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
+def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None, y_max=100):
 
     datasets = df["Dataset"].unique().tolist()
 
@@ -67,7 +67,7 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
         line_plot(df=df_plot, base_dir=base_dir, ax=axs[j],
                   file_name="""solutions_{}""".format(datasets), x_column=x, y_column=y,
-                  hue=hue, hue_order=hue_order, ci=ci, title="", tipo=None, y_lim=True, y_max=100)
+                  hue=hue, hue_order=hue_order, ci=ci, title="", tipo=None, y_lim=True, y_max=y_max)
         axs[j].set_title(r"""Dataset: {}""".format(datasets[j]), size=10)
 
         if j == 1:
@@ -113,15 +113,15 @@ if __name__ == "__main__":
     concept_drift_experiment_id = 0
     cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
     total_clients = 27
-    # alphas = [0.1, 10.0]
-    alphas = [1.0, 1.0]
+    # alphas = [1.0, 10.0]
+    alphas = [10.0, 1.0]
     # dataset = ["WISDM-W", "CIFAR10"]
     dataset = ["WISDM-W", "ImageNet"]
     # dataset = ["EMNIST", "CIFAR10"]
     # models_names = ["cnn_c"]
     model_name = ["gru", "CNN"]
     fraction_fit = 0.3
-    number_of_rounds = 40
+    number_of_rounds = 100
     local_epochs = 1
     fraction_new_clients = alphas[0]
     round_new_clients = 0
@@ -171,5 +171,5 @@ if __name__ == "__main__":
 
     line(df, write_path, x="Round (t)", y="Accuracy (%)", hue="Strategy", style="Version", hue_order=hue_order)
     line(df, write_path, x="Round (t)", y="Accuracy (%)", hue="Strategy", style="Version", hue_order=hue_order)
-    line(df, write_path, x="Round (t)", y="Balanced accuracy (%)", hue="Strategy", style="Version", hue_order=hue_order)
-    line(df, write_path, x="Round (t)", y="Balanced accuracy (%)", hue="Strategy", style="Version", hue_order=hue_order)
+    line(df, write_path, x="Round (t)", y="Loss", hue="Strategy", style="Version", hue_order=hue_order, y_max=0.2)
+    line(df, write_path, x="Round (t)", y="Loss", hue="Strategy", style="Version", hue_order=hue_order, y_max=0.2)
