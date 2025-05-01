@@ -110,11 +110,14 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None, y_ma
 
 if __name__ == "__main__":
 
-    concept_drift_experiment_id = 0
-    cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
+    concept_drift_experiment_id = 13
+    # cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
+    cd = f"experiment_id_{concept_drift_experiment_id}"
     total_clients = 27
-    # alphas = [1.0, 10.0]
-    alphas = [10.0, 1.0]
+    # alphas = [10.0, 10.0]
+    alphas = [0.1, 0.1]
+    # alphas = [1.0, 1.0]
+    # alphas = [10.0, 0.1]
     # dataset = ["WISDM-W", "CIFAR10"]
     dataset = ["WISDM-W", "ImageNet"]
     # dataset = ["EMNIST", "CIFAR10"]
@@ -135,7 +138,7 @@ if __name__ == "__main__":
         for dt in dataset:
             algo = dt + "_" + solution
 
-            read_path = """../results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+            read_path = """../results/{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
                 cd,
                 0.1,
                 0.1,
@@ -151,7 +154,7 @@ if __name__ == "__main__":
 
             read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution))
 
-    write_path = """plots/MEFL/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/concept_drift_experiment_id_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
+    write_path = """plots/MEFL/{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/concept_drift_experiment_id_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
         cd,
         fraction_new_clients,
         round_new_clients,

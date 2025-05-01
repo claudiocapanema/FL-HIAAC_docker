@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import seaborn.objects as so
 import numpy as np
-
+import pandas as pd
 # sns.color_palette()
 
 def bar_plot(df, base_dir, file_name, x_column, y_column, title, hue=None, hue_order=None, y_lim=False, y_min=0, y_max=100, log_scale=False, sci=False, x_order=None, ax=None, tipo=None, palette=None):

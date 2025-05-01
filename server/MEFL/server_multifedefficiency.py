@@ -200,6 +200,9 @@ class MultiFedEfficiency(MultiFedAvg):
                                            range(self.ME)}
             self.clients_results_test_metrics = {me: {metric: [] for metric in self.test_metrics_names} for me in
                                                  range(self.ME)}
+            self.loss_range = {me: [] for me in range(self.ME)}
+            self.parameters_aggregated_mefl = {me: [] for me in range(self.ME)}
+            self.metrics_aggregated_mefl = {me: [] for me in range(self.ME)}
         except Exception as e:
             logger.error("__init__ error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
@@ -237,17 +240,20 @@ class MultiFedEfficiency(MultiFedAvg):
 
             n = len(clients) // self.ME
             selected_clients_m = np.array_split(clients, self.ME)
-            training_intensity_me = [int((self.fraction_fit * self.total_clients) / self.ME)] * self.ME
-            training_intensity_me = self.random_selection(server_round, clients)
+            # training_intensity_me = [int((self.fraction_fit * self.total_clients) / self.ME)] * self.ME
+            trained_models, training_intensity_me = self.random_selection(server_round, clients)
 
             selected_clients_m = []
             i = 0
             for me in range(self.ME):
                 training_intensity = training_intensity_me[me]
-                logger.info(f"valo: {i} {training_intensity}")
-                j = i + training_intensity
-                selected_clients_m.append(clients[i:j])
-                i = j
+                if training_intensity > 0:
+                    logger.info(f"valo: {i} {training_intensity}")
+                    j = i + training_intensity
+                    selected_clients_m.append(clients[i:j])
+                    i = j
+                else:
+                    selected_clients_m.append([])
 
             self.n_trained_clients = len(clients)
             logging.info("""selecionados {} por modelo {} rodada {}""".format(self.n_trained_clients,
@@ -256,7 +262,7 @@ class MultiFedEfficiency(MultiFedAvg):
 
             # Return client/config pairs
             clients_m = []
-            for me in range(self.ME):
+            for me in trained_models:
                 sc = selected_clients_m[me]
                 if server_round > 1:
                     self.round_initial_parameters[me] = parameters[me]
@@ -295,6 +301,7 @@ class MultiFedEfficiency(MultiFedAvg):
             il = {me: [] for me in range(self.ME)}
             similarity = {me: [] for me in range(self.ME)}
             dh = {me: [] for me in range(self.ME)}
+            trained_models = []
             for i in range(len(results)):
                 _, result = results[i]
                 me = result.metrics["me"]
@@ -312,9 +319,11 @@ class MultiFedEfficiency(MultiFedAvg):
 
                 self.selected_clients_m[me].append(client_id)
                 results_mefl[me].append(results[i])
+                if me not in trained_models:
+                    trained_models.append(me)
 
             logger.info(f"antes fc {fc} il {il} rodada {server_round}")
-            for me in range(self.ME):
+            for me in trained_models:
                 fc[me] = self._weighted_average(fc[me], num_samples[me])
                 il[me] = self._weighted_average(il[me], num_samples[me])
                 similarity[me] = self._weighted_average(similarity[me], num_samples[me])
@@ -325,10 +334,10 @@ class MultiFedEfficiency(MultiFedAvg):
                 self.il[server_round][me] = il[me]
                 self.similarity[server_round][me] = similarity[me]
 
-            logger.info(f"need {self.heterogeneity_degree[server_round]} rodada {server_round}")
-
-            self.need_for_training = np.array(self.heterogeneity_degree[server_round]) / np.sum(self.heterogeneity_degree[server_round])
-            logger.info(f"need normalizado {self.need_for_training} rodada {server_round}")
+            # logger.info(f"need {self.heterogeneity_degree[server_round]} rodada {server_round}")
+            #
+            # self.need_for_training = np.array(self.heterogeneity_degree[server_round]) / np.sum(self.heterogeneity_degree[server_round])
+            # logger.info(f"need normalizado {self.need_for_training} rodada {server_round}")
 
             aggregated_ndarrays_mefl = {me: None for me in range(self.ME)}
             aggregated_ndarrays_mefl = {me: [] for me in range(self.ME)}
@@ -336,11 +345,11 @@ class MultiFedEfficiency(MultiFedAvg):
             parameters_aggregated_mefl = {me: [] for me in range(self.ME)}
 
             if self.inplace:
-                for me in range(self.ME):
+                for me in trained_models:
                     # Does in-place weighted average of results
                     aggregated_ndarrays_mefl[me] = aggregate_inplace(results_mefl[me])
             else:
-                for me in range(self.ME):
+                for me in trained_models:
                     # Convert results
                     weights_results = [
                         (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples)
@@ -352,13 +361,13 @@ class MultiFedEfficiency(MultiFedAvg):
                     elif len(weights_results) == 1:
                         aggregated_ndarrays_mefl[me] = results_mefl[me][1].parameters
 
-            for me in range(self.ME):
+            for me in trained_models:
                 logger.info(f"tamanho para modelo {me} rodada {server_round} {len(aggregated_ndarrays_mefl[me])}")
                 parameters_aggregated_mefl[me] = ndarrays_to_parameters(aggregated_ndarrays_mefl[me])
 
             # Aggregate custom metrics if aggregation fn was provided
-            metrics_aggregated_mefl = {me: [] for me in range(self.ME)}
-            for me in range(self.ME):
+            metrics_aggregated_mefl = {me: [] for me in trained_models}
+            for me in trained_models:
                 if self.fit_metrics_aggregation_fn:
                     fit_metrics = [(res.num_examples, res.metrics) for _, res in results_mefl[me]]
                     metrics_aggregated_mefl[me] = self.fit_metrics_aggregation_fn(fit_metrics)
@@ -366,21 +375,22 @@ class MultiFedEfficiency(MultiFedAvg):
                     log(WARNING, "No fit_metrics_aggregation_fn provided")
 
             # Get losses
-            for me in range(self.ME):
+            for me in trained_models:
                 self.ME_round_loss[me].append(metrics_aggregated_mefl[me]["Loss"])
 
             logger.info("""finalizou aggregated fit""")
             logger.info(f"finalizou aggregated fit {server_round}")
 
-            self.calculate_pseudo_t(server_round, self.ME_round_loss[me])
+            # self.calculate_pseudo_t(server_round, self.ME_round_loss[me])
 
-            self.parameters_aggregated_mefl = parameters_aggregated_mefl
-            self.metrics_aggregated_mefl = metrics_aggregated_mefl
+            for me in trained_models:
+                self.parameters_aggregated_mefl[me] = parameters_aggregated_mefl[me]
+                self.metrics_aggregated_mefl[me] = metrics_aggregated_mefl[me]
 
             if server_round > 10:
                 self._save_data_metrics()
 
-            return parameters_aggregated_mefl, metrics_aggregated_mefl
+            return self.parameters_aggregated_mefl, self.metrics_aggregated_mefl
         except Exception as e:
             logger.error("aggregate_fit error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
@@ -511,34 +521,84 @@ class MultiFedEfficiency(MultiFedAvg):
             logger.error("_weighted_average error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
+    # def process(self, t: int):
+    #     """semi-convergence detection"""
+    #     try:
+    #         if t == 2:
+    #             diff = self.tw_range[0] - self.tw_range[1]
+    #             middle = self.tw_range[1] + diff // 2
+    #             for me in range(self.ME):
+    #                 # method 2
+    #                 # r = diff * (1 - self.need_for_training[m])
+    #                 # if self.need_for_training[m] >= 0.5:
+    #                 #     # Makes it harder to reduce training intensity
+    #                 #     lower = upper - t/2
+    #                 #     upper = lower + diff * (1- self.need_for_training[m])
+    #                 # else:
+    #                 #     # Makes it easier to reduce training intensity
+    #                 #     upper = self.tw_range[0]
+    #                 #     lower = upper - diff * self.need_for_training[m]
+    #
+    #                 # method 1 funciona bem
+    #                 lower = self.tw_range[1]
+    #                 upper = self.tw_range[0]
+    #                 r = diff * (1 - self.need_for_training[me])
+    #                 # Smaller training reduction interval for higher need for training
+    #                 lower = max(middle - r / 2, lower)
+    #                 upper = min(middle + r / 2, upper)
+    #
+    #                 self.lim.append([upper, lower])
+    #             self.lim[1] = [1, 1]
+    #         flag = True
+    #         logger.info(f"limites:  {self.lim}")
+    #         # exit()
+    #         loss_reduction = [0] * self.ME
+    #         for me in range(self.ME):
+    #             if not self.stop_cpd[me]:
+    #                 self.rounds_since_last_semi_convergence[me] += 1
+    #
+    #                 """Stop CPD"""
+    #                 logger.info(f"Modelo m:  {me}")
+    #                 logger.info(f"tw:  {self.tw[me]}")
+    #                 logger.info("""loss results test metrics {}""".format(self.results_test_metrics[me]["Loss"]))
+    #                 losses = self.results_test_metrics[me]["Loss"][-(self.tw[me] + 1):]
+    #                 losses = np.array([losses[i] - losses[i + 1] for i in range(len(losses) - 1)])
+    #                 if len(losses) > 0:
+    #                     loss_reduction[me] = losses[-1]
+    #                 logger.info(f"Modelo {me}, losses: {losses}")
+    #                 idxs = np.argwhere(losses < 0)
+    #                 # lim = [[0.5, 0.25], [0.35, 0.15]]
+    #                 logger.info("""tamanho lin {} ind me {}""".format(len(self.lim), me))
+    #                 upper = self.lim[me][0]
+    #                 lower = self.lim[me][1]
+    #                 logger.info(f"Condição 1: {len(idxs) <= int(self.tw[me] * self.lim[me][0])}, Condição 2: {len(idxs) >= int(self.tw[me] * lower)}")
+    #                 logger.info(f"{len(idxs)} {self.tw[me]} {upper} {lower} {int(self.tw[me] * upper)} {int(self.tw[me] * lower)}")
+    #                 if self.rounds_since_last_semi_convergence[me] >= 4:
+    #                     if len(idxs) <= int(self.tw[me] * upper) and len(idxs) >= int(self.tw[me] * lower):
+    #                         self.rounds_since_last_semi_convergence[me] = 0
+    #                         logger.info("a, remaining_clients_per_model, total_clientsb: ",
+    #                               self.training_clients_per_model_per_round)
+    #                         self.models_semi_convergence_rounds_n_clients[me].append({'round': t, 'n_training_clients':
+    #                             self.training_clients_per_model_per_round[me][t]})
+    #                         # more clients are trained for the semi converged model
+    #                         logger.info(f"treinados na rodada passada: {me}, {self.training_clients_per_model_per_round[me][t - 2]}")
+    #
+    #                         if flag:
+    #                             self.models_semi_convergence_flag[me] = True
+    #                             self.models_semi_convergence_count[me] += 1
+    #                             flag = False
+    #
+    #                     elif len(idxs) > int(self.tw[me] * upper):
+    #                         self.rounds_since_last_semi_convergence[me] += 1
+    #                         self.models_semi_convergence_count[me] -= 1
+    #                         self.models_semi_convergence_count[me] = max(0, self.models_semi_convergence_count[me])
+    #     except Exception as e:
+    #         logger.error("process error")
+    #         logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
     def process(self, t: int):
         """semi-convergence detection"""
         try:
-            if t == 2:
-                diff = self.tw_range[0] - self.tw_range[1]
-                middle = self.tw_range[1] + diff // 2
-                for me in range(self.ME):
-                    # method 2
-                    # r = diff * (1 - self.need_for_training[m])
-                    # if self.need_for_training[m] >= 0.5:
-                    #     # Makes it harder to reduce training intensity
-                    #     lower = upper - t/2
-                    #     upper = lower + diff * (1- self.need_for_training[m])
-                    # else:
-                    #     # Makes it easier to reduce training intensity
-                    #     upper = self.tw_range[0]
-                    #     lower = upper - diff * self.need_for_training[m]
-
-                    # method 1 funciona bem
-                    lower = self.tw_range[1]
-                    upper = self.tw_range[0]
-                    r = diff * (1 - self.need_for_training[me])
-                    # Smaller training reduction interval for higher need for training
-                    lower = max(middle - r / 2, lower)
-                    upper = min(middle + r / 2, upper)
-
-                    self.lim.append([upper, lower])
-                self.lim[1] = [1, 1]
             flag = True
             logger.info(f"limites:  {self.lim}")
             # exit()
@@ -551,7 +611,10 @@ class MultiFedEfficiency(MultiFedAvg):
                     logger.info(f"Modelo m:  {me}")
                     logger.info(f"tw:  {self.tw[me]}")
                     logger.info("""loss results test metrics {}""".format(self.results_test_metrics[me]["Loss"]))
-                    losses = self.results_test_metrics[me]["Loss"][-(self.tw[me] + 1):]
+                    losses = self.ME_round_loss[me][self.loss_window:]
+                    min_ = min(self.ME_round_loss[me])
+                    max_ = max(self.ME_round_loss[me])
+
                     losses = np.array([losses[i] - losses[i + 1] for i in range(len(losses) - 1)])
                     if len(losses) > 0:
                         loss_reduction[me] = losses[-1]
@@ -594,72 +657,80 @@ class MultiFedEfficiency(MultiFedAvg):
             np.random.seed(t)
             random.seed(t)
 
-            # budget = int((self.total_clients * self.fraction_fit) / self.ME)
-            # cm = [budget] * self.ME
+            # if t > 1:
+            #     budget = int((self.total_clients * self.fraction_fit) / self.ME)
+            #     total_train_clients = int(self.fraction_fit * self.total_clients)
+            #     selected_clients = np.random.choice(clients, total_train_clients, replace=False).tolist()
+            #     selected_clients = [i for i in selected_clients]
             #
-            # for me in range(self.ME):
-            #     if self.models_semi_convergence_count[me] > 0:
-            #         cm[me] = int(max(self.minimum_training_clients_per_model,
-            #                                           cm[me] - self.models_semi_convergence_count[me]))
-            #
-            # logger.info("""cm i: {}""".format(cm))
-            #
-            # if self.free_budget_distribution_factor > 0 and t >= 3:
-            #     free_budget = int((self.total_clients * self.fraction_fit) - np.sum(cm))
-            #     k_nt = len(np.argwhere(self.need_for_training >= 0.34))
+            #     selected_clients_m = [None] * self.ME
+            #     cm_min = [self.min_training_clients_per_model] * self.ME
+            #     cm = (self.need_for_training * total_train_clients).astype(int)
+            #     cm = np.array([self.min_training_clients_per_model if i < self.min_training_clients_per_model else i for i in cm])
+            #     free_budget = int(total_train_clients - np.sum(cm))
+            #     k_nt = len(np.argwhere(cm > self.min_training_clients_per_model))
             #     if free_budget > 0 and k_nt > 0:
-            #         free_budget_k = int(int(free_budget * self.free_budget_distribution_factor) / k_nt)
+            #         free_budget_k = int(int(free_budget * 1) / k_nt)
             #         rest = free_budget - int(free_budget_k * k_nt)
             #
             #         logger.info(f"Free budget: {free_budget},  k nt: {k_nt}, Free budget k: {free_budget_k}, resto: {rest}")
             #
             #         for me in range(self.ME):
-            #             if self.need_for_training[me] >= 0.34 and cm[me] == budget:
+            #             if cm[me] > self.min_training_clients_per_model and cm[me] == budget:
             #                 cm[me] = int(cm[me] + free_budget_k)
             #                 if rest > 0:
             #                     cm[me] += 1
             #                     rest -= 1
             #                     rest = max(rest, 0)
-            if t > 1:
-                budget = int((self.total_clients * self.fraction_fit) / self.ME)
-                total_train_clients = int(self.fraction_fit * self.total_clients)
-                selected_clients = np.random.choice(clients, total_train_clients, replace=False).tolist()
-                selected_clients = [i for i in selected_clients]
-
-                selected_clients_m = [None] * self.ME
-                cm_min = [self.min_training_clients_per_model] * self.ME
-                cm = (self.need_for_training * total_train_clients).astype(int)
-                cm = np.array([self.min_training_clients_per_model if i < self.min_training_clients_per_model else i for i in cm])
-                free_budget = int(total_train_clients - np.sum(cm))
-                k_nt = len(np.argwhere(cm > self.min_training_clients_per_model))
-                if free_budget > 0 and k_nt > 0:
-                    free_budget_k = int(int(free_budget * 1) / k_nt)
-                    rest = free_budget - int(free_budget_k * k_nt)
-
-                    logger.info(f"Free budget: {free_budget},  k nt: {k_nt}, Free budget k: {free_budget_k}, resto: {rest}")
-
-                    for me in range(self.ME):
-                        if cm[me] > self.min_training_clients_per_model and cm[me] == budget:
-                            cm[me] = int(cm[me] + free_budget_k)
-                            if rest > 0:
-                                cm[me] += 1
-                                rest -= 1
-                                rest = max(rest, 0)
-
-
-                logger.info("""a : {}""".format(selected_clients_m))
-                logger.info("""random: {}""".format(selected_clients))
-                logger.info("""cm: {}""".format(cm))
-                i = 0
-                reverse_list = [k for k in range(self.ME)]
-                for me in reverse_list:
-                    j = i + cm[me]
-                    selected_clients_m[me] = selected_clients[i: j]
-                    i = j
-
-                return cm
+            #
+            #
+            #     logger.info("""a : {}""".format(selected_clients_m))
+            #     logger.info("""random: {}""".format(selected_clients))
+            #     logger.info("""cm: {}""".format(cm))
+            #     i = 0
+            #     reverse_list = [k for k in range(self.ME)]
+            #     for me in reverse_list:
+            #         j = i + cm[me]
+            #         selected_clients_m[me] = selected_clients[i: j]
+            #         i = j
+            #
+            #     return cm
+            # else:
+            #     return [int((self.fraction_fit * self.total_clients) / self.ME)] * self.ME
+            if self.experiment_id == 11:
+                t_ref = 2
+            elif self.experiment_id == 13:
+                t_ref = 50
+            elif self.experiment_id == 12:
+                t_ref = 70
+            elif self.experiment_id == 14:
+                t_ref = 80
+            elif self.experiment_id == 15:
+                t_ref = 50
+                if t > t_ref or t == 1:
+                    trained_models = [i for i in range(self.ME)]
+                    return trained_models, [int((self.fraction_fit * self.total_clients) / self.ME)] * self.ME
+                else:
+                    if t % 2 == 0:
+                        trained_models = [0]
+                        cm = [int(self.fraction_fit * self.total_clients), 0]
+                        return trained_models, cm
+                    else:
+                        trained_models = [1]
+                        cm = [0, int(self.fraction_fit * self.total_clients)]
+                        return trained_models, cm
+            if t < t_ref:
+                trained_models = [i for i in range(self.ME)]
+                return trained_models, [int((self.fraction_fit * self.total_clients) / self.ME)] * self.ME
             else:
-                return [int((self.fraction_fit * self.total_clients) / self.ME)] * self.ME
+                if t % 2 == 0:
+                    trained_models = [0]
+                    cm = [int(self.fraction_fit * self.total_clients), 0]
+                    return trained_models, cm
+                else:
+                    trained_models = [1]
+                    cm = [0, int(self.fraction_fit * self.total_clients)]
+                    return trained_models, cm
 
         except Exception as e:
             logger.error("Error random selection")

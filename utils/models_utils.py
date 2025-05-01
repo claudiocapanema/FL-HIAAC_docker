@@ -160,33 +160,36 @@ def set_weights_fedkd(net, parameters):
         logger.error("set_weights_fedkd error")
         logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
+
+fds = {}  # Cache FederatedDataset
+
 def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions: int, batch_size: int,
               data_sampling_percentage: int):
     try:
         # Only initialize `FederatedDataset` once
         logger.info(
             """Loading {} {} {} {} {} {} data.""".format(dataset_name, partition_id, num_partitions, batch_size, data_sampling_percentage, alpha))
-        # global fds
-        # if fds is None:
-        partitioner = DirichletPartitioner(num_partitions=num_partitions, partition_by="label",
+        global fds
+        if dataset_name not in fds:
+            partitioner = DirichletPartitioner(num_partitions=num_partitions, partition_by="label",
 
-                                           alpha=alpha, min_partition_size=10,
+                                               alpha=alpha, min_partition_size=10,
 
-                                           self_balancing=True)
-        fds = FederatedDataset(
-            dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist",
-                     "GTSRB": "claudiogsc/GTSRB", "Gowalla": "claudiogsc/Gowalla-State-of-Texas",
-                     "WISDM-W": "claudiogsc/WISDM-W", "ImageNet": "claudiogsc/ImageNet-15_household_objects"}[dataset_name],
-            partitioners={"train": partitioner},
-            seed=42
-        )
+                                               self_balancing=True)
+            fds[dataset_name] = FederatedDataset(
+                dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist",
+                         "GTSRB": "claudiogsc/GTSRB", "Gowalla": "claudiogsc/Gowalla-State-of-Texas",
+                         "WISDM-W": "claudiogsc/WISDM-W", "ImageNet": "claudiogsc/ImageNet-15_household_objects"}[dataset_name],
+                partitioners={"train": partitioner},
+                seed=42
+            )
 
         attempts = 0
         while True:
             attempts += 1
             try:
                 time.sleep(random.randint(1, 1))
-                partition = fds.load_partition(partition_id)
+                partition = fds[dataset_name].load_partition(partition_id)
                 logger.info("""Loaded dataset {} in the {} attempt for client {}""".format(dataset_name, attempts, partition_id))
                 break
             except Exception as e:

@@ -96,9 +96,9 @@ class ClientMultiFedEfficiency(ClientMultiFedAvg):
                 nt = t - self.lt[me]
                 parameters_me = parameters[me_str]
                 set_weights(self.global_model[me], parameters_me)
-                combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
-                                                         t=t, T=100, nt=nt, device=self.device, logs=True)
-                loss, metrics = test(combined_model, self.valloader[me], self.device, self.client_id, t,
+                # combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
+                #                                          t=t, T=100, nt=nt, device=self.device, logs=True)
+                loss, metrics = test(self.global_model[me], self.valloader[me], self.device, self.client_id, t,
                                      self.args.dataset[me], self.n_classes[me], self.concept_drift_window[me])
                 metrics["Model size"] = self.models_size[me]
                 metrics["Dataset size"] = len(self.valloader[me].dataset)

@@ -43,6 +43,7 @@ def read_data(read_solutions, read_dataset_order):
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))
                 df["Version"] = np.array([solution_strategy_version[solution]["Version"]] * len(df))
                 df["Alpha"] = np.array([0.1] * len(df))
+                # df["Efficiency"] = np.array(df["# training clients"])
 
                 if df_concat is None:
                     df_concat = df
@@ -186,7 +187,7 @@ def table(df, write_path, metric, t=None):
 
     Path(write_path).mkdir(parents=True, exist_ok=True)
     if t is not None:
-        filename = """{}latex_round_auc_general_{}_{}.txt""".format(write_path, t, metric)
+        filename = """{}latex_round_auc_general_{}_{}.txt""".format(write_path, [min(t), max(t)], metric)
     else:
         filename = """{}latex_auc_general_{}.txt""".format(write_path, metric)
     pd.DataFrame({'latex': [latex]}).to_csv(filename, header=False, index=False)
@@ -198,7 +199,7 @@ def table(df, write_path, metric, t=None):
 
 def improvements(df, datasets, metric):
     # , "FedKD+FP": "FedKD"
-    strategies = {"MultiFedEfficiency": "MultiFedAvg", "MultiFedAvg+FP": "MultiFedAvg"}
+    strategies = {"MultiFedEfficiency": "MultiFedAvg"}
     # strategies = {r"MultiFedAvg+FP": "MultiFedAvg"}
     columns = df.columns.tolist()
     improvements_dict = {'Dataset': [], 'Table': [], 'Original strategy': [], 'Alpha': [], metric: []}
@@ -278,7 +279,7 @@ def accuracy_improvement(df, datasets):
     # reference_solutions = {"MultiFedAvg+FP": "MultiFedAvg", "MultiFedAvgGlobalModelEval+FP": "MultiFedAvgGlobalModelEval"}
     # ,
     #                            "FedKD+FP": "FedKD"
-    reference_solutions = {"MultiFedEfficiency": "MultiFedAvg", "MultiFedAvg+FP": "MultiFedAvg"}
+    reference_solutions = {"MultiFedEfficiency": "MultiFedAvg"}
 
     print(df_difference)
     # exit()
@@ -348,11 +349,14 @@ def idmax(df, n_solutions):
 
 
 if __name__ == "__main__":
-    concept_drift_experiment_id = 0
-    cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
+    concept_drift_experiment_id = 15
+    # cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
+    cd = f"experiment_id_{concept_drift_experiment_id}"
     total_clients = 27
-    # alphas = [0.1, 10.0]
-    alphas = [10.0, 1.0]
+    # alphas = [10.0, 10.0]
+    alphas = [0.1, 0.1]
+    # alphas = [1.0, 1.0]
+    # alphas = [10.0, 0.1]
     # dataset = ["WISDM-W", "CIFAR10"]
     dataset = ["WISDM-W", "ImageNet"]
     # dataset = ["EMNIST", "CIFAR10"]
@@ -365,7 +369,7 @@ if __name__ == "__main__":
     round_new_clients = 0
     train_test = "test"
     # solutions = ["MultiFedAvg+MFP", "MultiFedAvg+FPD", "MultiFedAvg+FP", "MultiFedAvg", "MultiFedAvgRR"]
-    solutions = ["MultiFedEfficiency", "MultiFedAvg+FP", "MultiFedAvg"]
+    solutions = ["MultiFedEfficiency", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}
     read_dataset_order = []
@@ -373,7 +377,7 @@ if __name__ == "__main__":
         for dt in dataset:
             algo = dt + "_" + solution
 
-            read_path = """../results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+            read_path = """../results/{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
                 cd,
                 0.1,
                 0.1,
@@ -389,7 +393,7 @@ if __name__ == "__main__":
 
             read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution))
 
-    write_path = """plots/MEFL/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/concept_drift_experiment_id_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
+    write_path = """plots/MEFL/{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/concept_drift_experiment_id_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
         cd,
         fraction_new_clients,
         round_new_clients,
@@ -408,4 +412,6 @@ if __name__ == "__main__":
 
     table(df, write_path, "Balanced accuracy (%)", t=None)
     table(df, write_path, "Accuracy (%)", t=None)
-    table(df, write_path, "Accuracy (%)", t=[i for i in range(80,100)])
+    table(df, write_path, "Accuracy (%)", t=[i for i in range(1, 31)])
+    table(df, write_path, "Accuracy (%)", t=[i for i in range(1, 51)])
+    table(df, write_path, "Accuracy (%)", t=[i for i in range(70, 101)])

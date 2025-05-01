@@ -46,7 +46,7 @@ parser.add_argument(
     "--alpha", action="append", help="Dirichlet alpha"
 )
 parser.add_argument(
-    "--concept_drift_experiment_id", type=int, default=0, help=""
+    "--experiment_id", type=int, default=0, help=""
 )
 parser.add_argument(
     "--round_new_clients", type=float, default=0.1, help=""
