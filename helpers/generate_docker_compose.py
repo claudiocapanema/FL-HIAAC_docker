@@ -1,5 +1,6 @@
 import subprocess
 import argparse
+from download_dataset import download_datasets
 
 parser = argparse.ArgumentParser(description="Generated Docker Compose")
 parser.add_argument(
@@ -111,6 +112,7 @@ def load_fedpredict_project():
 
 def create_docker_compose(args):
     assert_args(args, args.strategy)
+    download_datasets(args.dataset, args.alpha, args.total_clients)
     # cpus is used to set the number of CPUs available to the container as a fraction of the total number of CPUs on the host machine.
     # mem_limit is used to set the memory limit for the container.
     client_configs = [

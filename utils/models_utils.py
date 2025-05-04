@@ -14,6 +14,8 @@ from sklearn.preprocessing import label_binarize
 import numpy as np
 import sys
 from utils.models import CNN, CNN_3, CNNDistillation, GRU, LSTM
+import  datasets as dt
+from utils.custom_federated_dataset import CustomFederatedDataset
 
 
 import logging
@@ -164,25 +166,43 @@ def set_weights_fedkd(net, parameters):
 fds = {}  # Cache FederatedDataset
 
 def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions: int, batch_size: int,
-              data_sampling_percentage: int):
+              data_sampling_percentage: int, get_from_volume: bool = True):
     try:
         # Only initialize `FederatedDataset` once
         logger.info(
             """Loading {} {} {} {} {} {} data.""".format(dataset_name, partition_id, num_partitions, batch_size, data_sampling_percentage, alpha))
         global fds
-        if dataset_name not in fds:
+        if not get_from_volume:
+
+            if dataset_name not in fds:
+                partitioner = DirichletPartitioner(num_partitions=num_partitions, partition_by="label",
+
+                                                   alpha=alpha, min_partition_size=10,
+
+                                                   self_balancing=True)
+                fds[dataset_name] = FederatedDataset(
+                    dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist",
+                             "GTSRB": "claudiogsc/GTSRB", "Gowalla": "claudiogsc/Gowalla-State-of-Texas",
+                             "WISDM-W": "claudiogsc/WISDM-W", "ImageNet": "claudiogsc/ImageNet-15_household_objects"}[dataset_name],
+                    partitioners={"train": partitioner},
+                    seed=42
+                )
+        else:
+            # dts = dt.load_from_disk(f"datasets/{dataset_name}")
             partitioner = DirichletPartitioner(num_partitions=num_partitions, partition_by="label",
-
                                                alpha=alpha, min_partition_size=10,
-
                                                self_balancing=True)
-            fds[dataset_name] = FederatedDataset(
+            logger.info("dataset from volume")
+            fd = CustomFederatedDataset(
                 dataset={"EMNIST": "claudiogsc/emnist_balanced", "CIFAR10": "uoft-cs/cifar10", "MNIST": "ylecun/mnist",
                          "GTSRB": "claudiogsc/GTSRB", "Gowalla": "claudiogsc/Gowalla-State-of-Texas",
-                         "WISDM-W": "claudiogsc/WISDM-W", "ImageNet": "claudiogsc/ImageNet-15_household_objects"}[dataset_name],
+                         "WISDM-W": "claudiogsc/WISDM-W", "ImageNet": "claudiogsc/ImageNet-15_household_objects"}[
+                    dataset_name],
                 partitioners={"train": partitioner},
+                path=f"datasets/{dataset_name}",
                 seed=42
             )
+            fds[dataset_name] = fd
 
         attempts = 0
         while True:
