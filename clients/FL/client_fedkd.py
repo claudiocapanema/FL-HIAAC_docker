@@ -64,7 +64,7 @@ class ClientFedKD(Client):
             logger.info("""eval cliente inicio""".format(config))
             t = config["t"]
             nt = t - self.lt
-            # set_weights_fedkd(self.utils, parameters)
+            set_weights_fedkd(self.model, parameters)
             loss, metrics = test_fedkd(self.model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
             metrics["Model size"] = self.models_size
             metrics["Alpha"] = self.alpha

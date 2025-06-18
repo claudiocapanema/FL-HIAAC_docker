@@ -405,7 +405,8 @@ def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, cl
             "val_balanced_accuracy": test_metrics["Balanced accuracy"],
             "train_loss": train_metrics["Train loss"],
             "train_accuracy": train_metrics["Train accuracy"],
-            "train_balanced_accuracy": train_metrics["Train balanced accuracy"]
+            "train_balanced_accuracy": train_metrics["Train balanced accuracy"],
+            "Round (t)": t
         }
         return results
 
@@ -572,7 +573,7 @@ def test_fedkd_fedpredict(lt, model, testloader, device, client_id, t, dataset_n
                 labels = labels.to(device)
                 y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
                 output, proto_student, output_teacher, proto_teacher = model(x)
-                if lt == 0:
+                if lt == 0 and t > 6:
                     output_teacher = output
                 y_prob.append(output_teacher.detach().cpu().numpy())
                 loss += criterion(output_teacher, labels).item()
