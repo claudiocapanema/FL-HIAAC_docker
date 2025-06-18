@@ -1,6 +1,7 @@
 import subprocess
 import argparse
 from download_dataset import download_datasets
+import os
 
 parser = argparse.ArgumentParser(description="Generated Docker Compose")
 parser.add_argument(
@@ -26,7 +27,7 @@ parser.add_argument(
     "--alpha", action="append", help="Dirichlet alpha"
 )
 parser.add_argument(
-    "--experiment_id", type=int, default=0, help=""
+    "--experiment_id", type=str, default="", help=""
 )
 parser.add_argument(
     "--round_new_clients", type=float, default=0.1, help=""
@@ -267,13 +268,14 @@ services:
         file.write(docker_compose_content)
 
     # Caminho para o seu script bash
-    script_up = f"sudo docker compose -f {filename} up --build && docker image prune -f"
+    script_up = f"sudo docker compose -f {filename} up --build"
 
     script_down = f"sudo docker compose -f {filename} down"
 
     try:
         # Chamar o script bash usando subprocess
         subprocess.Popen(script_down, shell=True).wait()
+        subprocess.Popen("sudo docker container prune -f", shell=True).wait()
         subprocess.Popen(script_up, shell=True).wait()
         subprocess.Popen("sudo bash get_results.sh", shell=True).wait()
     except Exception as e:
@@ -288,4 +290,27 @@ services:
 if __name__ == "__main__":
     # subprocess.Popen(load_fedpredict_project()).wait()
     args = parser.parse_args()
-    create_docker_compose(args)
+    log_name = args.strategy
+    result_path = """results/experiment_id_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/log_{}.txt""".format(
+        args.experiment_id,
+        args.total_clients,
+        [float(i) for i in args.alpha][0],
+        args.dataset[0],
+        args.model[0],
+        args.fraction_fit,
+        args.number_of_rounds,
+        args.local_epochs,
+        log_name)
+    print("log: ", result_path)
+    import sys
+
+    # Abra um arquivo para gravação
+    os.makedirs(os.path.dirname(result_path), exist_ok=True)
+    with open(result_path, 'w') as f:
+        # Redirecione a saída padrão para o arquivo
+        original = sys.stdout
+        sys.stdout = f
+        create_docker_compose(args)
+        sys.stdout = original
+
+

@@ -77,9 +77,9 @@ class ClientMultiFedAvgFedPredict(ClientMultiFedAvg):
                 me_str = str(me)
                 alpha_me = self._get_current_alpha(t, me)
                 self.trainloader[me] = self.recent_trainloader[me]
-                if self.concept_drift_config != {}:
-                    if self.alpha[me] != alpha_me or (t in self.concept_drift_config[me][
-                        "concept_drift_rounds"] and self.concept_drift_config[me]["type"] in ["label_shift"]):
+                if self.data_shift_config != {}:
+                    if self.alpha[me] != alpha_me or (t in self.data_shift_config[me][
+                        "concept_drift_rounds"] and self.data_shift_config[me]["type"] in ["label_shift"]):
                         self.alpha[me] = alpha_me
                         index = 0
                         self.recent_trainloader[me], self.valloader[me] = load_data(
@@ -90,8 +90,8 @@ class ClientMultiFedAvgFedPredict(ClientMultiFedAvg):
                             num_partitions=self.args.total_clients + 1,
                             batch_size=self.args.batch_size,
                         )
-                    elif t in self.concept_drift_config[me][
-                        "concept_drift_rounds"] and self.concept_drift_config[me]["type"] in ["concept_drift"] and t - \
+                    elif t in self.data_shift_config[me][
+                        "concept_drift_rounds"] and self.data_shift_config[me]["type"] in ["concept_drift"] and t - \
                             self.lt[me] > 0:
                         self.concept_drift_window[me] += 1
                 nt = t - self.lt[me]

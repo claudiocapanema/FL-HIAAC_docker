@@ -23,11 +23,12 @@ from flwr.common.logger import log
 from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 
-
+import sys
 import flwr
 
 from logging import WARNING
 import random
+from itertools import islice
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
@@ -122,16 +123,22 @@ class FedAvg(flwr.server.strategy.FedAvg):
         self.fraction_new_clients = args.fraction_new_clients
         self.round_new_clients = args.round_new_clients
         self.alpha = args.alpha[0]
+        self.number_of_rounds = args.number_of_rounds
         self.total_clients = args.total_clients
+        self.experiment_id = args.experiment_id
+        self.experiment_config = self.set_experiment_config(self.experiment_id)
+
+        self.current_total_clients = self.experiment_config["initial_number_of_clients"]
+        logger.info(f"config inicial {self.experiment_config}")
         self.dataset = args.dataset[0]
         self.model_name = args.model[0]
-        self.number_of_rounds = args.number_of_rounds
+
         self.cd = args.cd
         self.strategy_name = args.strategy
         self.test_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
-                                   "# training clients", "training clients and models", "Model size", "Alpha"]
+                                   "# training clients", "# available clients", "training clients and models", "Model size", "Alpha"]
         self.train_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
-                                   "# training clients", "training clients and models", "Model size", "Alpha"]
+                                   "# training clients", "# available clients", "training clients and models", "Model size", "Alpha"]
         self.rs_test_acc = []
         self.rs_test_auc = []
         self.rs_train_loss = []
@@ -156,17 +163,29 @@ class FedAvg(flwr.server.strategy.FedAvg):
         config["t"] = server_round
         fit_ins = FitIns(parameters, config)
 
+        # Insert new clients
+        if server_round < self.experiment_config["round_of_new_clients"]:
+            self.current_total_clients = self.experiment_config["initial_number_of_clients"]
+            # Limit the number of available clients
+            clients = dict(islice(client_manager.clients.items(), self.current_total_clients))
+            clients = [clients[key] for key in clients.keys()]
+        else:
+            self.current_total_clients = len(client_manager.clients)
+            clients = client_manager.clients
+            clients = [clients[key] for key in clients.keys()]
+
         # Sample clients
         sample_size, min_num_clients = self.num_fit_clients(
             client_manager.num_available()
         )
 
+
         n_clients = int(self.total_clients * self.fraction_fit)
 
         logging.info("""sample clientes {} {} disponiveis {} rodada {} n clients {}""".format(sample_size, min_num_clients, client_manager.num_available(), server_round, n_clients))
-        clients = client_manager.sample(
-            num_clients=n_clients, min_num_clients=n_clients
-        )
+        logger.info(f"available clients {len(clients)} round {server_round} av {type(clients)}")
+        logger.info(f"population {len(clients)} samples {n_clients} round {server_round} confi")
+        clients = np.random.choice(clients, size=min([n_clients, len(clients)]), replace=False)
 
         self.n_trained_clients = len(clients)
         self.selected_clients_ids = 0
@@ -191,13 +210,25 @@ class FedAvg(flwr.server.strategy.FedAvg):
         config["t"] = server_round
         evaluate_ins = EvaluateIns(parameters, config)
 
+        # Insert new clients
+        if server_round < self.experiment_config["round_of_new_clients"]:
+            self.current_total_clients = self.experiment_config["initial_number_of_clients"]
+            # Limit the number of available clients
+            clients = dict(islice(client_manager.clients.items(), self.current_total_clients))
+            clients = [clients[key] for key in clients.keys()]
+        else:
+            clients = client_manager.clients
+            clients = [clients[key] for key in clients.keys()]
+
         # Sample clients
         sample_size, min_num_clients = self.num_evaluation_clients(
             client_manager.num_available()
         )
-        clients = client_manager.sample(
-            num_clients=sample_size, min_num_clients=min_num_clients
-        )
+        # clients = client_manager.sample(
+        #     num_clients=sample_size, min_num_clients=min_num_clients
+        # )
+        logger.info(f"population {len(clients)} samples {sample_size} round {server_round} eval")
+        clients = np.random.choice(clients, size=min([sample_size, len(clients)]), replace=False)
 
         # exit()
 
@@ -248,6 +279,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
 
         metrics_aggregated["Fraction fit"] = self.fraction_fit
         metrics_aggregated["# training clients"] = self.n_trained_clients
+        metrics_aggregated["# available clients"] = self.current_total_clients
         metrics_aggregated["training clients and models"] = self.selected_clients_ids
         metrics_aggregated["Alpha"] = self.alpha
 
@@ -273,21 +305,34 @@ class FedAvg(flwr.server.strategy.FedAvg):
 
         algo = self.dataset + "_" + self.strategy_name
 
-        result_path = """/results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
-            self.cd,
-            self.fraction_new_clients,
-            self.round_new_clients,
+        # result_path = """/results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+        #     self.cd,
+        #     self.fraction_new_clients,
+        #     self.round_new_clients,
+        #     self.total_clients,
+        #     self.alpha,
+        #     self.alpha,
+        #     self.dataset,
+        #     0,
+        #     0,
+        #     self.model_name,
+        #     self.fraction_fit,
+        #     self.number_of_rounds,
+        #     self.local_epochs,
+        #     train_test)
+
+        result_path = """results/experiment_id_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+            self.experiment_id,
             self.total_clients,
             self.alpha,
-            self.alpha,
             self.dataset,
-            0,
-            0,
             self.model_name,
             self.fraction_fit,
             self.number_of_rounds,
             self.local_epochs,
             train_test)
+
+        logger.info(f"caminho {result_path}")
 
 
         if not os.path.exists(result_path):
@@ -372,3 +417,18 @@ class FedAvg(flwr.server.strategy.FedAvg):
             models_size.append(size)
         # print("models size: ", models_size)
         self.models_size = models_size
+
+    def set_experiment_config(self, experiment_id):
+        try:
+            logger.info(f"id do experimento {experiment_id}")
+            if "new_clients" in experiment_id:
+                round_of_new_clients = int(self.number_of_rounds * 0.7)
+                initial_number_of_clients = int(self.total_clients * 0.7)
+                return {"round_of_new_clients": round_of_new_clients, "initial_number_of_clients": initial_number_of_clients}
+
+            else:
+                return {"round_of_new_clients": 0, "initial_number_of_clients": self.total_clients}
+
+        except Exception as e:
+            logger.error("set_experiment_config error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

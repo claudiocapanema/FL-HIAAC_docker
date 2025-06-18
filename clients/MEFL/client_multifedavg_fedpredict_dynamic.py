@@ -79,9 +79,9 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
                 alpha_me = self._get_current_alpha(t, me)
                 # Comment to simulate the `Delayed labeling`
                 # self.trainloader[me] = self.recent_trainloader[me]
-                if self.concept_drift_config != {}:
-                    if self.alpha[me] != alpha_me or (t in self.concept_drift_config[me][
-                        "concept_drift_rounds"] and self.concept_drift_config[me]["type"] in [
+                if self.data_shift_config != {}:
+                    if self.alpha[me] != alpha_me or (t in self.data_shift_config[me][
+                        "concept_drift_rounds"] and self.data_shift_config[me]["type"] in [
                                                           "label_shift"] and nt > 0):
                         self.alpha[me] = alpha_me
                         index = 0
@@ -94,8 +94,8 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
                             batch_size=self.args.batch_size,
                         )
                         p_ME, fc_ME, il_ME = self.p_ME, self.fc_ME, self.il_ME
-                    elif t in self.concept_drift_config[me][
-                        "concept_drift_rounds"] and self.concept_drift_config[me]["type"] in ["concept_drift"] and t - \
+                    elif t in self.data_shift_config[me][
+                        "concept_drift_rounds"] and self.data_shift_config[me]["type"] in ["concept_drift"] and t - \
                             self.lt[me] > 0:
                         self.concept_drift_window[me] += 1
                         # p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
