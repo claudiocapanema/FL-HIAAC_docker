@@ -46,23 +46,23 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-# Define metric aggregation function
-def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
-    # Multiply accuracy of each client by number of examples used
-    accuracies = [num_examples * m["Accuracy"] for num_examples, m in metrics]
-    balanced_accuracies = [num_examples * m["Balanced accuracy"] for num_examples, m in metrics]
-    loss = [num_examples * m["Loss"] for num_examples, m in metrics]
-    examples = [num_examples for num_examples, _ in metrics]
-
-    # Aggregate and return custom metric (weighted average)
-    return {"Accuracy": sum(accuracies) / sum(examples), "Balanced accuracy": sum(balanced_accuracies) / sum(examples),
-            "Loss": sum(loss) / sum(examples), "Round (t)": metrics[0][1]["Round (t)"], "Model size": metrics[0][1]["Model size"]}
-
-def weighted_loss_avg(results: list[tuple[int, float]]) -> float:
-    """Aggregate evaluation results obtained from multiple clients."""
-    num_total_evaluation_examples = sum(num_examples for (num_examples, _) in results)
-    weighted_losses = [num_examples * loss for num_examples, loss in results]
-    return sum(weighted_losses) / num_total_evaluation_examples
+# # Define metric aggregation function
+# def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
+#     # Multiply accuracy of each client by number of examples used
+#     accuracies = [num_examples * m["Accuracy"] for num_examples, m in metrics]
+#     balanced_accuracies = [num_examples * m["Balanced accuracy"] for num_examples, m in metrics]
+#     loss = [num_examples * m["Loss"] for num_examples, m in metrics]
+#     examples = [num_examples for num_examples, _ in metrics]
+#
+#     # Aggregate and return custom metric (weighted average)
+#     return {"Accuracy": sum(accuracies) / sum(examples), "Balanced accuracy": sum(balanced_accuracies) / sum(examples),
+#             "Loss": sum(loss) / sum(examples), "Round (t)": metrics[0][1]["Round (t)"], "Model size": metrics[0][1]["Model size"]}
+#
+# def weighted_loss_avg(results: list[tuple[int, float]]) -> float:
+#     """Aggregate evaluation results obtained from multiple clients."""
+#     num_total_evaluation_examples = sum(num_examples for (num_examples, _) in results)
+#     weighted_losses = [num_examples * loss for num_examples, loss in results]
+#     return sum(weighted_losses) / num_total_evaluation_examples
 
 
 class FedYogi(FedAvg):
@@ -146,7 +146,7 @@ class FedYogi(FedAvg):
                          accept_failures=accept_failures, initial_parameters=initial_parameters,
                          fit_metrics_aggregation_fn=fit_metrics_aggregation_fn,
                          evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
-        self.current_weights = parameters_to_ndarrays(initial_parameters)
+        # self.current_weights = parameters_to_ndarrays(initial_parameters)
         self.eta = eta
         self.eta_l = eta_l
         self.tau = tau
@@ -155,10 +155,10 @@ class FedYogi(FedAvg):
         self.m_t: Optional[NDArrays] = None
         self.v_t: Optional[NDArrays] = None
 
-    def __repr__(self) -> str:
-        """Compute a string representation of the strategy."""
-        rep = f"FedYogi(accept_failures={self.accept_failures})"
-        return rep
+    # def __repr__(self) -> str:
+    #     """Compute a string representation of the strategy."""
+    #     rep = f"FedYogi(accept_failures={self.accept_failures})"
+    #     return rep
 
     def aggregate_fit(
         self,
@@ -170,12 +170,15 @@ class FedYogi(FedAvg):
         fedavg_parameters_aggregated, metrics_aggregated = super().aggregate_fit(
             server_round=server_round, results=results, failures=failures
         )
+        # if server_round == 1:
+        #     return fedavg_parameters_aggregated, metrics_aggregated
         if fedavg_parameters_aggregated is None:
             return None, {}
 
         fedavg_weights_aggregate = parameters_to_ndarrays(fedavg_parameters_aggregated)
 
         # Yogi
+        self.current_weights = fedavg_weights_aggregate
         delta_t: NDArrays = [
             x - y for x, y in zip(fedavg_weights_aggregate, self.current_weights)
         ]

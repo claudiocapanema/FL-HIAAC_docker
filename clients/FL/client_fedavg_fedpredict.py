@@ -59,7 +59,7 @@ class ClientFedAvgFP(Client):
             nt = t - self.lt
             set_weights(self.global_model, parameters)
             combined_model = fedpredict_client_torch(local_model=self.model, global_model=self.global_model,
-                                      t=t, T=100, nt=nt, device=self.device, fc=1, il=1)
+                                      t=t, T=100, nt=nt, device=self.device)
             loss, metrics = test(combined_model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
             metrics["Model size"] = self.models_size
             metrics["Alpha"] = self.alpha
