@@ -171,8 +171,9 @@ class FedAvgFP(FedAvg):
                 lt = self.clients_lt[client_id]
             config["nt"] = server_round - lt
             config["lt"] = lt
-            logger.info(f"evaluating client {client_id} round {server_round} lt {lt}")
+            # logger.info(f"evaluating client {client_id} round {server_round} lt {lt}")
             client_evaluate_list[i][1].config = config
-        return fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters), client_evaluate_list=client_evaluate_list,
-                                 df=0, t=server_round, T=self.number_of_rounds, model_shape=self.model_shape,
-                                 compression="", fl_framework="flwr")
+        logger.info(f"model shape: {self.model_shape}")
+        return fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters),
+                                 client_evaluate_list=client_evaluate_list, df=0, t=server_round,
+                                 T=self.number_of_rounds, compression="fedkd", fl_framework="flwr")
