@@ -1,4 +1,16 @@
+from flwr.common import (
+    EvaluateIns,
+    parameters_to_ndarrays
+)
+from flwr.server.client_manager import ClientManager
+from flwr.server.client_proxy import ClientProxy
+from itertools import islice
+from fedpredict import fedpredict_server
+
+
+
 import logging
+import numpy as np
 
 from typing import Callable, Optional
 
@@ -79,3 +91,20 @@ class FedAvgFP(FedAvg):
         inplace: bool = True,
     ) -> None:
         super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
+
+
+
+
+    def configure_evaluate(
+        self, server_round: int, parameters: Parameters, client_manager: ClientManager
+    ) -> list[tuple[ClientProxy, EvaluateIns]]:
+        client_evaluate_list = super().configure_evaluate(server_round, parameters, client_manager)
+        for i in range(len(client_evaluate_list)):
+            client_tuple = client_evaluate_list[i]
+            config = client_tuple[1].config
+            config["nt"] = server_round - 0
+            config["lt"] = 0
+            client_evaluate_list[i][1].config = config
+        return fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters), client_evaluate_list=client_evaluate_list,
+                                 df=0, t=server_round, T=self.number_of_rounds, model_shape=self.model_shape,
+                                 compression="", fl_framework="flwr")

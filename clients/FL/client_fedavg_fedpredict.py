@@ -46,6 +46,7 @@ class ClientFedAvgFP(Client):
             )
             logger.info("fit cliente fim fp")
             results["Model size"] = self.models_size
+            results["lt"] = self.lt
             return get_weights(self.model), len(self.trainloader.dataset), results
         except Exception as e:
             logger.error("fit error")

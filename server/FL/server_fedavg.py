@@ -132,6 +132,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
         logger.info(f"config inicial {self.experiment_config}")
         self.dataset = args.dataset[0]
         self.model_name = args.model[0]
+        self.model_shape = None
 
         self.cd = args.cd
         self.strategy_name = args.strategy
@@ -162,6 +163,9 @@ class FedAvg(flwr.server.strategy.FedAvg):
             config = self.on_fit_config_fn(server_round)
         config["t"] = server_round
         fit_ins = FitIns(parameters, config)
+
+        if server_round == 1:
+            self.model_shape = [i.shape for i in flwr.common.parameters_to_ndarrays(parameters)]
 
         # Insert new clients
         if server_round < self.experiment_config["round_of_new_clients"]:
