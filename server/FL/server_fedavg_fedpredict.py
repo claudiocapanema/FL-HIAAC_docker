@@ -7,6 +7,27 @@ from flwr.server.client_proxy import ClientProxy
 from itertools import islice
 from fedpredict import fedpredict_server
 
+from logging import WARNING
+from typing import Callable, Optional, Union
+
+from flwr.common import (
+    EvaluateIns,
+    EvaluateRes,
+    FitIns,
+    FitRes,
+    MetricsAggregationFn,
+    NDArrays,
+    Parameters,
+    Scalar,
+    ndarrays_to_parameters,
+    parameters_to_ndarrays,
+)
+from flwr.common.logger import log
+from flwr.server.client_manager import ClientManager
+from flwr.server.client_proxy import ClientProxy
+
+from flwr.server.strategy.aggregate import aggregate, aggregate_inplace
+
 
 
 import logging
@@ -92,18 +113,65 @@ class FedAvgFP(FedAvg):
     ) -> None:
         super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
 
+    def aggregate_fit(
+        self,
+        server_round: int,
+        results: list[tuple[ClientProxy, FitRes]],
+        failures: list[Union[tuple[ClientProxy, FitRes], BaseException]],
+    ) -> tuple[Optional[Parameters], dict[str, Scalar]]:
+        """Aggregate fit results using weighted average."""
+        if not results:
+            return None, {}
+        # Do not aggregate if there are failures and failures are not accepted
+        if not self.accept_failures and failures:
+            return None, {}
 
+        for i in range(len(results)):
+            _, result = results[i]
+            client_id = self.selected_clients[i]
+            lt = result.metrics["lt"]
+            self.clients_lt[client_id] = lt
+
+        if self.inplace:
+            # Does in-place weighted average of results
+            aggregated_ndarrays = aggregate_inplace(results)
+        else:
+            # Convert results
+            weights_results = [
+                (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples)
+                for _, fit_res in results
+            ]
+            aggregated_ndarrays = aggregate(weights_results)
+
+        parameters_aggregated = ndarrays_to_parameters(aggregated_ndarrays)
+
+        # Aggregate custom metrics if aggregation fn was provided
+        metrics_aggregated = {}
+        if self.fit_metrics_aggregation_fn:
+            fit_metrics = [(res.num_examples, res.metrics) for _, res in results]
+            metrics_aggregated = self.fit_metrics_aggregation_fn(fit_metrics)
+        elif server_round == 1:  # Only log this warning once
+            log(WARNING, "No fit_metrics_aggregation_fn provided")
+
+        return parameters_aggregated, metrics_aggregated
 
 
     def configure_evaluate(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> list[tuple[ClientProxy, EvaluateIns]]:
         client_evaluate_list = super().configure_evaluate(server_round, parameters, client_manager)
+        logger.info(f"selected clients {self.selected_clients} round {server_round}")
         for i in range(len(client_evaluate_list)):
             client_tuple = client_evaluate_list[i]
             config = client_tuple[1].config
-            config["nt"] = server_round - 0
-            config["lt"] = 0
+            client_id = client_tuple[0].cid
+            lt = 0
+
+            if client_id in self.clients_lt:
+                lt = self.clients_lt[client_id]
+            config["nt"] = server_round - lt
+            config["lt"] = lt
+            logger.info(f"evaluating client {client_id} round {server_round} lt {lt}")
             client_evaluate_list[i][1].config = config
         return fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters), client_evaluate_list=client_evaluate_list,
                                  df=0, t=server_round, T=self.number_of_rounds, model_shape=self.model_shape,

@@ -133,6 +133,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
         self.dataset = args.dataset[0]
         self.model_name = args.model[0]
         self.model_shape = None
+        self.clients_lt = {}
 
         self.cd = args.cd
         self.strategy_name = args.strategy
@@ -192,6 +193,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
         clients = np.random.choice(clients, size=min([n_clients, len(clients)]), replace=False)
 
         self.n_trained_clients = len(clients)
+        self.selected_clients = [client.cid for client in clients]
         self.selected_clients_ids = 0
         logging.info("""selecionados {} rodada {}""".format(self.n_trained_clients, server_round))
 
