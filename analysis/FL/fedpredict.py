@@ -1,8 +1,9 @@
 from pathlib import Path
 import numpy as np
 import pandas as pd
+import sys
 
-from analysis.base_plots import line_plot
+from base_plots import line_plot
 import matplotlib.pyplot as plt
 
 def read_data(read_solutions, read_dataset_order):
@@ -42,8 +43,7 @@ def read_data(read_solutions, read_dataset_order):
                 if strategy not in hue_order:
                     hue_order.append(strategy)
             except Exception as e:
-                print("\n######### \nFaltando", paths[i])
-                print(e)
+                print("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     return df_concat, hue_order
 
@@ -107,6 +107,7 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
 
 if __name__ == "__main__":
+    experiment_id = 1
     cd = "false"
     total_clients = 20
     alphas = [0.1, 1.0]
@@ -135,21 +136,16 @@ if __name__ == "__main__":
             for dt in dataset:
                 algo = dt + "_" + solution
 
-                read_path = """../results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
-                    cd,
-                    0.1,
-                    0.1,
+                read_path = """/home/gustavo/PycharmProjects/FL-HIAAC_docker/results/experiment_id_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+                    experiment_id,
                     total_clients,
                     alpha,
-                    alpha,
                     dt,
-                    0,
-                    0,
                     model_name,
                     fraction_fit,
                     number_of_rounds,
                     local_epochs,
-                    train_test)
+                    "test")
                 read_dataset_order.append(dt)
 
                 read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution))

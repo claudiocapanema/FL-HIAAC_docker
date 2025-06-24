@@ -5,7 +5,7 @@ from flwr.common import (
 from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 from itertools import islice
-from fedpredict import fedpredict_server
+from fedpredict import fedpredict_server, fedpredict_layerwise_similarity
 
 from logging import WARNING
 from typing import Callable, Optional, Union
@@ -112,6 +112,15 @@ class FedAvgFP(FedAvg):
         inplace: bool = True,
     ) -> None:
         super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
+        self.compression = "dls_compredict"
+        self.similarity_list_per_layer = {me: {} for me in range(self.ME)}
+        self.initial_similarity = 0
+        self.current_similarity = 0
+        self.model_shape_mefl = [None] * self.ME
+        self.similarity_between_layers_per_round = {me: {} for me in range(self.ME)}
+        self.similarity_between_layers_per_round_and_client = {me: {} for me in range(self.ME)}
+        self.mean_similarity_per_round = {me: {} for me in range(self.ME)}
+        self.df = [0] * self.ME
 
     def aggregate_fit(
         self,
@@ -153,6 +162,37 @@ class FedAvgFP(FedAvg):
         elif server_round == 1:  # Only log this warning once
             log(WARNING, "No fit_metrics_aggregation_fn provided")
 
+        flag  = False
+        if server_round == 1:
+            flag = True
+
+        if "dls" in self.compression:
+            if flag:
+                clients_parameters = []
+                for i in range(len(results)):
+                    parameter, num_examples, result = results[i]
+                    clients_parameters.append(results[i][0])
+                self.similarity_between_layers_per_round_and_client[server_round], \
+                self.similarity_between_layers_per_round[server_round], self.mean_similarity_per_round[
+                    server_round], self.similarity_list_per_layer = fedpredict_layerwise_similarity(parameters_aggregated,
+                                                                                                    clients_parameters,
+                                                                                                    self.similarity_list_per_layer)
+                self.df = max(0, abs(np.mean(self.similarity_list_per_layer[0]) - np.mean(
+                    self.similarity_list_per_layer[len(parameters_aggregated) - 2])))
+            else:
+                self.similarity_between_layers_per_round_and_client[server_round], \
+                self.similarity_between_layers_per_round[
+                    server_round], self.mean_similarity_per_round[
+                    server_round], self.similarity_list_per_layer = self.similarity_between_layers_per_round_and_client[
+                    server_round - 1], self.similarity_between_layers_per_round[
+                    server_round - 1], self.mean_similarity_per_round[
+                    server_round - 1], self.similarity_list_per_layer
+        else:
+            self.similarity_between_layers_per_round[server_round] = []
+            self.mean_similarity_per_round[server_round] = 0
+            self.similarity_between_layers_per_round_and_client[server_round] = []
+            self.df = 1
+
         return parameters_aggregated, metrics_aggregated
 
 
@@ -176,4 +216,4 @@ class FedAvgFP(FedAvg):
         logger.info(f"model shape: {self.model_shape}")
         return fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters),
                                  client_evaluate_list=client_evaluate_list, df=0, t=server_round,
-                                 T=self.number_of_rounds, compression="fedkd", fl_framework="flwr")
+                                 T=self.number_of_rounds, compression=self.compression, fl_framework="flwr")
