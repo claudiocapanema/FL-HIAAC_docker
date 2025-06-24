@@ -178,7 +178,7 @@ class FedAvgFP(FedAvg):
                                                                                                     clients_parameters,
                                                                                                     self.similarity_list_per_layer)
                 self.df = max(0, abs(np.mean(self.similarity_list_per_layer[0]) - np.mean(
-                    self.similarity_list_per_layer[len(parameters_aggregated) - 2])))
+                    self.similarity_list_per_layer[len(parameters_to_ndarrays(parameters_aggregated)) - 2])))
             else:
                 self.similarity_between_layers_per_round_and_client[server_round], \
                 self.similarity_between_layers_per_round[
