@@ -83,9 +83,10 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
             ls = "o"
     markers = ["", "-", "--"]
 
-    f = lambda m, c: plt.plot([], [], marker=m, color=c, ls="none")[0]
-    handles = [f("o", colors[i]) for i in range(len(hue_order) + 1)]
-    handles += [plt.Line2D([], [], linestyle=markers[i], color="k") for i in range(3)]
+    # f = lambda m, c: plt.plot([], [], marker=m, color=c, ls="none")[0]
+    # handles = [f("o", colors[i]) for i in range(len(hue_order) + 1)]
+    # handles += [plt.Line2D([], [], linestyle=markers[i], color="k") for i in range(3)]
+
     # for i in range(len(alphas)):
     #     if i == 0:
     #         continue

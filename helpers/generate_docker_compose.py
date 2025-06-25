@@ -268,14 +268,14 @@ services:
         file.write(docker_compose_content)
 
     # Caminho para o seu script bash
-    script_up = f"sudo docker compose -f {filename} up --build"
+    script_up = f"sudo docker compose -f {filename} up"
 
     script_down = f"sudo docker compose -f {filename} down"
 
     try:
         # Chamar o script bash usando subprocess
         subprocess.Popen(script_down, shell=True).wait()
-        subprocess.Popen("sudo docker container prune -f", shell=True).wait()
+        # subprocess.Popen("sudo docker container prune -f", shell=True).wait()
         subprocess.Popen(script_up, shell=True).wait()
         subprocess.Popen("sudo bash get_results.sh", shell=True).wait()
     except Exception as e:
