@@ -83,15 +83,15 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
             ls = "o"
     markers = ["", "-", "--"]
 
-    # f = lambda m, c: plt.plot([], [], marker=m, color=c, ls="none")[0]
-    # handles = [f("o", colors[i]) for i in range(len(hue_order) + 1)]
-    # handles += [plt.Line2D([], [], linestyle=markers[i], color="k") for i in range(3)]
+    f = lambda m, c: plt.plot([], [], marker=m, color=c, ls="none")[0]
+    handles = [f("o", colors[i]) for i in range(len(hue_order) + 1)]
+    handles += [plt.Line2D([], [], linestyle=markers[i], color="k") for i in range(3)]
 
-    # for i in range(len(alphas)):
-    #     if i == 0:
-    #         continue
-    #     for j in range(len(datasets)):
-    #         axs[i, j].legend(handles, labels, fontsize=7)
+    for i in range(len(alphas)):
+        if i == 0:
+            continue
+        for j in range(len(datasets)):
+            axs[i, j].legend(handles, labels, fontsize=7)
 
     # fig.suptitle("", fontsize=16)
 
@@ -148,7 +148,8 @@ if __name__ == "__main__":
                     local_epochs,
                     "test")
                 read_dataset_order.append(dt)
-
+                if solution == "FedAvg+FP":
+                    solution = "FedAvg+FP_dls_compredict"
                 read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution))
 
     write_path = """plots/FL/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
