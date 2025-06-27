@@ -113,16 +113,21 @@ class FedAvgFP(FedAvg):
         evaluate_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
         inplace: bool = True,
     ) -> None:
-        super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
-        self.compression = "dls_compredict"
-        self.similarity_list_per_layer = {}
-        self.initial_similarity = 0
-        self.current_similarity = 0
-        self.model_shape_mefl = None
-        self.similarity_between_layers_per_round = {}
-        self.similarity_between_layers_per_round_and_client = {}
-        self.mean_similarity_per_round = {}
-        self.df = 0
+        try:
+            super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
+            self.compression = ""
+            self.similarity_list_per_layer = {}
+            self.initial_similarity = 0
+            self.current_similarity = 0
+            self.model_shape_mefl = None
+            self.similarity_between_layers_per_round = {}
+            self.similarity_between_layers_per_round_and_client = {}
+            self.mean_similarity_per_round = {}
+            self.df = 0
+            #self.file_path = None
+        except Exception as e:
+            logger.error("__init__ error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def aggregate_fit(
         self,
@@ -205,110 +210,128 @@ class FedAvgFP(FedAvg):
     def configure_evaluate(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> list[tuple[ClientProxy, EvaluateIns]]:
-        client_evaluate_list = super().configure_evaluate(server_round, parameters, client_manager)
-        logger.info(f"selected clients {self.selected_clients} round {server_round}")
-        for i in range(len(client_evaluate_list)):
-            client_tuple = client_evaluate_list[i]
-            config = client_tuple[1].config
-            client_id = client_tuple[0].cid
-            lt = 0
+        try:
+            client_evaluate_list = super().configure_evaluate(server_round, parameters, client_manager)
+            logger.info(f"selected clients {self.selected_clients} round {server_round}")
+            for i in range(len(client_evaluate_list)):
+                client_tuple = client_evaluate_list[i]
+                config = client_tuple[1].config
+                client_id = client_tuple[0].cid
+                lt = 0
 
-            if client_id in self.clients_lt:
-                lt = self.clients_lt[client_id]
-            config["nt"] = server_round - lt
-            config["lt"] = lt
-            # logger.info(f"evaluating client {client_id} round {server_round} lt {lt}")
-            client_evaluate_list[i][1].config = config
-        logger.info(f"model shape: {self.model_shape}")
-        return fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters),
-                                 client_evaluate_list=client_evaluate_list, df=0, t=server_round,
-                                 T=self.number_of_rounds, compression=self.compression, fl_framework="flwr")
+                if client_id in self.clients_lt:
+                    lt = self.clients_lt[client_id]
+                config["nt"] = server_round - lt
+                config["lt"] = lt
+                # logger.info(f"evaluating client {client_id} round {server_round} lt {lt}")
+                client_evaluate_list[i][1].config = config
+            logger.info(f"model shape: {self.model_shape} path {self.file_path} {len(parameters_to_ndarrays(client_evaluate_list[0][1].parameters))}")
+            r = fedpredict_server(global_model_parameters=parameters_to_ndarrays(client_evaluate_list[0][1].parameters),
+                                     client_evaluate_list=client_evaluate_list, df=0, t=server_round,
+                                     T=self.number_of_rounds, compression=self.compression, fl_framework="flwr")
+            logger.info(f"configure_evaluate: client_evaluate_list {len(client_evaluate_list)} r {len(r)}")
+            # for client in r:
+            #     logger.info(f"depo type client {type(client)} type 0 {type(client[0])} type 1 {type(client[1])}")
+            #     logger.info(f"depo parameters {type(client[1].parameters)} config {client[1].config}")
+            # for i in range(len(client_evaluate_list)):
+            #     p = ndarrays_to_parameters(r[i]["parameters"])
+            #     client_evaluate_list[i][1].parameters = p
+            #     client_evaluate_list[i][1].config = r[i]["config"]
+                # logger.info(f" 1fp: {type(client_original) == type(client_novo)}")
+                # logger.info(f" 2fp: {type(client_original[0]) == type(client_novo[0])}")
+                # logger.info(f" 3fp: {type(client_original[1]) == type(client_novo[1])}")
+                # logger.info(f" 4fp: {type(parameters_to_ndarrays(client_original[1].parameters)) == type(parameters_to_ndarrays(client_novo[1].parameters))}")
+                # logger.info(f" 5fp: {type(client_original[1].config) == type(client_novo[1].config)}")
+            return r
+        except Exception as e:
+            logger.error("configure_evaluate error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-    def get_results(self, train_test, mode):
-
-        algo = self.dataset + "_" + self.strategy_name
-
-        # result_path = """/results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
-        #     self.cd,
-        #     self.fraction_new_clients,
-        #     self.round_new_clients,
-        #     self.total_clients,
-        #     self.alpha,
-        #     self.alpha,
-        #     self.dataset,
-        #     0,
-        #     0,
-        #     self.model_name,
-        #     self.fraction_fit,
-        #     self.number_of_rounds,
-        #     self.local_epochs,
-        #     train_test)
-
-        result_path = """results/experiment_id_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
-            self.experiment_id,
-            self.total_clients,
-            self.alpha,
-            self.dataset,
-            self.model_name,
-            self.fraction_fit,
-            self.number_of_rounds,
-            self.local_epochs,
-            train_test)
-
-        logger.info(f"caminho {result_path}")
-
-
-        if not os.path.exists(result_path):
-            os.makedirs(result_path)
-
-        compression = self.compression
-        if len(compression) > 0:
-            compression = "_" + compression
-        file_path = result_path + "{}{}.csv".format(algo, compression)
-
-        if train_test == 'test':
-
-            header = self.test_metrics_names
-            # print(self.rs_test_acc)
-            # print(self.rs_test_auc)
-            # print(self.rs_train_loss)
-            list_of_metrics = []
-            for me in self.results_test_metrics:
-                # print(me, len(self.results_test_metrics[me]))
-                length = len(self.results_test_metrics[me])
-                list_of_metrics.append(self.results_test_metrics[me])
-
-            data = []
-            for i in range(length):
-                row = []
-                for j in range(len(list_of_metrics)):
-                    row.append(list_of_metrics[j][i])
-
-                data.append(row)
-
-        else:
-            if mode == '':
-                header = self.train_metrics_names
-                list_of_metrics = []
-                for me in self.results_train_metrics:
-                    # print(me, len(self.results_train_metrics[me]))
-                    length = len(self.results_train_metrics[me])
-                    list_of_metrics.append(self.results_train_metrics[me])
-
-                data = []
-                logger.info("""tamanho: {}    {}""".format(length, list_of_metrics))
-                for i in range(length):
-                    row = []
-                    for j in range(len(list_of_metrics)):
-                        if len(list_of_metrics[j]) > 0:
-                            row.append(list_of_metrics[j][i])
-                        else:
-                            row.append(0)
-
-                    data.append(row)
-
-
-        logger.info("File path: " + file_path)
-        logger.info(data)
-
-        return file_path, header, data
+    # def get_results(self, train_test, mode):
+    #
+    #     algo = self.dataset + "_" + self.strategy_name
+    #
+    #     # result_path = """/results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+    #     #     self.cd,
+    #     #     self.fraction_new_clients,
+    #     #     self.round_new_clients,
+    #     #     self.total_clients,
+    #     #     self.alpha,
+    #     #     self.alpha,
+    #     #     self.dataset,
+    #     #     0,
+    #     #     0,
+    #     #     self.model_name,
+    #     #     self.fraction_fit,
+    #     #     self.number_of_rounds,
+    #     #     self.local_epochs,
+    #     #     train_test)
+    #
+    #     result_path = """results/experiment_id_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+    #         self.experiment_id,
+    #         self.total_clients,
+    #         self.alpha,
+    #         self.dataset,
+    #         self.model_name,
+    #         self.fraction_fit,
+    #         self.number_of_rounds,
+    #         self.local_epochs,
+    #         train_test)
+    #
+    #     logger.info(f"caminho {result_path}")
+    #
+    #
+    #     if not os.path.exists(result_path):
+    #         os.makedirs(result_path)
+    #
+    #     compression = self.compression
+    #     if len(compression) > 0:
+    #         compression = "_" + compression
+    #     file_path = result_path + "{}{}.csv".format(algo, compression)
+    #
+    #     if train_test == 'test':
+    #
+    #         header = self.test_metrics_names
+    #         # print(self.rs_test_acc)
+    #         # print(self.rs_test_auc)
+    #         # print(self.rs_train_loss)
+    #         list_of_metrics = []
+    #         for me in self.results_test_metrics:
+    #             # print(me, len(self.results_test_metrics[me]))
+    #             length = len(self.results_test_metrics[me])
+    #             list_of_metrics.append(self.results_test_metrics[me])
+    #
+    #         data = []
+    #         for i in range(length):
+    #             row = []
+    #             for j in range(len(list_of_metrics)):
+    #                 row.append(list_of_metrics[j][i])
+    #
+    #             data.append(row)
+    #
+    #     else:
+    #         if mode == '':
+    #             header = self.train_metrics_names
+    #             list_of_metrics = []
+    #             for me in self.results_train_metrics:
+    #                 # print(me, len(self.results_train_metrics[me]))
+    #                 length = len(self.results_train_metrics[me])
+    #                 list_of_metrics.append(self.results_train_metrics[me])
+    #
+    #             data = []
+    #             logger.info("""tamanho: {}    {}""".format(length, list_of_metrics))
+    #             for i in range(length):
+    #                 row = []
+    #                 for j in range(len(list_of_metrics)):
+    #                     if len(list_of_metrics[j]) > 0:
+    #                         row.append(list_of_metrics[j][i])
+    #                     else:
+    #                         row.append(0)
+    #
+    #                 data.append(row)
+    #
+    #
+    #     logger.info("File path: " + file_path)
+    #     logger.info(data)
+    #
+    #     return file_path, header, data
