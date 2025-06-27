@@ -226,7 +226,7 @@ class FedAvgFP(FedAvg):
                 # logger.info(f"evaluating client {client_id} round {server_round} lt {lt}")
                 client_evaluate_list[i][1].config = config
             logger.info(f"model shape: {self.model_shape} path {self.file_path} {len(parameters_to_ndarrays(client_evaluate_list[0][1].parameters))}")
-            r = fedpredict_server(global_model_parameters=parameters_to_ndarrays(client_evaluate_list[0][1].parameters),
+            client_evaluate_list = fedpredict_server(global_model_parameters=parameters_to_ndarrays(client_evaluate_list[0][1].parameters),
                                      client_evaluate_list=client_evaluate_list, df=0, t=server_round,
                                      T=self.number_of_rounds, compression=self.compression, fl_framework="flwr")
             logger.info(f"configure_evaluate: client_evaluate_list {len(client_evaluate_list)} r {len(r)}")
@@ -242,7 +242,7 @@ class FedAvgFP(FedAvg):
                 # logger.info(f" 3fp: {type(client_original[1]) == type(client_novo[1])}")
                 # logger.info(f" 4fp: {type(parameters_to_ndarrays(client_original[1].parameters)) == type(parameters_to_ndarrays(client_novo[1].parameters))}")
                 # logger.info(f" 5fp: {type(client_original[1].config) == type(client_novo[1].config)}")
-            return r
+            return client_evaluate_list
         except Exception as e:
             logger.error("configure_evaluate error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
