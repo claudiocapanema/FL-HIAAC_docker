@@ -229,7 +229,7 @@ class FedAvgFP(FedAvg):
             client_evaluate_list = fedpredict_server(global_model_parameters=parameters_to_ndarrays(client_evaluate_list[0][1].parameters),
                                      client_evaluate_list=client_evaluate_list, df=0, t=server_round,
                                      T=self.number_of_rounds, compression=self.compression, fl_framework="flwr")
-            logger.info(f"configure_evaluate: client_evaluate_list {len(client_evaluate_list)} r {len(r)}")
+            logger.info(f"configure_evaluate: client_evaluate_list {len(client_evaluate_list)}")
             # for client in r:
             #     logger.info(f"depo type client {type(client)} type 0 {type(client[0])} type 1 {type(client[1])}")
             #     logger.info(f"depo parameters {type(client[1].parameters)} config {client[1].config}")
