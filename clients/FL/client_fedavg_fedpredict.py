@@ -18,6 +18,7 @@ class ClientFedAvgFP(Client):
     def __init__(self, args):
         try:
             super(ClientFedAvgFP, self).__init__(args)
+            self.T = args.number_of_rounds
             self.global_model = load_model(args.model[0], self.dataset, args.strategy, args.device)
             self.lt = 0
         except Exception as e:
@@ -60,9 +61,9 @@ class ClientFedAvgFP(Client):
             t = config["t"]
             nt = t - self.lt
             # parameters = pickle.loads(config["parameters"])
-            set_weights(self.global_model, parameters)
+            # set_weights(self.global_model, parameters)
             combined_model = fedpredict_client_torch(local_model=self.model, global_model=self.global_model,
-                                      t=t, T=100, nt=nt, device=self.device)
+                                      t=t, T=self.T, nt=nt, device=self.device)
             loss, metrics = test(combined_model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
             metrics["Model size"] = self.models_size
             metrics["Alpha"] = self.alpha

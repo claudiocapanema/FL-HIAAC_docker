@@ -44,6 +44,7 @@ from flwr.common import (
 from server.FL.server_fedavg import FedAvg
 import os
 import sys
+import pickle
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
@@ -225,11 +226,16 @@ class FedAvgFP(FedAvg):
                 config["lt"] = lt
                 # logger.info(f"evaluating client {client_id} round {server_round} lt {lt}")
                 client_evaluate_list[i][1].config = config
+                client_evaluate_list[i][1].parameters = ndarrays_to_parameters([])
             logger.info(f"model shape: {self.model_shape} path {self.file_path} {len(parameters_to_ndarrays(client_evaluate_list[0][1].parameters))}")
             client_evaluate_list = fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters),
-                                     client_evaluate_list=client_evaluate_list, df=self.df, t=server_round,
+                                     client_evaluate_list=client_evaluate_list, df=0, t=server_round,
                                      T=self.number_of_rounds, compression=self.compression, fl_framework="flwr")
+            # for i in range(len(client_evaluate_list)):
+            #     client_evaluate_list[i][1].parameters = ndarrays_to_parameters([])
+            #     client_evaluate_list[i][1].config = {"t": client_evaluate_list[i][1].config["t"], "nt": client_evaluate_list[i][1].config["nt"], "lt": client_evaluate_list[i][1].config["lt"]}
             # logger.info(f"configure_evaluate: client_evaluate_list {len(client_evaluate_list)} parameters {client_evaluate_list[0][1].parameters}, config {client_evaluate_list[0][1].config.keys()}")
+            # exit()
             # for client in r:
             #     logger.info(f"depo type client {type(client)} type 0 {type(client[0])} type 1 {type(client[1])}")
             #     logger.info(f"depo parameters {type(client[1].parameters)} config {client[1].config}")
