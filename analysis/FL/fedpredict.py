@@ -148,9 +148,10 @@ if __name__ == "__main__":
                     local_epochs,
                     "test")
                 read_dataset_order.append(dt)
+                solution_file = solution
                 if solution == "FedAvg+FP":
-                    solution = "FedAvg+FP_dls_compredict"
-                read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution))
+                    solution_file = "FedAvg+FP_dls_compredict"
+                read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution_file))
 
     write_path = """plots/FL/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
         cd,

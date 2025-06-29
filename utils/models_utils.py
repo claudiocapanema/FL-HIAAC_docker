@@ -176,7 +176,7 @@ def get_transform(dataset_name, train_test):
                                              Normalize([0.5], [0.5])]),
                                      "test": Compose([ToTensor(), RandomRotation(10),
                                              Normalize([0.5], [0.5])])},
-                          "GTSRB": Compose(
+                          "GTSRB": {"train": Compose(
                               [
 
                                   Resize((32, 32)),
@@ -189,6 +189,13 @@ def get_transform(dataset_name, train_test):
                                   Normalize((0.3337, 0.3064, 0.3171), (0.2672, 0.2564, 0.2629))
                               ]
                           ),
+                            "test": Compose(
+                                    [
+                                        Resize((32, 32)),
+                                        ToTensor(),
+                                        Normalize((0.3337, 0.3064, 0.3171), (0.2672, 0.2564, 0.2629))
+                                    ]
+                                )},
                           "ImageNet": Compose(
                               [
 

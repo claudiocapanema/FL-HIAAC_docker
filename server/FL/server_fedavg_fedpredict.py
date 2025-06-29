@@ -115,7 +115,7 @@ class FedAvgFP(FedAvg):
     ) -> None:
         try:
             super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
-            self.compression = ""
+            self.compression = "per"
             self.similarity_list_per_layer = {}
             self.initial_similarity = 0
             self.current_similarity = 0
@@ -185,8 +185,8 @@ class FedAvgFP(FedAvg):
                         server_round], self.similarity_list_per_layer = fedpredict_layerwise_similarity(
                         global_parameter=parameters_to_ndarrays(parameters_aggregated), clients_parameters=clients_parameters,
                         similarity_per_layer_list=self.similarity_list_per_layer)
-                    self.df = max(0, abs(np.mean(self.similarity_list_per_layer[0]) - np.mean(
-                        self.similarity_list_per_layer[len(parameters_to_ndarrays(parameters_aggregated)) - 2])))
+                    self.df = float(max(0, abs(np.mean(self.similarity_list_per_layer[0]) - np.mean(
+                        self.similarity_list_per_layer[len(parameters_to_ndarrays(parameters_aggregated)) - 2]))))
                 else:
                     self.similarity_between_layers_per_round_and_client[server_round], \
                     self.similarity_between_layers_per_round[
@@ -247,91 +247,95 @@ class FedAvgFP(FedAvg):
             logger.error("configure_evaluate error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-    # def get_results(self, train_test, mode):
-    #
-    #     algo = self.dataset + "_" + self.strategy_name
-    #
-    #     # result_path = """/results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
-    #     #     self.cd,
-    #     #     self.fraction_new_clients,
-    #     #     self.round_new_clients,
-    #     #     self.total_clients,
-    #     #     self.alpha,
-    #     #     self.alpha,
-    #     #     self.dataset,
-    #     #     0,
-    #     #     0,
-    #     #     self.model_name,
-    #     #     self.fraction_fit,
-    #     #     self.number_of_rounds,
-    #     #     self.local_epochs,
-    #     #     train_test)
-    #
-    #     result_path = """results/experiment_id_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
-    #         self.experiment_id,
-    #         self.total_clients,
-    #         self.alpha,
-    #         self.dataset,
-    #         self.model_name,
-    #         self.fraction_fit,
-    #         self.number_of_rounds,
-    #         self.local_epochs,
-    #         train_test)
-    #
-    #     logger.info(f"caminho {result_path}")
-    #
-    #
-    #     if not os.path.exists(result_path):
-    #         os.makedirs(result_path)
-    #
-    #     compression = self.compression
-    #     if len(compression) > 0:
-    #         compression = "_" + compression
-    #     file_path = result_path + "{}{}.csv".format(algo, compression)
-    #
-    #     if train_test == 'test':
-    #
-    #         header = self.test_metrics_names
-    #         # print(self.rs_test_acc)
-    #         # print(self.rs_test_auc)
-    #         # print(self.rs_train_loss)
-    #         list_of_metrics = []
-    #         for me in self.results_test_metrics:
-    #             # print(me, len(self.results_test_metrics[me]))
-    #             length = len(self.results_test_metrics[me])
-    #             list_of_metrics.append(self.results_test_metrics[me])
-    #
-    #         data = []
-    #         for i in range(length):
-    #             row = []
-    #             for j in range(len(list_of_metrics)):
-    #                 row.append(list_of_metrics[j][i])
-    #
-    #             data.append(row)
-    #
-    #     else:
-    #         if mode == '':
-    #             header = self.train_metrics_names
-    #             list_of_metrics = []
-    #             for me in self.results_train_metrics:
-    #                 # print(me, len(self.results_train_metrics[me]))
-    #                 length = len(self.results_train_metrics[me])
-    #                 list_of_metrics.append(self.results_train_metrics[me])
-    #
-    #             data = []
-    #             logger.info("""tamanho: {}    {}""".format(length, list_of_metrics))
-    #             for i in range(length):
-    #                 row = []
-    #                 for j in range(len(list_of_metrics)):
-    #                     if len(list_of_metrics[j]) > 0:
-    #                         row.append(list_of_metrics[j][i])
-    #                     else:
-    #                         row.append(0)
-    #
-    #                 data.append(row)
-    #
-    #
-    #     logger.info("File path: " + file_path)
-    #     logger.info(data)
-    #
-    #     return file_path, header, data
+    def get_results(self, train_test, mode):
+
+        try:
+            algo = self.dataset + "_" + self.strategy_name
+
+            # result_path = """/results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+            #     self.cd,
+            #     self.fraction_new_clients,
+            #     self.round_new_clients,
+            #     self.total_clients,
+            #     self.alpha,
+            #     self.alpha,
+            #     self.dataset,
+            #     0,
+            #     0,
+            #     self.model_name,
+            #     self.fraction_fit,
+            #     self.number_of_rounds,
+            #     self.local_epochs,
+            #     train_test)
+
+            result_path = """results/experiment_id_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+                self.experiment_id,
+                self.total_clients,
+                self.alpha,
+                self.dataset,
+                self.model_name,
+                self.fraction_fit,
+                self.number_of_rounds,
+                self.local_epochs,
+                train_test)
+
+            logger.info(f"caminho {result_path}")
+
+
+            if not os.path.exists(result_path):
+                os.makedirs(result_path)
+
+            compression = self.compression
+            if len(compression) > 0:
+                compression = "_" + compression
+            file_path = result_path + "{}{}.csv".format(algo, compression)
+
+            if train_test == 'test':
+
+                header = self.test_metrics_names
+                # print(self.rs_test_acc)
+                # print(self.rs_test_auc)
+                # print(self.rs_train_loss)
+                list_of_metrics = []
+                for me in self.results_test_metrics:
+                    # print(me, len(self.results_test_metrics[me]))
+                    length = len(self.results_test_metrics[me])
+                    list_of_metrics.append(self.results_test_metrics[me])
+
+                data = []
+                for i in range(length):
+                    row = []
+                    for j in range(len(list_of_metrics)):
+                        row.append(list_of_metrics[j][i])
+
+                    data.append(row)
+
+            else:
+                if mode == '':
+                    header = self.train_metrics_names
+                    list_of_metrics = []
+                    for me in self.results_train_metrics:
+                        # print(me, len(self.results_train_metrics[me]))
+                        length = len(self.results_train_metrics[me])
+                        list_of_metrics.append(self.results_train_metrics[me])
+
+                    data = []
+                    logger.info("""tamanho: {}    {}""".format(length, list_of_metrics))
+                    for i in range(length):
+                        row = []
+                        for j in range(len(list_of_metrics)):
+                            if len(list_of_metrics[j]) > 0:
+                                row.append(list_of_metrics[j][i])
+                            else:
+                                row.append(0)
+
+                        data.append(row)
+
+
+            logger.info("File path2: " + file_path)
+            logger.info(data)
+
+            return file_path, header, data
+        except Exception as e:
+            logger.error("get_results error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
