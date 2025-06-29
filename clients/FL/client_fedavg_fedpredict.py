@@ -59,7 +59,7 @@ class ClientFedAvgFP(Client):
             logger.info("""eval cliente inicio fp""".format(config))
             t = config["t"]
             nt = t - self.lt
-            parameters = pickle.loads(config["parameters"])
+            # parameters = pickle.loads(config["parameters"])
             set_weights(self.global_model, parameters)
             combined_model = fedpredict_client_torch(local_model=self.model, global_model=self.global_model,
                                       t=t, T=100, nt=nt, device=self.device)

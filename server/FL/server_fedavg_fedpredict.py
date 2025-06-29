@@ -115,7 +115,7 @@ class FedAvgFP(FedAvg):
     ) -> None:
         try:
             super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
-            self.compression = "per"
+            self.compression = "dls_compredict"
             self.similarity_list_per_layer = {}
             self.initial_similarity = 0
             self.current_similarity = 0
@@ -226,10 +226,10 @@ class FedAvgFP(FedAvg):
                 # logger.info(f"evaluating client {client_id} round {server_round} lt {lt}")
                 client_evaluate_list[i][1].config = config
             logger.info(f"model shape: {self.model_shape} path {self.file_path} {len(parameters_to_ndarrays(client_evaluate_list[0][1].parameters))}")
-            client_evaluate_list = fedpredict_server(global_model_parameters=parameters_to_ndarrays(client_evaluate_list[0][1].parameters),
-                                     client_evaluate_list=client_evaluate_list, df=0, t=server_round,
+            client_evaluate_list = fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters),
+                                     client_evaluate_list=client_evaluate_list, df=self.df, t=server_round,
                                      T=self.number_of_rounds, compression=self.compression, fl_framework="flwr")
-            logger.info(f"configure_evaluate: client_evaluate_list {len(client_evaluate_list)}")
+            # logger.info(f"configure_evaluate: client_evaluate_list {len(client_evaluate_list)} parameters {client_evaluate_list[0][1].parameters}, config {client_evaluate_list[0][1].config.keys()}")
             # for client in r:
             #     logger.info(f"depo type client {type(client)} type 0 {type(client[0])} type 1 {type(client[1])}")
             #     logger.info(f"depo parameters {type(client[1].parameters)} config {client[1].config}")
