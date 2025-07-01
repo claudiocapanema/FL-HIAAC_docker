@@ -173,7 +173,8 @@ class FedAvgFP(FedAvg):
             elif server_round == 1:  # Only log this warning once
                 log(WARNING, "No fit_metrics_aggregation_fn provided")
 
-            flag  = False
+            np.random.seed(server_round)
+            flag = bool(int(np.random.binomial(1, 0.2, 1)))
             if server_round == 1:
                 flag = True
 
@@ -213,7 +214,7 @@ class FedAvgFP(FedAvg):
     ) -> list[tuple[ClientProxy, EvaluateIns]]:
         try:
             client_evaluate_list = super().configure_evaluate(server_round, parameters, client_manager)
-            logger.info(f"selected clients {self.selected_clients} round {server_round}")
+            logger.info(f"selected clients {self.selected_clients} round {server_round} df {self.df}")
             for i in range(len(client_evaluate_list)):
                 client_tuple = client_evaluate_list[i]
                 config = client_tuple[1].config
@@ -229,7 +230,7 @@ class FedAvgFP(FedAvg):
                 client_evaluate_list[i][1].parameters = ndarrays_to_parameters([])
             logger.info(f"model shape: {self.model_shape} path {self.file_path} {len(parameters_to_ndarrays(client_evaluate_list[0][1].parameters))}")
             client_evaluate_list = fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters),
-                                     client_evaluate_list=client_evaluate_list, df=0, t=server_round,
+                                     client_evaluate_list=client_evaluate_list, df=self.df, t=server_round,
                                      T=self.number_of_rounds, compression=self.compression, fl_framework="flwr")
             # for i in range(len(client_evaluate_list)):
             #     client_evaluate_list[i][1].parameters = ndarrays_to_parameters([])
