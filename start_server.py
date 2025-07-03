@@ -102,10 +102,11 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
         balanced_accuracies = [num_examples * m["Balanced accuracy"] for num_examples, m in metrics]
         loss = [num_examples * m["Loss"] for num_examples, m in metrics]
         examples = [num_examples for num_examples, _ in metrics]
+        model_size = int(sum([m["Model size"] for num_examples, m in metrics]))
 
         # Aggregate and return custom metric (weighted average)
         return {"Accuracy": sum(accuracies) / sum(examples), "Balanced accuracy": sum(balanced_accuracies) / sum(examples),
-                "Loss": sum(loss) / sum(examples), "Round (t)": metrics[0][1]["Round (t)"], "Model size": metrics[0][1]["Model size"], "Alpha": metrics[0][1]["Alpha"]}
+                "Loss": sum(loss) / sum(examples), "Round (t)": metrics[0][1]["Round (t)"], "Model size": model_size, "Alpha": metrics[0][1]["Alpha"]}
     except Exception as e:
         logger.error("weighted_average error")
         logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

@@ -174,8 +174,7 @@ def get_transform(dataset_name, train_test):
                                             Normalize([0.5], [0.5])]),
                           "EMNIST": {"train": Compose([ToTensor(), RandomRotation(10),
                                              Normalize([0.5], [0.5])]),
-                                     "test": Compose([ToTensor(), RandomRotation(10),
-                                             Normalize([0.5], [0.5])])},
+                                     "test": Compose([ToTensor()])},
                           "GTSRB": {"train": Compose(
                               [
 

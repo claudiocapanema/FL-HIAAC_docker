@@ -7,6 +7,18 @@ from utils.models_utils import load_model, get_weights, set_weights, test, train
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
+from flwr.common import (
+    EvaluateIns,
+    EvaluateRes,
+    FitIns,
+    FitRes,
+    MetricsAggregationFn,
+    NDArrays,
+    Parameters,
+    Scalar,
+    ndarrays_to_parameters,
+    parameters_to_ndarrays,
+)
 
 from fedpredict import fedpredict_client_torch
 from clients.FL.client_fedavg import Client
@@ -21,6 +33,7 @@ class ClientFedAvgFP(Client):
             self.T = args.number_of_rounds
             self.global_model = load_model(args.model[0], self.dataset, args.strategy, args.device)
             self.lt = 0
+            self.model_shape = [param.shape for name, param in self.global_model.named_parameters()]
         except Exception as e:
             logger.error("__init__ error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
@@ -62,8 +75,8 @@ class ClientFedAvgFP(Client):
             nt = t - self.lt
             # parameters = pickle.loads(config["parameters"])
             # set_weights(self.global_model, parameters)
-            combined_model = fedpredict_client_torch(local_model=self.model, global_model=self.global_model,
-                                      t=t, T=self.T, nt=nt, device=self.device)
+            combined_model = fedpredict_client_torch(local_model=self.model, global_model=parameters,
+                                      t=t, T=self.T, nt=nt, device=self.device, global_model_original_shape=self.model_shape)
             loss, metrics = test(combined_model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
             metrics["Model size"] = self.models_size
             metrics["Alpha"] = self.alpha

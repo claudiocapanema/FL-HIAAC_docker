@@ -56,7 +56,7 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
     df["Strategy"] = np.array([i.replace("Multi", "") for i in df["Strategy"].tolist()])
 
     fig, axs = plt.subplots(len(alphas), 3, sharex='all', figsize=(12, 6))
-    hue_order = ["FedAvg", "FedYogi", "FedKD", "FedPer", "FedProto"]
+    hue_order = ["FedAvg", "FedYogi", "FedKD", "FedPer"]
 
     for i in range(len(alphas)):
         for j in range(len(datasets)):

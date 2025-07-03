@@ -125,9 +125,25 @@ class FedAvgFP(FedAvg):
             self.similarity_between_layers_per_round_and_client = {}
             self.mean_similarity_per_round = {}
             self.df = 0
+            self.compressed_size = 0
+            self.test_metrics_names += ["df", "Model size (compressed)"]
+            self.train_metrics_names += ["df", "Model size (compressed)"]
+            self.results_test_metrics = {metric: [] for metric in self.test_metrics_names}
+            self.results_test_metrics_w = {metric: [] for metric in self.test_metrics_names}
+            self.clients_results_test_metrics = {metric: [] for metric in self.test_metrics_names}
             #self.file_path = None
         except Exception as e:
             logger.error("__init__ error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def configure_fit(
+        self, server_round: int, parameters: Parameters, client_manager: ClientManager
+    ) -> list[tuple[ClientProxy, FitIns]]:
+        try:
+            self.previous_global_parameters = parameters_to_ndarrays(parameters)
+            return super().configure_fit(server_round, parameters, client_manager)
+        except Exception as e:
+            logger.error("configure_fit error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def aggregate_fit(
@@ -144,13 +160,16 @@ class FedAvgFP(FedAvg):
             if not self.accept_failures and failures:
                 return None, {}
 
-            clients_parameters = []
+            clients_parameters_update = []
             for i in range(len(results)):
                 _, result = results[i]
                 client_id = self.selected_clients[i]
                 lt = result.metrics["lt"]
                 self.clients_lt[client_id] = lt
-                clients_parameters.append(parameters_to_ndarrays(result.parameters))
+                client_parameters_update = [current - previous for current, previous in
+                 zip(parameters_to_ndarrays(result.parameters), self.previous_global_parameters)]
+                logger.info(f"foi {len(client_parameters_update)}")
+                clients_parameters_update.append(client_parameters_update)
 
             if self.inplace:
                 # Does in-place weighted average of results
@@ -175,20 +194,26 @@ class FedAvgFP(FedAvg):
 
             np.random.seed(server_round)
             flag = bool(int(np.random.binomial(1, 0.2, 1)))
-            if server_round == 1:
+            if server_round == 2:
                 flag = True
 
             if "dls" in self.compression:
-                if flag:
+                if server_round == 1:
+                    self.df = 1
+                elif flag and server_round >= 2:
                     # logger.info(f"tipo: {[type(i) for i in parameters_to_ndarrays(parameters_aggregated)]}")
                     # exit()
+
+                    logger.info(f"client update {[len(i) for i in clients_parameters_update]}")
+                    global_parameter_update = [current - previous for current, previous in
+                                        zip(parameters_to_ndarrays(parameters_aggregated),
+                                            self.previous_global_parameters)]
                     self.similarity_between_layers_per_round_and_client[server_round], \
                         self.similarity_between_layers_per_round[server_round], self.mean_similarity_per_round[
-                        server_round], self.similarity_list_per_layer = fedpredict_layerwise_similarity(
-                        global_parameter=parameters_to_ndarrays(parameters_aggregated), clients_parameters=clients_parameters,
+                        server_round], self.similarity_list_per_layer, self.df = fedpredict_layerwise_similarity(
+                        global_parameter=global_parameter_update, clients_parameters=clients_parameters_update,
                         similarity_per_layer_list=self.similarity_list_per_layer)
-                    self.df = float(max(0, abs(np.mean(self.similarity_list_per_layer[0]) - np.mean(
-                        self.similarity_list_per_layer[len(parameters_to_ndarrays(parameters_aggregated)) - 2]))))
+                   # self.df = 0
                 else:
                     self.similarity_between_layers_per_round_and_client[server_round], \
                     self.similarity_between_layers_per_round[
@@ -201,7 +226,7 @@ class FedAvgFP(FedAvg):
                 self.similarity_between_layers_per_round[server_round] = []
                 self.mean_similarity_per_round[server_round] = 0
                 self.similarity_between_layers_per_round_and_client[server_round] = []
-                self.df = 1
+                self.df = 0
 
             return parameters_aggregated, metrics_aggregated
 
@@ -228,30 +253,32 @@ class FedAvgFP(FedAvg):
                 # logger.info(f"evaluating client {client_id} round {server_round} lt {lt}")
                 client_evaluate_list[i][1].config = config
                 client_evaluate_list[i][1].parameters = ndarrays_to_parameters([])
-            logger.info(f"model shape: {self.model_shape} path {self.file_path} {len(parameters_to_ndarrays(client_evaluate_list[0][1].parameters))}")
+            # logger.info(f"model shape: {self.model_shape} path {self.file_path} {len(parameters_to_ndarrays(client_evaluate_list[0][1].parameters))}")
             client_evaluate_list = fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters),
                                      client_evaluate_list=client_evaluate_list, df=self.df, t=server_round,
                                      T=self.number_of_rounds, compression=self.compression, fl_framework="flwr")
-            # for i in range(len(client_evaluate_list)):
-            #     client_evaluate_list[i][1].parameters = ndarrays_to_parameters([])
-            #     client_evaluate_list[i][1].config = {"t": client_evaluate_list[i][1].config["t"], "nt": client_evaluate_list[i][1].config["nt"], "lt": client_evaluate_list[i][1].config["lt"]}
-            # logger.info(f"configure_evaluate: client_evaluate_list {len(client_evaluate_list)} parameters {client_evaluate_list[0][1].parameters}, config {client_evaluate_list[0][1].config.keys()}")
-            # exit()
-            # for client in r:
-            #     logger.info(f"depo type client {type(client)} type 0 {type(client[0])} type 1 {type(client[1])}")
-            #     logger.info(f"depo parameters {type(client[1].parameters)} config {client[1].config}")
-            # for i in range(len(client_evaluate_list)):
-            #     p = ndarrays_to_parameters(r[i]["parameters"])
-            #     client_evaluate_list[i][1].parameters = p
-            #     client_evaluate_list[i][1].config = r[i]["config"]
-                # logger.info(f" 1fp: {type(client_original) == type(client_novo)}")
-                # logger.info(f" 2fp: {type(client_original[0]) == type(client_novo[0])}")
-                # logger.info(f" 3fp: {type(client_original[1]) == type(client_novo[1])}")
-                # logger.info(f" 4fp: {type(parameters_to_ndarrays(client_original[1].parameters)) == type(parameters_to_ndarrays(client_novo[1].parameters))}")
-                # logger.info(f" 5fp: {type(client_original[1].config) == type(client_novo[1].config)}")
+            compressed_size = sum([sum([j.nbytes for j in parameters_to_ndarrays(i[1].parameters)]) for i in client_evaluate_list])
+            self.compressed_size = compressed_size
             return client_evaluate_list
         except Exception as e:
             logger.error("configure_evaluate error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def add_metrics(self, t, metrics_aggregated):
+        try:
+            metrics_aggregated["Fraction fit"] = self.fraction_fit
+            metrics_aggregated["# training clients"] = self.n_trained_clients
+            metrics_aggregated["# available clients"] = self.current_total_clients
+            metrics_aggregated["training clients and models"] = self.selected_clients_ids
+            metrics_aggregated["Alpha"] = self.alpha
+            metrics_aggregated["df"] = self.df
+            metrics_aggregated["Model size (compressed)"] = self.compressed_size
+
+            for metric in metrics_aggregated:
+                self.results_test_metrics[metric].append(metrics_aggregated[metric])
+
+        except Exception as e:
+            logger.error("add_metrics error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def get_results(self, train_test, mode):
