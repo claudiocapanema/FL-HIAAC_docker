@@ -10,13 +10,13 @@ def read_data(read_solutions, read_dataset_order):
 
     df_concat = None
     solution_strategy_version = {
-        "FedAvg+FP": {"Strategy": "FedAvg", "Version": "FP", "Table": "FedAvg+FP"},
+        "FedAvg+FP": {"Strategy": "FedAvg", "Version": "FP$_{dc}$", "Table": "FedAvg+FP"},
         "FedAvg": {"Strategy": "FedAvg", "Version": "Original", "Table": "FedAvg"},
-        "FedYogi+FP": {"Strategy": "FedYogi", "Version": "FP", "Table": "FedYogi+FP"},
+        "FedYogi+FP": {"Strategy": "FedYogi", "Version": "FP$_{dc}$", "Table": "FedYogi+FP"},
         "FedYogi": {"Strategy": "FedYogi", "Version": "Original", "Table": "FedYogi"},
         "FedPer": {"Strategy": "FedPer", "Version": "Original", "Table": "FedPer"},
         "FedKD": {"Strategy": "FedKD", "Version": "Original", "Table": "FedKD"},
-        "FedKD+FP": {"Strategy": "FedKD", "Version": "FP", "Table": "FedKD+FP"}
+        "FedKD+FP": {"Strategy": "FedKD", "Version": "FP$_{dc}$", "Table": "FedKD+FP"}
     }
     hue_order = []
     for solution in read_solutions:
