@@ -1,5 +1,7 @@
 import subprocess
 import argparse
+import time
+
 from download_dataset import download_datasets
 import os
 
@@ -276,13 +278,41 @@ services:
         # Chamar o script bash usando subprocess
         subprocess.Popen(script_down, shell=True).wait()
         # subprocess.Popen("sudo docker container prune -f", shell=True).wait()
-        subprocess.Popen(script_up, shell=True).wait()
+        # process = subprocess.Popen(script_up, text=True, shell=True)
+        try:
+            process = subprocess.Popen(
+                script_up,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                shell=True
+            )
+            print("🚀 Docker Compose iniciado. Monitorando saída...")
+            for line in process.stdout:
+                print(line, end="")  # Imprime a saída em tempo real
+
+                if "exited with code 0" in line:
+                    print("✅ Container finalizou com sucesso. Encerrando processo.")
+                    process.terminate()
+                    break
+                elif "error on line" in str(line).lower():
+                    print("Error found")
+                    time.sleep(3600)
+
+            # Aguarda encerramento completo
+            process.wait()
+            print("🛑 Processo encerrado.")
+
+        except KeyboardInterrupt:
+            print("❌ Interrompido pelo usuário.")
+            process.terminate()
+            process.wait()
         subprocess.Popen("sudo bash get_results.sh", shell=True).wait()
     except Exception as e:
         # print(e)
         # subprocess.Popen(script_down, shell=True)
         pass
-    print(script_down)
+    subprocess.Popen(script_down, shell=True).wait()
 
 
 
@@ -306,11 +336,11 @@ if __name__ == "__main__":
 
     # Abra um arquivo para gravação
     os.makedirs(os.path.dirname(result_path), exist_ok=True)
-    with open(result_path, 'w') as f:
-        # Redirecione a saída padrão para o arquivo
-        original = sys.stdout
-        sys.stdout = f
-        create_docker_compose(args)
-        sys.stdout = original
+    # with open(result_path, 'w') as f:
+    #     # Redirecione a saída padrão para o arquivo
+    #     original = sys.stdout
+    #     sys.stdout = f
+    create_docker_compose(args)
+        # sys.stdout = original
 
 

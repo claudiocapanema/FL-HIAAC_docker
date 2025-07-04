@@ -108,7 +108,7 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
 
 if __name__ == "__main__":
-    experiment_id = 1
+    experiment_id = "1_new_clients"
     cd = "false"
     total_clients = 20
     alphas = [0.1, 1.0]
@@ -153,8 +153,8 @@ if __name__ == "__main__":
                     solution_file = "FedAvg+FP_dls_compredict"
                 read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution_file))
 
-    write_path = """plots/FL/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
-        cd,
+    write_path = """plots/FL/experiment_id_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
+        experiment_id,
         fraction_new_clients,
         round_new_clients,
         total_clients,
