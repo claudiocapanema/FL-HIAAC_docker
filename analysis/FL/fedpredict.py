@@ -108,7 +108,8 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
 
 if __name__ == "__main__":
-    experiment_id = "1_new_clients"
+    # experiment_id = "1_new_clients"
+    experiment_id = "1"
     cd = "false"
     total_clients = 20
     alphas = [0.1, 1.0]

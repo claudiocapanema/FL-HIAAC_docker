@@ -257,6 +257,7 @@ class FedAvgFP(FedAvg):
             client_evaluate_list = fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters),
                                      client_evaluate_list=client_evaluate_list, df=self.df, t=server_round,
                                      T=self.number_of_rounds, compression=self.compression, fl_framework="flwr")
+            original_size = sum([j.nbytes for j in parameters_to_ndarrays(parameters)]) * len(client_evaluate_list)
             compressed_size = sum([sum([j.nbytes for j in parameters_to_ndarrays(i[1].parameters)]) for i in client_evaluate_list])
             self.compressed_size = compressed_size
             return client_evaluate_list
