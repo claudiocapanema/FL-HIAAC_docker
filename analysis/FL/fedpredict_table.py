@@ -4,6 +4,7 @@ import pandas as pd
 import scipy.stats as st
 
 import copy
+import sys
 
 from base_plots import bar_plot, line_plot, ecdf_plot
 import matplotlib.pyplot as plt
@@ -12,13 +13,13 @@ def read_data(read_solutions, read_dataset_order):
 
     df_concat = None
     solution_strategy_version = {
-        "FedAvg+FP": {"Strategy": "FedAvg", "Version": "FP", "Table": "FedAvg+FP"},
+        "FedAvg+FP": {"Strategy": "FedAvg", "Version": "FP$_{dc}$", "Table": "FedAvg+FP$_{dc}$"},
         "FedAvg": {"Strategy": "FedAvg", "Version": "Original", "Table": "FedAvg"},
-        "FedYogi+FP": {"Strategy": "FedYogi", "Version": "FP", "Table": "FedYogi+FP"},
+        "FedYogi+FP": {"Strategy": "FedYogi", "Version": "FP$_{dc}$", "Table": "FedYogi+FP$_{dc}$"},
         "FedYogi": {"Strategy": "FedYogi", "Version": "Original", "Table": "FedYogi"},
         "FedPer": {"Strategy": "FedPer", "Version": "Original", "Table": "FedPer"},
         "FedKD": {"Strategy": "FedKD", "Version": "Original", "Table": "FedKD"},
-        "FedKD+FP": {"Strategy": "FedKD", "Version": "FP", "Table": "FedKD+FP"}
+        "FedKD+FP": {"Strategy": "FedKD", "Version": "FP$_{dc}$", "Table": "FedKD+FP$_{dc}$"}
     }
     hue_order = []
     for solution in read_solutions:
@@ -46,8 +47,7 @@ def read_data(read_solutions, read_dataset_order):
                 if strategy not in hue_order:
                     hue_order.append(strategy)
             except Exception as e:
-                print("\n######### \nFaltando", paths[i])
-                print(e)
+                print("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     return df_concat, hue_order
 
@@ -86,6 +86,8 @@ def table(df, write_path, metric, t=None):
         models_datasets_dict = {dt: {} for dt in datasets}
         for column in columns:
             for dt in datasets:
+
+                print(alpha, column, dt)
                 models_datasets_dict[dt][column] = t_distribution((filter(df_test, dt,
                                                                           alpha=float(alpha), strategy=column)[
                     metric]).tolist(), ci)
@@ -179,7 +181,8 @@ def table(df, write_path, metric, t=None):
 
 def improvements(df, datasets, metric):
     # , "FedKD+FP": "FedKD"
-    strategies = {"FedAvg+FP": "FedAvg", "FedYogi+FP": "FedYogi", "FedKD+FP": "FedKD"}
+    # strategies = {"FedAvg+FP": "FedAvg", "FedYogi+FP": "FedYogi", "FedKD+FP": "FedKD"}
+    strategies = {"FedAvg+FP$_{dc}$": "FedAvg", "FedYogi+FP$_{dc}$": "FedYogi"}
     # strategies = {r"MultiFedAvg+FP": "MultiFedAvg"}
     columns = df.columns.tolist()
     improvements_dict = {'Dataset': [], 'Table': [], 'Original strategy': [], 'Alpha': [], metric: []}
@@ -259,7 +262,8 @@ def accuracy_improvement(df, datasets):
     # reference_solutions = {"MultiFedAvg+FP": "MultiFedAvg", "MultiFedAvgGlobalModelEval+FP": "MultiFedAvgGlobalModelEval"}
     # ,
     #                            "FedKD+FP": "FedKD"
-    reference_solutions = {"FedAvg+FP": "FedAvg", "FedYogi+FP": "FedYogi", "FedKD+FP": "FedKD"}
+    # reference_solutions = {"FedAvg+FP": "FedAvg", "FedYogi+FP": "FedYogi", "FedKD+FP": "FedKD"}
+    reference_solutions = {"FedAvg+FP$_{dc}$": "FedAvg", "FedYogi+FP$_{dc}$": "FedYogi"}
 
     print(df_difference)
     # exit()
@@ -329,6 +333,8 @@ def idmax(df, n_solutions):
 
 
 if __name__ == "__main__":
+    # experiment_id = "1_new_clients"
+    experiment_id = "1"
     cd = "false"
     total_clients = 20
     alphas = [0.1, 1.0]
@@ -347,7 +353,7 @@ if __name__ == "__main__":
     #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
-    solutions = ["FedAvg+FP", "FedYogi+FP", "FedAvg", "FedYogi", "FedKD+FP", "FedKD", "FedPer"]
+    solutions = ["FedAvg+FP", "FedYogi+FP", "FedAvg", "FedYogi", "FedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}
@@ -357,27 +363,24 @@ if __name__ == "__main__":
             for dt in dataset:
                 algo = dt + "_" + solution
 
-                read_path = """../results/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
-                    cd,
-                    0.1,
-                    0.1,
+                read_path = """/home/gustavo/PycharmProjects/FL-HIAAC_docker/results/experiment_id_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+                    experiment_id,
                     total_clients,
                     alpha,
-                    alpha,
                     dt,
-                    0,
-                    0,
                     model_name,
                     fraction_fit,
                     number_of_rounds,
                     local_epochs,
-                    train_test)
+                    "test")
                 read_dataset_order.append(dt)
+                solution_file = solution
+                if solution in ["FedAvg+FP", "FedYogi+FP"]:
+                    solution_file = f"{solution}_dls_compredict"
+                read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution_file))
 
-                read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution))
-
-    write_path = """plots/single_model/concept_drift_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
-        cd,
+    write_path = """plots/FL/experiment_id_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
+        experiment_id,
         fraction_new_clients,
         round_new_clients,
         total_clients,
