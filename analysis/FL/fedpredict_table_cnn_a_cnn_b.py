@@ -9,7 +9,7 @@ import sys
 from base_plots import bar_plot, line_plot, ecdf_plot
 import matplotlib.pyplot as plt
 
-def read_data(read_solutions, read_dataset_order):
+def read_data(read_solutions, read_dataset_order, read_model_order):
 
     df_concat = None
     solution_strategy_version = {
@@ -33,12 +33,14 @@ def read_data(read_solutions, read_dataset_order):
         for i in range(len(paths)):
             try:
                 dataset = read_dataset_order[i]
+                model = read_model_order[i]
                 path = paths[i]
                 df = pd.read_csv(path)
                 df["Solution"] = np.array([solution] * len(df))
                 df["Accuracy (%)"] = df["Accuracy"] * 100
                 df["Balanced accuracy (%)"] = df["Balanced accuracy"] * 100
                 df["Dataset"] = np.array([dataset] * len(df))
+                df["Model"] = np.array([model] * len(df))
                 df["Table"] = np.array([solution_strategy_version[solution]["Table"]] * len(df))
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))
                 df["Version"] = np.array([solution_strategy_version[solution]["Version"]] * len(df))
@@ -62,19 +64,19 @@ def read_data(read_solutions, read_dataset_order):
 
 def table(df, write_path, metric, t=None):
     datasets = df["Dataset"].unique().tolist()
-    alphas = df["Alpha"].unique().tolist()
+    models = df["Model"].unique().tolist()
     columns = df["Table"].unique().tolist()
     n_strategies = str(len(columns))
 
     print(columns)
 
-    model_report = {i: {} for i in alphas}
+    model_report = {i: {} for i in models}
     if t is not None:
         df = df[df['Round (t)'] == t]
 
     df_test = df[
         ['Round (t)', 'Table', 'Balanced accuracy (%)', 'Accuracy (%)', 'Fraction fit', 'Dataset',
-         'Alpha']]
+         'Alpha', 'Size (MB)']]
 
     # df_test = df_test.query("""Round in [10, 100]""")
     print("agrupou table")
@@ -135,7 +137,7 @@ def table(df, write_path, metric, t=None):
     print("melhorias")
     print(df_accuracy_improvements)
 
-    indexes = alphas
+    indexes = models
     for i in range(df_accuracy_improvements.shape[0]):
         row = df_accuracy_improvements.iloc[i]
         for index in indexes:
@@ -193,7 +195,7 @@ def improvements(df, datasets, metric):
     strategies = {"FedAvg+FP$_{dc}$": "FedAvg", "FedYogi+FP$_{dc}$": "FedYogi"}
     # strategies = {r"MultiFedAvg+FP": "MultiFedAvg"}
     columns = df.columns.tolist()
-    improvements_dict = {'Dataset': [], 'Table': [], 'Original strategy': [], 'Alpha': [], metric: []}
+    improvements_dict = {'Dataset': [], 'Table': [], 'Original strategy': [], 'Model': [], metric: []}
     df_improvements = pd.DataFrame(improvements_dict)
 
     for dataset in datasets:
@@ -210,7 +212,7 @@ def improvements(df, datasets, metric):
                     df.loc[index_original].tolist()[j].replace("textbf{", "")[:4].replace(u"\u00B1", ""))
 
                 row = {'Dataset': [dataset], 'Table': [strategy], 'Original strategy': [original_strategy],
-                       'Alpha': [columns[j]], metric: [acc - acc_original]}
+                       'Model': [columns[j]], metric: [acc - acc_original]}
                 row = pd.DataFrame(row)
 
                 print(row)
@@ -366,6 +368,7 @@ if __name__ == "__main__":
 
     read_solutions = {solution: [] for solution in solutions}
     read_dataset_order = []
+    read_model_order = []
     for solution in solutions:
         for model_name in models_name:
             for dt in dataset:
@@ -382,6 +385,7 @@ if __name__ == "__main__":
                     local_epochs,
                     "test")
                 read_dataset_order.append(dt)
+                read_model_order.append(model_name)
                 solution_file = solution
                 read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution_file))
 
@@ -403,8 +407,10 @@ if __name__ == "__main__":
 
     print(read_solutions)
 
-    df, hue_order = read_data(read_solutions, read_dataset_order)
+    df, hue_order = read_data(read_solutions, read_dataset_order, read_model_order)
     print(df)
 
     table(df, write_path, "Accuracy (%)", t=None)
     table(df, write_path, "Accuracy (%)", t=100)
+    table(df, write_path, "Size (MB)", t=None)
+    table(df, write_path, "Size (MB)", t=100)
