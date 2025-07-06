@@ -6,6 +6,7 @@ from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 from itertools import islice
 from fedpredict import fedpredict_server, fedpredict_layerwise_similarity
+from fedpredict.utils.compression_methods.sparsification import sparse_matrix, sparse_bytes
 
 from logging import WARNING
 from typing import Callable, Optional, Union
@@ -116,7 +117,7 @@ class FedAvgFP(FedAvg):
     ) -> None:
         try:
             super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
-            self.compression = "dls_compredict"
+            self.compression = args.compression
             self.similarity_list_per_layer = {}
             self.initial_similarity = 0
             self.current_similarity = 0
@@ -258,7 +259,21 @@ class FedAvgFP(FedAvg):
                                      client_evaluate_list=client_evaluate_list, df=self.df, t=server_round,
                                      T=self.number_of_rounds, compression=self.compression, fl_framework="flwr")
             original_size = sum([j.nbytes for j in parameters_to_ndarrays(parameters)]) * len(client_evaluate_list)
-            compressed_size = sum([sum([j.nbytes for j in parameters_to_ndarrays(i[1].parameters)]) for i in client_evaluate_list])
+            if self.compression == "sparsification":
+                compressed_size = 0
+                for client in client_evaluate_list:
+                    parameters = parameters_to_ndarrays(client[1].parameters)
+                    for p in parameters:
+                        aux = p[p == 0]
+                        # print("quantidade zeros: ", len(aux))
+                        sparse = sparse_matrix(p)
+                        # print("Tamanho original: ", p.nbytes)
+                        b = sparse_bytes(sparse)
+                        # print("Apos esparcificacao: ", b)
+                        b = min(p.nbytes, b)
+                        compressed_size += b
+            else:
+                compressed_size = sum([sum([j.nbytes for j in parameters_to_ndarrays(i[1].parameters)]) for i in client_evaluate_list])
             self.compressed_size = compressed_size
             return client_evaluate_list
         except Exception as e:

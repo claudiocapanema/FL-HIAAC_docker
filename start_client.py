@@ -94,6 +94,9 @@ parser.add_argument(
 parser.add_argument(
     "--df", type=float, default=0, help="Free budget redistribution factor used in MultiFedEfficiency"
 )
+parser.add_argument(
+    "--compression", type=str, default=""
+)
 
 
 args = parser.parse_args()
