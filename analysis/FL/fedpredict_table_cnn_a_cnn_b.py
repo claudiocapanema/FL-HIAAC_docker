@@ -13,6 +13,7 @@ def read_data(read_solutions, read_dataset_order, read_model_order):
 
     df_concat = None
     solution_strategy_version = {
+        "FedAvg+FP": {"Strategy": "FedAvg", "Version": "FP", "Table": "FedAvg+FP"},
         "FedAvg+FP_dls_compredict": {"Strategy": "FedAvg", "Version": "FP$_{dc}$", "Table": "FedAvg+FP$_{dc}$"},
         "FedAvg+FP_dls": {"Strategy": "FedAvg", "Version": "FP$_{d}$", "Table": "FedAvg+FP$_{d}$"},
         "FedAvg+FP_compredict": {"Strategy": "FedAvg", "Version": "FP$_{c}$", "Table": "FedAvg+FP$_{c}$"},
@@ -45,8 +46,8 @@ def read_data(read_solutions, read_dataset_order, read_model_order):
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))
                 df["Version"] = np.array([solution_strategy_version[solution]["Version"]] * len(df))
                 df["Size (MB)"] = df["Model size"] * 1e6
-                if "+FP" in solution:
-                    df["Size (MB)"] = df["Compressed size"] * 1e6
+                if "+FP_" in solution:
+                    df["Size (MB)"] = df["Model size (compressed)"] * 1e6
 
                 if df_concat is None:
                     df_concat = df
@@ -99,7 +100,7 @@ def table(df, write_path, metric, t=None):
 
                 print(alpha, column, dt)
                 models_datasets_dict[dt][column] = t_distribution((filter(df_test, dt,
-                                                                          alpha=float(alpha), strategy=column)[
+                                                                          alpha=alpha, strategy=column)[
                     metric]).tolist(), ci)
 
         model_metrics = []
