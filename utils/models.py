@@ -41,6 +41,45 @@ logger = logging.getLogger(__name__)  # Create logger for the module
 #         x = F.relu(self.fc2(x))
 #         return self.fc3(x)
 
+class CNN_2(torch.nn.Module):
+    def __init__(self, input_shape, mid_dim=64, num_classes=10):
+        try:
+            super().__init__()
+            self.model = torch.nn.Sequential(
+                # Input = 3 x 32 x 32, Output = 32 x 32 x 32
+                torch.nn.Conv2d(in_channels=input_shape, out_channels=32, kernel_size=3, padding=1),
+                torch.nn.ReLU(),
+                # Input = 32 x 32 x 32, Output = 32 x 16 x 16
+                torch.nn.MaxPool2d(kernel_size=2),
+
+                # Input = 32 x 16 x 16, Output = 64 x 16 x 16
+                torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
+                torch.nn.ReLU(),
+                # Input = 64 x 16 x 16, Output = 64 x 8 x 8
+                torch.nn.MaxPool2d(kernel_size=2),
+
+                # Input = 64 x 8 x 8, Output = 64 x 8 x 8
+                torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
+                torch.nn.ReLU(),
+                # Input = 64 x 8 x 8, Output = 64 x 4 x 4
+                torch.nn.MaxPool2d(kernel_size=2),
+
+                torch.nn.Flatten(),
+                torch.nn.Linear(mid_dim * 4 * 4, 512),
+                torch.nn.ReLU(),
+                torch.nn.Linear(512, num_classes)
+            )
+        except Exception as e:
+            logger.info("CNN_2 __init__")
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def forward(self, x):
+        try:
+            return self.model(x)
+        except Exception as e:
+            logger.info("CNN_2 forward")
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
 class CNN(nn.Module):
     def __init__(self, input_shape=1, mid_dim=256, num_classes=10):
         try:

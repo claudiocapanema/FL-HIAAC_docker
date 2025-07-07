@@ -10,6 +10,7 @@ from flwr.common import Metrics
 
 from server.FL.server_fedavg import FedAvg
 from server.FL.server_fedavg_fedpredict import FedAvgFP
+from server.FL.server_fedpoc import FedAvgPOC
 from server.FL.server_fedyogi import FedYogi
 from server.FL.server_fedyogi_fedpredict import FedYogiFP
 from server.FL.server_fedper import FedPer
@@ -155,6 +156,8 @@ def get_server(strategy_name):
         return FedAvg
     elif strategy_name == "FedAvg+FP":
         return FedAvgFP
+    elif strategy_name == "FedAvgPOC":
+        return FedAvgPOC
     elif strategy_name == "FedYogi":
         return FedYogi
     elif strategy_name == "FedYogi+FP":

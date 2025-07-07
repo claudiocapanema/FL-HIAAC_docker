@@ -13,7 +13,7 @@ from sklearn import metrics
 from sklearn.preprocessing import label_binarize
 import numpy as np
 import sys
-from utils.models import CNN, CNN_3, CNNDistillation, GRU, LSTM
+from utils.models import CNN_2, CNN_3, CNNDistillation, GRU, LSTM
 import  datasets as dt
 from utils.custom_federated_dataset import CustomFederatedDataset
 
@@ -64,27 +64,27 @@ def load_model(model_name, dataset, strategy, device):
     try:
         num_classes = {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'Tiny-ImageNet': 200,
          'ImageNet100': 15, 'ImageNet': 15, "ImageNet_v2": 15, "Gowalla": 7}[dataset]
-        if model_name == 'CNN':
+        if model_name == 'CNN_2':
             if dataset in ['MNIST']:
                 input_shape = 1
-                mid_dim = 256*4
+                mid_dim = 36
                 logger.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
             elif dataset in ['EMNIST']:
                 input_shape = 1
-                mid_dim = 256*4
+                mid_dim = 36
                 logger.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
             elif dataset in ['GTSRB']:
                 input_shape = 3
-                mid_dim = 36*4
+                mid_dim = 64
                 logger.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
             elif dataset in ["ImageNet"]:
                 input_shape=3
-                mid_dim=1600
+                mid_dim=64
             elif dataset == "CIFAR10":
                 input_shape = 3
-                mid_dim = 400*4
+                mid_dim = 64
                 logger.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            return CNN(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
+            return CNN_2(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes)
         elif model_name == 'CNN_3':
             if dataset in ['MNIST']:
                 input_shape = 1
