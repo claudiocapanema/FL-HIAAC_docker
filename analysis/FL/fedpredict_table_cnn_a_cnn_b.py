@@ -45,9 +45,10 @@ def read_data(read_solutions, read_dataset_order, read_model_order):
                 df["Table"] = np.array([solution_strategy_version[solution]["Table"]] * len(df))
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))
                 df["Version"] = np.array([solution_strategy_version[solution]["Version"]] * len(df))
-                df["Size (MB)"] = df["Model size"] * 1e6
+                df["Size (MB)"] = (df["Model size"] * 0.000001) / 20
+                print(df["Size (MB)"])
                 if "+FP_" in solution:
-                    df["Size (MB)"] = df["Model size (compressed)"] * 1e6
+                    df["Size (MB)"] = (df["Model size (compressed)"] * 0.000001) / 20
 
                 if df_concat is None:
                     df_concat = df
@@ -63,7 +64,7 @@ def read_data(read_solutions, read_dataset_order, read_model_order):
     return df_concat, hue_order
 
 
-def table(df, write_path, metric, t=None):
+def table(df, write_path, metric, t=None, inverse=False):
     datasets = df["Dataset"].unique().tolist()
     models = df["Model"].unique().tolist()
     columns = df["Table"].unique().tolist()
@@ -77,7 +78,7 @@ def table(df, write_path, metric, t=None):
 
     df_test = df[
         ['Round (t)', 'Table', 'Balanced accuracy (%)', 'Accuracy (%)', 'Fraction fit', 'Dataset',
-         'Alpha', 'Size (MB)']]
+         'Alpha', 'Model', 'Size (MB)']]
 
     # df_test = df_test.query("""Round in [10, 100]""")
     print("agrupou table")
@@ -98,9 +99,9 @@ def table(df, write_path, metric, t=None):
         for column in columns:
             for dt in datasets:
 
-                print(alpha, column, dt)
+                print("filtro: ", alpha, column, dt)
                 models_datasets_dict[dt][column] = t_distribution((filter(df_test, dt,
-                                                                          alpha=alpha, strategy=column)[
+                                                                          model=alpha, strategy=column)[
                     metric]).tolist(), ci)
 
         model_metrics = []
@@ -123,7 +124,7 @@ def table(df, write_path, metric, t=None):
 
     indexes = df_table.index.tolist()
     n_solutions = len(pd.Series([i[1] for i in indexes]).unique().tolist())
-    max_values = idmax(df_table, n_solutions)
+    max_values = idmax(df_table, n_solutions, inverse)
     print("max values", max_values)
 
     for max_value in max_values:
@@ -176,7 +177,7 @@ def table(df, write_path, metric, t=None):
         "&  \\", "& - \\").replace(" - " + r"\textbf", " " + r"\textbf").replace("_{dc}", r"_{\text{dc}}").replace(
         "\multirow[t]{" + n_strategies + "}{*}{EMNIST}", "EMNIST").replace(
         "\multirow[t]{" + n_strategies + "}{*}{CIFAR10}", "CIFAR10").replace(
-        "\multirow[t]{" + n_strategies + "}{*}{GTSRB}", "GTSRB").replace("\cline{1-4}", "\hline")
+        "\multirow[t]{" + n_strategies + "}{*}{GTSRB}", "GTSRB").replace("\cline{1-4}", "\hline").replace("CIFAR10", "CIFAR-10")
 
     Path(write_path).mkdir(parents=True, exist_ok=True)
     if t is not None:
@@ -193,7 +194,7 @@ def table(df, write_path, metric, t=None):
 def improvements(df, datasets, metric):
     # , "FedKD+FP": "FedKD"
     # strategies = {"FedAvg+FP": "FedAvg", "FedYogi+FP": "FedYogi", "FedKD+FP": "FedKD"}
-    strategies = {"FedAvg+FP$_{dc}$": "FedAvg", "FedYogi+FP$_{dc}$": "FedYogi"}
+    strategies = {"FedAvg+FP": "FedAvg", "FedAvg+FP$_{dc}$": "FedAvg", "FedAvg+FP$_{d}$": "FedAvg", "FedAvg+FP$_{c}$": "FedAvg", "FedAvg+FP$_{s}$": "FedAvg", "FedAvg+FP$_{per}$": "FedAvg", "FedAvg+FP$_{kd}$": "FedAvg"}
     # strategies = {r"MultiFedAvg+FP": "MultiFedAvg"}
     columns = df.columns.tolist()
     improvements_dict = {'Dataset': [], 'Table': [], 'Original strategy': [], 'Model': [], metric: []}
@@ -233,18 +234,18 @@ def groupb_by_plot(self, df, metric):
     return pd.DataFrame({metric: [accuracy], 'Loss': [loss]})
 
 
-def filter(df, dataset, alpha, strategy=None):
+def filter(df, dataset, model, strategy=None):
     # df['Balanced accuracy (%)'] = df['Balanced accuracy (%)']*100
     if strategy is not None:
         df = df.query(
             """ Dataset=='{}' and Table=='{}'""".format(str(dataset), strategy))
-        df = df[df['Alpha'] == alpha]
+        df = df[df['Model'] == model]
     else:
         df = df.query(
             """and Dataset=='{}'""".format((dataset)))
-        df = df[df['Alpha'] == alpha]
+        df = df[df['Model'] == model]
 
-    print("filtrou: ", df, dataset, alpha, strategy)
+    print("filtrou: ", df, dataset, model, strategy)
 
     return df
 
@@ -258,7 +259,8 @@ def t_distribution(data, ci):
         mean = np.mean(data)
         average_variation = (mean - min_).round(1)
         mean = mean.round(1)
-
+        if np.isnan(average_variation):
+            average_variation = 0.0
         return str(mean) + u"\u00B1" + str(average_variation)
     else:
         return str(round(data[0], 1)) + u"\u00B1" + str(0.0)
@@ -274,7 +276,7 @@ def accuracy_improvement(df, datasets):
     # ,
     #                            "FedKD+FP": "FedKD"
     # reference_solutions = {"FedAvg+FP": "FedAvg", "FedYogi+FP": "FedYogi", "FedKD+FP": "FedKD"}
-    reference_solutions = {"FedAvg+FP$_{dc}$": "FedAvg", "FedYogi+FP$_{dc}$": "FedYogi"}
+    reference_solutions = {"FedAvg+FP": "FedAvg", "FedAvg+FP$_{dc}$": "FedAvg", "FedAvg+FP$_{d}$": "FedAvg", "FedAvg+FP$_{c}$": "FedAvg", "FedAvg+FP$_{s}$": "FedAvg", "FedAvg+FP$_{per}$": "FedAvg", "FedAvg+FP$_{kd}$": "FedAvg"}
 
     print(df_difference)
     # exit()
@@ -287,6 +289,7 @@ def accuracy_improvement(df, datasets):
             for column in columns:
                 difference = str(round(float(df.loc[reference_index, column].replace(u"\u00B1", "")[:4]) - float(
                     df.loc[target_index, column].replace(u"\u00B1", "")[:4]), 1))
+                print("//: ", float(df.loc[target_index, column][:4].replace(u"\u00B1", "")), target_index, column)
                 difference = str(
                     round(float(difference) * 100 / float(df.loc[target_index, column][:4].replace(u"\u00B1", "")), 1))
                 if difference[0] != "-":
@@ -298,7 +301,7 @@ def accuracy_improvement(df, datasets):
     return df_difference
 
 
-def select_mean(index, column_values, columns, n_solutions):
+def select_mean(index, column_values, columns, n_solutions, inverse=False):
     list_of_means = []
     indexes = []
     print("ola: ", column_values, "ola0")
@@ -314,7 +317,10 @@ def select_mean(index, column_values, columns, n_solutions):
     for i in range(0, len(list_of_means), n_solutions):
 
         dataset_values = list_of_means[i: i + n_solutions]
-        max_tuple = max(dataset_values, key=lambda e: e[0])
+        if not inverse:
+            max_tuple = max(dataset_values, key=lambda e: e[0])
+        else:
+            max_tuple = min(dataset_values, key=lambda e: e[0])
         column_min_value = max_tuple[1]
         column_max_value = max_tuple[2]
         print("maximo: ", column_max_value)
@@ -329,7 +335,7 @@ def select_mean(index, column_values, columns, n_solutions):
     return indexes
 
 
-def idmax(df, n_solutions):
+def idmax(df, n_solutions, inverse=False):
     df_indexes = []
     columns = df.columns.tolist()
     print("colunas", columns)
@@ -337,7 +343,7 @@ def idmax(df, n_solutions):
         column = columns[i]
         column_values = df[column].tolist()
         print("ddd", column_values)
-        indexes = select_mean(i, column_values, columns, n_solutions)
+        indexes = select_mean(i, column_values, columns, n_solutions, inverse)
         df_indexes += indexes
 
     return df_indexes
@@ -364,7 +370,7 @@ if __name__ == "__main__":
     #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
-    solutions = ["FedAvg+FP", "FedAvg+FP_dls_compredict", "FedAvg+FP_dls", "FedAvg+FP_compredict", "FedAvg+FP_sparsification", "FedAvg+FP_per", "FedAvg+FP_fedkd"]
+    solutions = ["FedAvg", "FedAvg+FP", "FedAvg+FP_compredict", "FedAvg+FP_dls_compredict", "FedAvg+FP_dls", "FedAvg+FP_fedkd", "FedAvg+FP_per", "FedAvg+FP_sparsification"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}
@@ -413,5 +419,5 @@ if __name__ == "__main__":
 
     table(df, write_path, "Accuracy (%)", t=None)
     table(df, write_path, "Accuracy (%)", t=100)
-    table(df, write_path, "Size (MB)", t=None)
-    table(df, write_path, "Size (MB)", t=100)
+    table(df, write_path, "Size (MB)", t=None, inverse=True)
+    table(df, write_path, "Size (MB)", t=100, inverse=True)

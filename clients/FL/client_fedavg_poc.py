@@ -27,6 +27,7 @@ class ClientPOC(Client):
             nt = t - self.lt
             set_weights(self.model, parameters)
             loss, metrics = test(self.model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
+            self.models_size = self._get_models_size(parameters)
             metrics["Model size"] = self.models_size
             metrics["Alpha"] = self.alpha
             loss_train, metrics_train = test(self.model, self.trainloader, self.device, self.client_id, t, self.dataset,
@@ -37,17 +38,6 @@ class ClientPOC(Client):
             return loss, len(self.valloader.dataset), metrics
         except Exception as e:
             logger.error("evaluate error")
-            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
-
-    def _get_models_size(self):
-        try:
-            parameters = [i.detach().cpu().numpy() for i in self.model.parameters()]
-            size = 0
-            for i in range(len(parameters)):
-                size += parameters[i].nbytes
-            return int(size)
-        except Exception as e:
-            logger.error("_get_models_size error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def _get_optimizer(self, dataset_name):

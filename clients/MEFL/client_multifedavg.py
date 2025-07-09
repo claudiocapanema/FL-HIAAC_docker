@@ -207,7 +207,7 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
             self.lt = [0] * self.ME
             logger.info("ler model size")
-            self.models_size = self._get_models_size()
+            self.models_size = None
             logger.info("leu model size")
             self.n_classes = [
                 {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'ImageNet': 15,
@@ -283,6 +283,7 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
             )
             results["me"] = me
             results["client_id"] = self.client_id
+            self.models_size[me] = self._get_models_size(parameters, me)
             results["Model size"] = self.models_size[me]
             logger.info("fit cliente fim")
             return get_weights(self.model[me]), len(self.trainloader[me].dataset), results
@@ -326,6 +327,7 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
                 set_weights(self.model[me], parameters_me)
                 loss, metrics = test(self.model[me], self.valloader[me], self.device, self.client_id, t,
                                      self.args.dataset[me], self.n_classes[me], self.concept_drift_window[me])
+                self.models_size[me] = self._get_models_size(parameters, me)
                 metrics["Model size"] = self.models_size[me]
                 metrics["Dataset size"] = len(self.valloader[me].dataset)
                 metrics["me"] = me
@@ -358,17 +360,14 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 
-    def _get_models_size(self):
+    def _get_models_size(self, parameters, me):
         try:
-            models_size = []
-            for me in range(self.ME):
-                parameters = [i.detach().cpu().numpy() for i in self.model[me].parameters()]
-                size = 0
-                for i in range(len(parameters)):
-                    size += parameters[i].nbytes
-                models_size.append(int(size))
+            size = 0
+            for i in range(len(parameters)):
+                size += parameters[i].nbytes
+            size = int(size)
 
-            return models_size
+            return size
         except Exception as e:
             logger.error("_get_models_size error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

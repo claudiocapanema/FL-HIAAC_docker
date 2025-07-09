@@ -440,18 +440,6 @@ class FedAvg(flwr.server.strategy.FedAvg):
             writer = csv.writer(server_log_file)
             writer.writerows(data)
 
-    def _get_models_size(self):
-
-        models_size = []
-        for model in self.global_model:
-            parameters = [i.detach().cpu().numpy() for i in model.parameters()]
-            size = 0
-            for i in range(len(parameters)):
-                size += parameters[i].nbytes
-            models_size.append(size)
-        # print("models size: ", models_size)
-        self.models_size = models_size
-
     def set_experiment_config(self, experiment_id):
         try:
             logger.info(f"id do experimento {experiment_id}")
