@@ -3,6 +3,7 @@ import argparse
 import logging
 
 import flwr as fl
+import numpy as np
 import torch
 from prometheus_client import start_http_server
 from typing import List, Tuple
@@ -107,7 +108,7 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
         balanced_accuracies = [num_examples * m["Balanced accuracy"] for num_examples, m in metrics]
         loss = [num_examples * m["Loss"] for num_examples, m in metrics]
         examples = [num_examples for num_examples, _ in metrics]
-        model_size = int(sum([m["Model size"] for num_examples, m in metrics]))
+        model_size = int(np.mean([m["Model size"] for num_examples, m in metrics]))
 
         # Aggregate and return custom metric (weighted average)
         return {"Accuracy": sum(accuracies) / sum(examples), "Balanced accuracy": sum(balanced_accuracies) / sum(examples),

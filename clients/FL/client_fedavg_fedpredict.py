@@ -60,7 +60,9 @@ class ClientFedAvgFP(Client):
                 self.n_classes
             )
             logger.info("fit cliente fim fp")
+            self.models_size = self._get_models_size()
             results["Model size"] = self.models_size
+            logger.info(f"model size: {self.models_size}")
             results["lt"] = self.lt
             return get_weights(self.model), len(self.trainloader.dataset), results
         except Exception as e:
@@ -78,6 +80,7 @@ class ClientFedAvgFP(Client):
             combined_model = fedpredict_client_torch(local_model=self.model, global_model=parameters,
                                       t=t, T=self.T, nt=nt, device=self.device, global_model_original_shape=self.model_shape)
             loss, metrics = test(combined_model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
+            self.models_size = self._get_models_size()
             metrics["Model size"] = self.models_size
             metrics["Alpha"] = self.alpha
             logger.info("eval cliente fim fp")

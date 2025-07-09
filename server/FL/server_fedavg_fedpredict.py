@@ -260,7 +260,7 @@ class FedAvgFP(FedAvg):
                                      T=self.number_of_rounds, compression=self.compression, fl_framework="flwr")
             original_size = sum([j.nbytes for j in parameters_to_ndarrays(parameters)]) * len(client_evaluate_list)
             if self.compression == "sparsification":
-                compressed_size = 0
+                compressed_size = []
                 for client in client_evaluate_list:
                     parameters = parameters_to_ndarrays(client[1].parameters)
                     for p in parameters:
@@ -271,9 +271,10 @@ class FedAvgFP(FedAvg):
                         b = sparse_bytes(sparse)
                         # print("Apos esparcificacao: ", b)
                         b = min(p.nbytes, b)
-                        compressed_size += b
+                        compressed_size.append(b)
+                compressed_size = int(np.mean(compressed_size))
             else:
-                compressed_size = sum([sum([j.nbytes for j in parameters_to_ndarrays(i[1].parameters)]) for i in client_evaluate_list])
+                compressed_size = int(np.mean([sum([j.nbytes for j in parameters_to_ndarrays(i[1].parameters)]) for i in client_evaluate_list]))
             self.compressed_size = compressed_size
             return client_evaluate_list
         except Exception as e:

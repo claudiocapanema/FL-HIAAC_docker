@@ -90,12 +90,21 @@ class Client(fl.client.NumPyClient):
             logger.error("evaluate error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-    def _get_models_size(self, parameters):
+    def _get_models_size(self, parameters=None):
         try:
+            if self.models_size is not None:
+                return self.models_size
             size = 0
-            for i in range(len(parameters)):
-                size += parameters[i].nbytes
-            return int(size)
+            if parameters is None:
+                parameters = [i.detach().cpu().numpy() for i in self.model.parameters()]
+                for param in parameters:
+                    size += param.nbytes
+                return int(size)
+            else:
+                logger.info(f"tipo parametro {type(parameters)}")
+                for i in range(len(parameters)):
+                    size += parameters[i].nbytes
+                return int(size)
         except Exception as e:
             logger.error("_get_models_size error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
