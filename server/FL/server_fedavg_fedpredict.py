@@ -241,6 +241,8 @@ class FedAvgFP(FedAvg):
         try:
             client_evaluate_list = super().configure_evaluate(server_round, parameters, client_manager)
             logger.info(f"selected clients {self.selected_clients} round {server_round} df {self.df}")
+            nts = []
+            new_client_evaluate_list = []
             for i in range(len(client_evaluate_list)):
                 client_tuple = client_evaluate_list[i]
                 config = client_tuple[1].config
@@ -249,14 +251,28 @@ class FedAvgFP(FedAvg):
 
                 if client_id in self.clients_lt:
                     lt = self.clients_lt[client_id]
-                config["nt"] = server_round - lt
+                nt = server_round - lt
+                config["nt"] = nt
                 config["lt"] = lt
+                nts.append(nt)
                 # logger.info(f"evaluating client {client_id} round {server_round} lt {lt}")
                 client_evaluate_list[i][1].config = config
-                client_evaluate_list[i][1].parameters = ndarrays_to_parameters([])
+                # client_evaluate_list[i][1].parameters = ndarrays_to_parameters([])
+
+                client_dict = {}
+                client_dict["client"] = 0
+                client_dict["cid"] = client_id
+                client_dict["nt"] = nt
+                client_dict["lt"] = lt
+                client_dict["t"] = server_round
+                new_client_evaluate_list.append(
+                    (client_tuple[0], EvaluateIns(parameters, client_dict)))
+
+
             # logger.info(f"model shape: {self.model_shape} path {self.file_path} {len(parameters_to_ndarrays(client_evaluate_list[0][1].parameters))}")
+            logger.info(f"submetidos t: {server_round} T: {self.number_of_rounds} df: {self.df} nts: {nts}")
             client_evaluate_list = fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters),
-                                     client_evaluate_list=client_evaluate_list, df=self.df, t=server_round,
+                                     client_evaluate_list=new_client_evaluate_list, df=self.df, t=server_round,
                                      T=self.number_of_rounds, compression=self.compression, fl_framework="flwr")
             original_size = sum([j.nbytes for j in parameters_to_ndarrays(parameters)]) * len(client_evaluate_list)
             if self.compression == "sparsification":

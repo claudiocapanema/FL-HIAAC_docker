@@ -130,29 +130,30 @@ class CNN_3(nn.Module):
     def __init__(self, input_shape=1, mid_dim=256, num_classes=10):
         try:
             super(CNN_3, self).__init__()
-            self.conv1 = torch.nn.Sequential(torch.nn.Conv2d(in_channels=input_shape, out_channels=32, kernel_size=3, padding=1),
+            self.conv1 = torch.nn.Sequential(
+                torch.nn.Conv2d(in_channels=input_shape, out_channels=32, kernel_size=3, padding=1),
                 torch.nn.ReLU(),
                 # Input = 32 x 32 x 32, Output = 32 x 16 x 16
                 torch.nn.MaxPool2d(kernel_size=2))
 
-                # Input = 32 x 16 x 16, Output = 64 x 16 x 16
+            # Input = 32 x 16 x 16, Output = 64 x 16 x 16
             self.conv2 = torch.nn.Sequential(torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
-                torch.nn.ReLU(),
-                # Input = 64 x 16 x 16, Output = 64 x 8 x 8
-                torch.nn.MaxPool2d(kernel_size=2))
+                                             torch.nn.ReLU(),
+                                             # Input = 64 x 16 x 16, Output = 64 x 8 x 8
+                                             torch.nn.MaxPool2d(kernel_size=2))
 
-                # Input = 64 x 8 x 8, Output = 64 x 8 x 8
+            # Input = 64 x 8 x 8, Output = 64 x 8 x 8
             self.conv3 = torch.nn.Sequential(torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
-                torch.nn.ReLU(),
-                # Input = 64 x 8 x 8, Output = 64 x 4 x 4
-                torch.nn.MaxPool2d(kernel_size=2))
+                                             torch.nn.ReLU(),
+                                             # Input = 64 x 8 x 8, Output = 64 x 4 x 4
+                                             torch.nn.MaxPool2d(kernel_size=2))
             self.conv4 = torch.nn.Sequential(torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
-                torch.nn.ReLU(),
-                # Input = 64 x 8 x 8, Output = 64 x 4 x 4
-                torch.nn.MaxPool2d(kernel_size=2))
+                                             torch.nn.ReLU(),
+                                             # Input = 64 x 8 x 8, Output = 64 x 4 x 4
+                                             torch.nn.MaxPool2d(kernel_size=2))
 
             self.fc1 = torch.nn.Sequential(torch.nn.Linear(mid_dim * 4 * 4, 512),
-                torch.nn.ReLU())
+                                           torch.nn.ReLU())
             self.fc2 = torch.nn.Linear(512, num_classes)
 
         except Exception as e:
