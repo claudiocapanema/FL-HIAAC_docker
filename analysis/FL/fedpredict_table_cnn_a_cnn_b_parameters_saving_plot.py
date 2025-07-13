@@ -417,11 +417,12 @@ def evaluate_client_joint_parameter_reduction(df, base_dir):
             dataset = datasets[i]
             model = models[j]
             title = f"{dataset}; {model}"
-            if dataset == "CIFAR10" and model == "CNN-a":
-                df_aux = df.query(f"Dataset == '{dataset}' and Model == '{model}'")
-                df_aux = df_aux[df_aux["Table"].isin(["FedAvg+FP$_{d}$"])]
-            else:
-                df_aux = df.query(f"Dataset == '{dataset}' and Model == '{model}'")
+            # if dataset == "CIFAR10" and model == "CNN-a":
+            #     df_aux = df.query(f"Dataset == '{dataset}' and Model == '{model}'")
+            #     df_aux = df_aux[df_aux["Table"].isin(["FedAvg+FP$_{d}$"])]
+            # else:
+            #     df_aux = df.query(f"Dataset == '{dataset}' and Model == '{model}'")
+            df_aux = df.query(f"Dataset == '{dataset}' and Model == '{model}'")
             line_plot(ax=ax[i, j],
                       df=df_aux,
                       base_dir=base_dir,

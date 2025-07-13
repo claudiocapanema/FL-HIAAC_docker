@@ -270,7 +270,7 @@ class FedAvgFP(FedAvg):
 
 
             # logger.info(f"model shape: {self.model_shape} path {self.file_path} {len(parameters_to_ndarrays(client_evaluate_list[0][1].parameters))}")
-            logger.info(f"submetidos t: {server_round} T: {self.number_of_rounds} df: {self.df} nts: {nts}")
+            # logger.info(f"submetidos t: {server_round} T: {self.number_of_rounds} df: {self.df} nts: {nts}")
             client_evaluate_list = fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters),
                                      client_evaluate_list=new_client_evaluate_list, df=self.df, t=server_round,
                                      T=self.number_of_rounds, compression=self.compression, fl_framework="flwr")
