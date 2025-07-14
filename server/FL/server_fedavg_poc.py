@@ -152,6 +152,7 @@ class FedAvgPOC(FedAvg):
             logging.info("""sample clientes {} {} disponiveis {} rodada {} n clients {}""".format(sample_size, min_num_clients, client_manager.num_available(), server_round, n_clients))
             logger.info(f"available clients {len(clients)} round {server_round} av {type(clients)}")
             logger.info(f"population {len(clients)} samples {n_clients} round {server_round} confi")
+            logger.info(f"nm {self.clients_train_loss}")
             if server_round > 1:
                 top_k = sorted(self.clients_train_loss.items(), key=lambda x: x[1], reverse=True)[:min([n_clients, len(clients)])]
                 top_k = [key for key, value in top_k]

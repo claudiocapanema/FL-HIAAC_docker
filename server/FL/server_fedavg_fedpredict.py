@@ -273,7 +273,7 @@ class FedAvgFP(FedAvg):
             # logger.info(f"submetidos t: {server_round} T: {self.number_of_rounds} df: {self.df} nts: {nts}")
             client_evaluate_list = fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters),
                                      client_evaluate_list=new_client_evaluate_list, df=self.df, t=server_round,
-                                     T=self.number_of_rounds, compression=self.compression, fl_framework="flwr")
+                                     T=self.number_of_rounds, compression=self.compression, fl_framework="flwr", k=0.7)
             original_size = sum([j.nbytes for j in parameters_to_ndarrays(parameters)]) * len(client_evaluate_list)
             if self.compression == "sparsification":
                 compressed_size = []
