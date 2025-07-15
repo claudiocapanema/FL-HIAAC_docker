@@ -281,7 +281,7 @@ class FedAvgFP(FedAvg):
                     parameters = parameters_to_ndarrays(client[1].parameters)
                     for p in parameters:
                         aux = p[p == 0]
-                        # print("quantidade zeros: ", len(aux))
+                        logger.info(f"quantidade zeros: {len(aux)}")
                         sparse = sparse_matrix(p)
                         # print("Tamanho original: ", p.nbytes)
                         b = sparse_bytes(sparse)

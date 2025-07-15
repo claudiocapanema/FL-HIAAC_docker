@@ -110,7 +110,7 @@ def get_client(strategy_name):
         return Client
     elif strategy_name == "FedAvgPOC":
         return ClientPOC
-    elif strategy_name == "FedAvgPOCFP":
+    elif strategy_name == "FedAvgPOC+FP":
         return ClientPOCFP
     elif strategy_name == "FedAvgRAWCS":
         return ClientRAWCS

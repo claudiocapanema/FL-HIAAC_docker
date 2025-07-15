@@ -161,7 +161,7 @@ def get_server(strategy_name):
         return FedAvgFP
     elif strategy_name == "FedAvgPOC":
         return FedAvgPOC
-    elif strategy_name == "FedAvgPOCFP":
+    elif strategy_name == "FedAvgPOC+FP":
         return FedAvgPOCFP
     elif strategy_name == "FedAvgRAWCS":
         return FedAvgRAWCS
