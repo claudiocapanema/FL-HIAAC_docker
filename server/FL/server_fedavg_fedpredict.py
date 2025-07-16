@@ -6,7 +6,7 @@ from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 from itertools import islice
 from fedpredict import fedpredict_server, fedpredict_layerwise_similarity
-from fedpredict.utils.compression_methods.sparsification import sparse_matrix, sparse_bytes
+from fedpredict.utils.compression_methods.sparsification import sparse_matrix, sparse_bytes, sparse_crs_top_k
 
 from logging import WARNING
 from typing import Callable, Optional, Union
@@ -279,15 +279,14 @@ class FedAvgFP(FedAvg):
                 compressed_size = []
                 for client in client_evaluate_list:
                     parameters = parameters_to_ndarrays(client[1].parameters)
-                    for p in parameters:
-                        aux = p[p == 0]
-                        logger.info(f"quantidade zeros: {len(aux)}")
-                        sparse = sparse_matrix(p)
+                    # for p in parameters:
+                    #     aux = p[p == 0]
+                        # logger.info(f"quantidade zeros: {len(aux)}")
+                        # sparse = sparse_matrix(p)
                         # print("Tamanho original: ", p.nbytes)
-                        b = sparse_bytes(sparse)
-                        # print("Apos esparcificacao: ", b)
-                        b = min(p.nbytes, b)
-                        compressed_size.append(b)
+                    sparse = [sparse_matrix(i) for i in parameters]
+                    size = sparse_bytes(sparse)
+                    compressed_size.append(size)
                 compressed_size = int(np.mean(compressed_size))
             else:
                 compressed_size = int(np.mean([sum([j.nbytes for j in parameters_to_ndarrays(i[1].parameters)]) for i in client_evaluate_list]))
