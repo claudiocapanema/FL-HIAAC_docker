@@ -40,7 +40,7 @@ def read_data(read_solutions, read_dataset_order):
                 df["Solution"] = np.array([solution] * len(df))
                 df["Accuracy (%)"] = df["Accuracy"] * 100
                 df["Balanced accuracy (%)"] = df["Balanced accuracy"] * 100
-                df["Dataset"] = np.array([dataset] * len(df))
+                df["Dataset"] = np.array([dataset.replace("CIFAR10", "CIFAR-10")] * len(df))
                 df["Table"] = np.array([solution_strategy_version[solution]["Table"]] * len(df))
                 df["Selection type"] = np.array([solution_strategy_version[solution]["Selection type"]] * len(df))
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))
@@ -179,7 +179,7 @@ def table(df, write_path, metric, dataset, t=None):
         "&  &", "& - &").replace("\_", "_").replace(
         "&  \\", "& - \\").replace(" - " + r"\textbf", " " + r"\textbf").replace("_{dc}", r"_{\text{dc}}").replace(
         "\multirow[t]{" + n_strategies + "}{*}{EMNIST}", "EMNIST").replace(
-        "\multirow[t]{" + n_strategies + "}{*}{CIFAR10}", "CIFAR10").replace(
+        "\multirow[t]{" + n_strategies + "}{*}{CIFAR-10}", "CIFAR-10").replace(
         "\multirow[t]{" + n_strategies + "}{*}{GTSRB}", "GTSRB").replace("\cline{1-4}", "\hline")
 
     Path(write_path).mkdir(parents=True, exist_ok=True)
@@ -418,6 +418,6 @@ if __name__ == "__main__":
     print(df)
 
     # table(df, write_path, "Balanced accuracy (%)", t=None)
-    table(df, write_path, "Accuracy (%)", dataset="CIFAR10", t=None)
+    table(df, write_path, "Accuracy (%)", dataset="CIFAR-10", t=None)
     # table(df, write_path, "Balanced accuracy (%)", t=100)
     # table(df, write_path, "Accuracy (%)", t=100)

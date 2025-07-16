@@ -214,6 +214,7 @@ class MultiFedEfficiency(MultiFedAvg):
             torch.random.manual_seed(server_round)
             random.seed(server_round)
             np.random.seed(server_round)
+            client_manager.wait_for(self.total_clients, 1000)
             """Configure the next round of training."""
             config = {}
             if self.on_fit_config_fn is not None:
