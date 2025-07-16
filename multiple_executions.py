@@ -146,7 +146,8 @@ import subprocess
             # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1' --compression='per'",
             #   ]
 
-# executions = [
+# Client seletion
+executions = [
 
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1' --compression=''",
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1' --compression=''",
@@ -176,6 +177,20 @@ import subprocess
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=0.1 --experiment_id='1' --compression=''",
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=1.0 --experiment_id='1' --compression=''",
 
+    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1' --compression=''",
+    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1' --compression=''",
+    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.5 --alpha=0.1 --experiment_id='1' --compression=''",
+    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.5 --alpha=1.0 --experiment_id='1' --compression=''",
+    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.7 --alpha=0.1 --experiment_id='1' --compression=''",
+    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.7 --alpha=1.0 --experiment_id='1' --compression=''",
+
+    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1' --compression=''",
+    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1' --compression=''",
+    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.5 --alpha=0.1 --experiment_id='1' --compression=''",
+    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.5 --alpha=1.0 --experiment_id='1' --compression=''",
+    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=0.1 --experiment_id='1' --compression=''",
+    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=1.0 --experiment_id='1' --compression=''",
+
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1' --compression=''",
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1' --compression=''",
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.5 --alpha=0.1 --experiment_id='1' --compression=''",
@@ -189,7 +204,7 @@ import subprocess
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.5 --alpha=1.0 --experiment_id='1' --compression=''",
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=0.1 --experiment_id='1' --compression=''",
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=1.0 --experiment_id='1' --compression=''",
-# ]
+]
 
 # Nome do arquivo
 filename = "execution_process.txt"

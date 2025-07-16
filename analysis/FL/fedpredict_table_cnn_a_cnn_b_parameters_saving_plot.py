@@ -444,40 +444,40 @@ def evaluate_client_joint_parameter_reduction(df, base_dir):
             ax[i, j].set_xlabel('')
             ax[i, j].set_ylabel('')
 
-        # # fig.suptitle("", fontsize=16)
-        # # fig.supxlabel(x_column, y=-0.02)
-        # # fig.supylabel(y_column, x=-0.005)
-        # lines_labels = [ax[0, 1].get_legend_handles_labels()]
-        # lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
-        # print("linhas")
-        # print(lines)
-        # print(lines[0].get_color(), lines[0].get_ls())
-        # print("rotulos")
-        # print(labels)
-        # colors = []
-        # for i in range(len(lines)):
-        #     color = lines[i].get_color()
-        #     colors.append(color)
-        #     ls = lines[i].get_ls()
-        #     if ls not in ["o"]:
-        #         ls = "o"
-        # markers = ["-", "--"]
-        #
-        # f = lambda m, c: plt.plot([], [], marker=m, color=c, ls="none")[0]
-        # n = len(compression) + 1
-        # handles = [f("o", colors[i]) for i in range(n)]
-        # new_labels = []
-        # for i in range(len(labels)):
-        #     if i != n:
-        #         new_labels.append(labels[i])
-        #     else:
-        #         print("label: ", labels[i])
-        # new_labels[-1] = '\u03B1=' + new_labels[-1]
-        # new_labels[-2] = '\u03B1=' + new_labels[-2]
-        # new_labels = new_labels[1:]
-        #
-        # handles += [plt.Line2D([], [], linestyle=markers[i], color="k") for i in range(len(markers))]
-        # fig.legend(handles[1:], new_labels, fontsize=9, ncols=4, bbox_to_anchor=(0.91, 1.02))
+        # fig.suptitle("", fontsize=16)
+        # fig.supxlabel(x_column, y=-0.02)
+        # fig.supylabel(y_column, x=-0.005)
+        lines_labels = [ax[0, 1].get_legend_handles_labels()]
+        lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
+        print("linhas")
+        print(lines)
+        print(lines[0].get_color(), lines[0].get_ls())
+        print("rotulos")
+        print(labels)
+        colors = []
+        for i in range(len(lines)):
+            color = lines[i].get_color()
+            colors.append(color)
+            ls = lines[i].get_ls()
+            if ls not in ["o"]:
+                ls = "o"
+        markers = ["-", "--"]
+
+        f = lambda m, c: plt.plot([], [], marker=m, color=c, ls="none")[0]
+        n = len(compression) + 1
+        handles = [f("o", colors[i]) for i in range(n)]
+        new_labels = []
+        for i in range(len(labels)):
+            if i != n:
+                new_labels.append(labels[i])
+            else:
+                print("label: ", labels[i])
+        new_labels[-1] = '\u03B1=' + new_labels[-1]
+        new_labels[-2] = '\u03B1=' + new_labels[-2]
+        new_labels = new_labels[1:]
+
+        handles += [plt.Line2D([], [], linestyle=markers[i], color="k") for i in range(len(markers))]
+        fig.legend(handles[1:], new_labels, fontsize=9, ncols=4, bbox_to_anchor=(0.91, 1.02))
         figure = fig.get_figure()
         Path(base_dir + "png/").mkdir(parents=True, exist_ok=True)
         Path(base_dir + "svg/").mkdir(parents=True, exist_ok=True)
