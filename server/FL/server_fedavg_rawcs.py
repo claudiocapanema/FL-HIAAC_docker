@@ -217,7 +217,7 @@ class FedAvgRAWCS(FedAvg):
         self.network_profiles = """./clients_selection_configuration_files/rawcs/sim_1_num_clients_{}_num_rounds_100.pkl""".format(
             self.total_clients)
         self.devices_profile = """./clients_selection_configuration_files/rawcs/profiles_sim_cifar10_seed_1_level_{}_alpha_{}_battery_{}.json""".format(
-            level, args.alpha, battery)
+            level, args.alpha[0], battery)
         # self.devices_profile = """./clients_selection_configuration_files/rawcs/profiles_sim_Cifar10_seed_1.json"""
         # self.sim_idx = sim_idx
         # self.input_shape = input_shape
@@ -231,7 +231,7 @@ class FedAvgRAWCS(FedAvg):
         self.clients_last_round = []
         self.max_training_latency = 0.0
 
-    def initialize_parameters(
+    def initialize_rawcs(
             self, client_manager: ClientManager
     ) -> Optional[Parameters]:
         try:
@@ -239,40 +239,40 @@ class FedAvgRAWCS(FedAvg):
 
             with open(self.network_profiles, 'rb') as file:
                 network_profiles = pickle.load(file)
-
+            logger.info(f"Network profiles loaded from {network_profiles}")
             clients_training_time = []
 
             with open(self.devices_profile, 'r') as file:
                 json_dict = json.load(file)
+            # logger.info(json_dict)
             # for key in range(self.total_clients):
             #     self.clients_info[key] = {}
-            for key in list(client_manager.all().keys()):
-                self.clients_info[int(key)] = json_dict[str(key)]
-                self.clients_info[int(key)]['perc_budget_10'] = False
-                self.clients_info[int(key)]['perc_budget_20'] = False
-                self.clients_info[int(key)]['perc_budget_30'] = False
-                self.clients_info[int(key)]['perc_budget_40'] = False
-                self.clients_info[int(key)]['perc_budget_50'] = False
-                self.clients_info[int(key)]['perc_budget_60'] = False
-                self.clients_info[int(key)]['perc_budget_70'] = False
-                self.clients_info[int(key)]['perc_budget_80'] = False
-                self.clients_info[int(key)]['perc_budget_90'] = False
-                self.clients_info[int(key)]['perc_budget_100'] = False
-                self.clients_info[int(key)]['initial_battery'] = self.clients_info[int(key)]['battery']
-                if self.clients_info[int(key)]['total_train_latency'] > self.max_training_latency:
-                    self.max_training_latency = self.clients_info[int(key)]['total_train_latency']
-                clients_training_time.append(self.clients_info[int(key)]['total_train_latency'])
-                self.clients_info[int(key)]['network_profile'] = network_profiles[int(key)]
-
+            logger.info(f"all clients: {list(client_manager.all().keys())}")
+            for i, key in enumerate(list(client_manager.all().keys())):
+                self.clients_info[key] = json_dict[str(i)]
+                logger.info(f"conf do client {i}: {json_dict[str(i)]}")
+                self.clients_info[key]['perc_budget_10'] = False
+                self.clients_info[key]['perc_budget_20'] = False
+                self.clients_info[key]['perc_budget_30'] = False
+                self.clients_info[key]['perc_budget_40'] = False
+                self.clients_info[key]['perc_budget_50'] = False
+                self.clients_info[key]['perc_budget_60'] = False
+                self.clients_info[key]['perc_budget_70'] = False
+                self.clients_info[key]['perc_budget_80'] = False
+                self.clients_info[key]['perc_budget_90'] = False
+                self.clients_info[key]['perc_budget_100'] = False
+                self.clients_info[key]['initial_battery'] = self.clients_info[key]['battery']
+                if self.clients_info[key]['total_train_latency'] > self.max_training_latency:
+                    self.max_training_latency = self.clients_info[key]['total_train_latency']
+                clients_training_time.append(self.clients_info[key]['total_train_latency'])
+                self.clients_info[key]['network_profile'] = network_profiles[i]
+            logger.info(f"teest {clients_training_time} {self.time_percentile}")
             self.comp_latency_lim = np.percentile(clients_training_time, self.time_percentile)
 
             self.limit_relationship_max_latency = self.comp_latency_lim / self.max_training_latency
 
-            #client_manager.wait_for(self.total_clients)
-
-            return super().initialize_parameters(client_manager)
         except Exception as e:
-            logger.error("initialize_parameters error")
+            logger.error("initialize_rawcs error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def configure_fit(
@@ -292,6 +292,9 @@ class FedAvgRAWCS(FedAvg):
 
             if server_round == 1:
                 self.model_shape = [i.shape for i in flwr.common.parameters_to_ndarrays(parameters)]
+                return super().configure_fit(server_round, parameters, client_manager)
+            elif server_round == 2:
+                self.initialize_rawcs(client_manager)
 
             # Insert new clients
             if server_round < self.experiment_config["round_of_new_clients"]:
@@ -331,6 +334,7 @@ class FedAvgRAWCS(FedAvg):
                     if client.cid in selected_cids:
                         clients_new.append(client)
                 clients = clients_new
+                clients = np.random.choice(clients, size=min([n_clients, len(clients)]), replace=False)
             else:
                 clients = np.random.choice(clients, size=min([n_clients, len(clients)]), replace=False)
 

@@ -15,8 +15,11 @@ def read_data(read_solutions, read_dataset_order):
     solution_strategy_version = {
         "FedAvg+FP": {"Strategy": "FedAvg", "Version": "FP", "Table": "FedAvg+FP", "Selection type": "Random"},
         "FedAvg": {"Strategy": "FedAvg", "Version": "Original", "Table": "FedAvg", "Selection type": "Random"},
+        "FedAvgRAWCS": {"Strategy": "FedAvg", "Version": "Original", "Table": "FedAvg", "Selection type": "RAWCS"},
         "FedAvgPOC+FP": {"Strategy": "FedAvg", "Version": "FP", "Table": "FedAvg+FP",
                       "Selection type": "POC"},
+        "FedAvgRAWCS+FP": {"Strategy": "FedAvg", "Version": "FP", "Table": "FedAvg+FP",
+                         "Selection type": "RAWCS"},
         "FedAvgPOC": {"Strategy": "FedAvg", "Version": "Original", "Table": "FedAvg", "Selection type": "POC"},
         "FedYogi+FP": {"Strategy": "FedYogi", "Version": "FP", "Table": "FedYogi+FP", "Selection type": "Random"},
         "FedYogi": {"Strategy": "FedYogi", "Version": "Original", "Table": "FedYogi", "Selection type": "Random"},
@@ -87,8 +90,8 @@ def table(df, write_path, metric, dataset, t=None):
     #     arr += [selection_type] * len(columns)
     # index = [np.array(arr),
     #          np.array(columns * len(selection_types))]
-    index = [np.array(['Random'] * len(columns) + ['POC'] * len(columns)),
-             np.array(columns * 2)]
+    index = [np.array(['High'] * len(columns) * len(selection_types) + ['Medium'] * len(columns) * len(selection_types) + ['Low'] * len(columns) * len(selection_types)), np.array(['Random'] * len(columns) + ['POC'] * len(columns) + ['Random'] * len(columns) + ['POC'] * len(columns) + ['Random'] * len(columns) + ['POC'] * len(columns)),
+             np.array(columns * 3 * len(selection_types))]
 
     models_dict = {}
     ci = 0.95
@@ -181,20 +184,20 @@ def table(df, write_path, metric, dataset, t=None):
 
     Path(write_path).mkdir(parents=True, exist_ok=True)
     if t is not None:
-        filename = """{}latex_round_{}_{}.txt""".format(write_path, t, metric)
+        filename = """{}latex_round_{}_{}_client_selectipn.txt""".format(write_path, t, metric)
     else:
-        filename = """{}latex_{}.txt""".format(write_path, metric)
+        filename = """{}latex_{}_client_selection.txt""".format(write_path, metric)
     pd.DataFrame({'latex': [latex]}).to_csv(filename, header=False, index=False)
 
-    improvements(df_table, selection_types, metric)
-
+    improvements(df_table, selection_types, metric, selection_levels)
+    print(filename)
     #  df.to_latex().replace("\}", "}").replace("\{", "{").replace("\\\nRecall", "\\\n\hline\nRecall").replace("\\\nF-score", "\\\n\hline\nF1-score")
 
 
-def improvements(df, datasets, metric):
+def improvements(df, datasets, metric, selection_levels):
     # , "FedKD+FP": "FedKD"
     # strategies = {"FedAvg+FP": "FedAvg", "FedYogi+FP": "FedYogi", "FedKD+FP": "FedKD"}
-    strategies = {"FedAvg+FP": "FedAvg", "FedAvgPOC+FP": "FedAvgPOC"}
+    strategies = {"FedAvg+FP": "FedAvg"}
     # strategies = {r"MultiFedAvg+FP": "MultiFedAvg"}
     columns = df.columns.tolist()
     improvements_dict = {'Dataset': [], 'Table': [], 'Original strategy': [], 'Alpha': [], metric: []}
@@ -203,26 +206,26 @@ def improvements(df, datasets, metric):
     for dataset in datasets:
         for strategy in strategies:
             original_strategy = strategies[strategy]
+            for selection_level in selection_levels:
+                for j in range(len(columns)):
+                    index = (selection_level, dataset, strategy)
+                    index_original = (selection_level, dataset, original_strategy)
+                    print(df)
+                    print("indice: ", index)
+                    acc = float(df.loc[index].tolist()[j].replace("textbf{", "").replace(u"\u00B1", "")[:4])
+                    acc_original = float(
+                        df.loc[index_original].tolist()[j].replace("textbf{", "")[:4].replace(u"\u00B1", ""))
 
-            for j in range(len(columns)):
-                index = (dataset, strategy)
-                index_original = (dataset, original_strategy)
-                print(df)
-                print("indice: ", index)
-                acc = float(df.loc[index].tolist()[j].replace("textbf{", "").replace(u"\u00B1", "")[:4])
-                acc_original = float(
-                    df.loc[index_original].tolist()[j].replace("textbf{", "")[:4].replace(u"\u00B1", ""))
+                    row = {'Dataset': [dataset], 'Table': [strategy], 'Original strategy': [original_strategy],
+                           'Alpha': [columns[j]], metric: [acc - acc_original]}
+                    row = pd.DataFrame(row)
 
-                row = {'Dataset': [dataset], 'Table': [strategy], 'Original strategy': [original_strategy],
-                       'Alpha': [columns[j]], metric: [acc - acc_original]}
-                row = pd.DataFrame(row)
+                    print(row)
 
-                print(row)
-
-                if len(df_improvements) == 0:
-                    df_improvements = row
-                else:
-                    df_improvements = pd.concat([df_improvements, row], ignore_index=True)
+                    if len(df_improvements) == 0:
+                        df_improvements = row
+                    else:
+                        df_improvements = pd.concat([df_improvements, row], ignore_index=True)
 
     print(df_improvements)
 
@@ -277,7 +280,7 @@ def accuracy_improvement(df, selection_types, selection_levels):
     # ,
     #                            "FedKD+FP": "FedKD"
     # reference_solutions = {"FedAvg+FP": "FedAvg", "FedYogi+FP": "FedYogi", "FedKD+FP": "FedKD"}
-    reference_solutions = {"FedAvg+FP": "FedAvg", "FedAvgPOC+FP": "FedAvgPOC"}
+    reference_solutions = {"FedAvg+FP": "FedAvg"}
 
     print(df_difference)
     # exit()
@@ -285,8 +288,8 @@ def accuracy_improvement(df, selection_types, selection_levels):
     for selection_type in selection_types:
         for selection_level in selection_levels:
             for solution in reference_solutions:
-                reference_index = (selection_type, solution)
-                target_index = (selection_type, reference_solutions[solution])
+                reference_index = (selection_level, selection_type, solution)
+                target_index = (selection_level, selection_type, reference_solutions[solution])
 
                 for column in columns:
                     difference = str(round(float(df.loc[reference_index, column].replace(u"\u00B1", "")[:4]) - float(
@@ -368,7 +371,7 @@ if __name__ == "__main__":
     #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
-    solutions = ["FedAvg+FP", "FedAvgPOC+FP", "FedAvg", "FedAvgPOC"]
+    solutions = ["FedAvg+FP", "FedAvgPOC+FP", "FedAvg", "FedAvgPOC", "FedAvgRAWCS", "FedAvgRAWCS+FP"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}
