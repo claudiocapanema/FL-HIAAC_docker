@@ -1,10 +1,3 @@
-from flwr.common import (
-    EvaluateIns,
-    parameters_to_ndarrays
-)
-from flwr.server.client_manager import ClientManager
-from flwr.server.client_proxy import ClientProxy
-from itertools import islice
 from fedpredict import fedpredict_server, fedpredict_layerwise_similarity
 from fedpredict.utils.compression_methods.sparsification import sparse_matrix, sparse_bytes, sparse_crs_top_k
 

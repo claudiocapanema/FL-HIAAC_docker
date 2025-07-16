@@ -193,6 +193,44 @@ class FedAvgRAWCS(FedAvg):
         self.clients_train_loss = {}
         self.clients_ids = []
 
+        self.transmission_threshold = 0.2
+        # self.devices_profile = devices_profile
+        if self.fraction_fit == 0.3:
+            battery = 0.45  # 0.5
+            self.link_quality_lower_lim = 0.5  # lq_min
+            self.limit_relationship_max_latency = 0  # pt_max
+            level = 'low'
+        elif self.fraction_fit == 0.5:
+            # self.link_quality_lower_lim = 0.3  # lq_min
+            # self.limit_relationship_max_latency = 0.3  # pt_max
+            # level = 'medium'
+            battery = 0.35  # 0.45
+            self.link_quality_lower_lim = 0.05  # lq_min
+            self.limit_relationship_max_latency = 0.4  # pt_max
+            level = 'medium'
+        elif self.fraction_fit == 0.7:
+            battery = 0.05
+            self.link_quality_lower_lim = 0.01  # lq_min
+            self.limit_relationship_max_latency = 7  # pt_max
+            level = 'high'
+            # args.dataset.lower(),
+        self.network_profiles = """./clients_selection_configuration_files/rawcs/sim_1_num_clients_{}_num_rounds_100.pkl""".format(
+            self.total_clients)
+        self.devices_profile = """./clients_selection_configuration_files/rawcs/profiles_sim_cifar10_seed_1_level_{}_alpha_{}_battery_{}.json""".format(
+            level, args.alpha, battery)
+        # self.devices_profile = """./clients_selection_configuration_files/rawcs/profiles_sim_Cifar10_seed_1.json"""
+        # self.sim_idx = sim_idx
+        # self.input_shape = input_shape
+        self.battery_weight = 0.33
+        self.cpu_cost_weight = 0.33
+        self.link_prob_weight = 0.33
+        self.target_accuracy = 1.0
+        self.time_percentile = 95
+        self.comp_latency_lim = np.inf
+        self.clients_info = {}
+        self.clients_last_round = []
+        self.max_training_latency = 0.0
+
     def initialize_parameters(
             self, client_manager: ClientManager
     ) -> Optional[Parameters]:
@@ -206,9 +244,9 @@ class FedAvgRAWCS(FedAvg):
 
             with open(self.devices_profile, 'r') as file:
                 json_dict = json.load(file)
-            # for key in range(self.num_clients):
+            # for key in range(self.total_clients):
             #     self.clients_info[key] = {}
-            for key in [i for i in range(self.num_clients)]:
+            for key in list(client_manager.all().keys()):
                 self.clients_info[int(key)] = json_dict[str(key)]
                 self.clients_info[int(key)]['perc_budget_10'] = False
                 self.clients_info[int(key)]['perc_budget_20'] = False
@@ -230,7 +268,7 @@ class FedAvgRAWCS(FedAvg):
 
             self.limit_relationship_max_latency = self.comp_latency_lim / self.max_training_latency
 
-            #client_manager.wait_for(self.num_clients)
+            #client_manager.wait_for(self.total_clients)
 
             return super().initialize_parameters(client_manager)
         except Exception as e:
@@ -277,12 +315,20 @@ class FedAvgRAWCS(FedAvg):
             logging.info("""sample clientes {} {} disponiveis {} rodada {} n clients {}""".format(sample_size, min_num_clients, client_manager.num_available(), server_round, n_clients))
             logger.info(f"available clients {len(clients)} round {server_round} av {type(clients)}")
             logger.info(f"population {len(clients)} samples {n_clients} round {server_round} confi")
+
+            if server_round == 1:
+                available_clients = list(self.clients_info.keys())
+            else:
+                available_clients = self.sample_fit()
+
+            print("pre selected: ", available_clients)
+
+            selected_cids = self.filter_clients_to_train_by_predicted_behavior(available_clients, server_round)
+
             if server_round > 1:
-                top_k = sorted(self.clients_train_loss.items(), key=lambda x: x[1], reverse=True)[:min([n_clients, len(clients)])]
-                top_k = [key for key, value in top_k]
                 clients_new = []
                 for client in clients:
-                    if client.cid in top_k:
+                    if client.cid in selected_cids:
                         clients_new.append(client)
                 clients = clients_new
             else:
@@ -398,7 +444,7 @@ class FedAvgRAWCS(FedAvg):
                 clients_with_battery.sort(key=lambda client: client[1])
 
                 selected_cids = [client[0] for client in
-                                 clients_with_battery[:round(len(clients_with_battery) * self.fraction_fit)]]
+                                 clients_with_battery[:round(len(clients_with_battery) * 1)]]
 
             return selected_cids
         except Exception as e:

@@ -7,6 +7,7 @@ from clients.FL.client_fedavg import Client
 from clients.FL.client_fedavg_poc import ClientPOC
 from clients.FL.client_fedavg_poc_fedpredict import ClientPOCFP
 from clients.FL.client_fedavg_rawcs import ClientRAWCS
+from clients.FL.client_fedavg_rawcs_fedpredict import ClientFedAvgRAWCSFP
 from clients.FL.client_fedavg_fedpredict import ClientFedAvgFP
 from clients.FL.client_fedper import ClientFedPer
 from clients.FL.client_fedkd import ClientFedKD
@@ -114,6 +115,8 @@ def get_client(strategy_name):
         return ClientPOCFP
     elif strategy_name == "FedAvgRAWCS":
         return ClientRAWCS
+    elif strategy_name == "FedAvgRAWCS+FP":
+        return ClientFedAvgRAWCSFP
     elif strategy_name == "FedAvg+FP":
         return ClientFedAvgFP
     elif strategy_name == "FedYogi":
