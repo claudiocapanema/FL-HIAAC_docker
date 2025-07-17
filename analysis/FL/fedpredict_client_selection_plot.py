@@ -180,7 +180,8 @@ def joint_plot_acc_four_plots(df_test, dataset, write_dir):
         print(labels)
         Path(write_dir + "png/").mkdir(parents=True, exist_ok=True)
         Path(write_dir + "svg/").mkdir(parents=True, exist_ok=True)
-        filename = f"parameters_reduction_percentage_alpha_{alpha}"
+        filename = f"parameters_reduction_percentage_alpha"
+        print(write_dir + "png/" + filename + ".png")
         figure.savefig(write_dir + "png/" + filename + ".png", bbox_inches='tight', dpi=400)
         figure.savefig(write_dir + "svg/" + filename + ".svg", bbox_inches='tight', dpi=400)
 

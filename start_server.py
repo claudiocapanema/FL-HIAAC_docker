@@ -9,6 +9,8 @@ from prometheus_client import start_http_server
 from typing import List, Tuple
 from flwr.common import Metrics
 
+from utils.models_utils import load_model, get_weights, load_data, set_weights, test, train
+
 from server.FL.server_fedavg import FedAvg
 from server.FL.server_fedavg_fedpredict import FedAvgFP
 from server.FL.server_fedavg_poc import FedAvgPOC
@@ -25,6 +27,19 @@ from server.MEFL.server_fedfairmmfl import FedFairMMFL
 from server.MEFL.server_multifedavg_fedpredict_dynamic import MultiFedAvgFedPredictDynamic
 from server.MEFL.server_multifedavg_multifedpredict import MultiFedAvgMultiFedPredict
 from server.MEFL.server_multifedavg_fedpredict import MultiFedAvgFedPredict
+
+from flwr.common import (
+    EvaluateIns,
+    EvaluateRes,
+    FitIns,
+    FitRes,
+    MetricsAggregationFn,
+    NDArrays,
+    Parameters,
+    Scalar,
+    ndarrays_to_parameters,
+    parameters_to_ndarrays,
+)
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
@@ -97,6 +112,10 @@ parser.add_argument(
 )
 parser.add_argument(
     "--compression", type=str, default=""
+)
+
+parser.add_argument(
+    "--device", type=str, default="cuda"
 )
 
 args = parser.parse_args()
@@ -212,7 +231,7 @@ if __name__ == "__main__":
         min_available_clients=args.total_clients,
         evaluate_metrics_aggregation_fn=weighted_average,
         fit_metrics_aggregation_fn=weighted_average_fit,
-        initial_parameters=None,
+        initial_parameters=ndarrays_to_parameters(get_weights(load_model(args.model[0], args.dataset[0], args.strategy, args.device))),
     )
 
     start_fl_server(strategy=strategy, rounds=args.number_of_rounds)

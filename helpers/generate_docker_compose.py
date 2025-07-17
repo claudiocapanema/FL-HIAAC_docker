@@ -74,6 +74,10 @@ parser.add_argument(
     "--compression", type=str, default=""
 )
 
+parser.add_argument(
+    "--device", type=str, default="cuda"
+)
+
 def assert_args(args, strategy_name):
     strategy_type = None
     if strategy_name in ["FedAvg", "FedAvg+FP", "FedYogi", "FedYogi+FP", "FedPer", "FedKD", "FedKD+FP"]:
@@ -139,7 +143,7 @@ def create_docker_compose(args):
     for me  in range(ME):
         mefl_string += f" --dataset='{args.dataset[me]}' --model='{args.model[me]}' --alpha={float(args.alpha[me])} "
 
-    general_config = f"--total_clients={args.total_clients} --number_of_rounds={args.number_of_rounds} --data_percentage={args.data_percentage} --strategy='{strategy_name}' --round_new_clients={args.round_new_clients} --fraction_new_clients={args.fraction_new_clients} --cd='{args.cd}' --fraction_fit={args.fraction_fit} --batch_size={args.batch_size} --learning_rate={args.learning_rate} --tw={args.tw} --reduction={args.reduction} --df={args.df} --experiment_id={args.experiment_id} --compression={args.compression}" + mefl_string
+    general_config = f"--total_clients={args.total_clients} --number_of_rounds={args.number_of_rounds} --data_percentage={args.data_percentage} --strategy='{strategy_name}' --round_new_clients={args.round_new_clients} --fraction_new_clients={args.fraction_new_clients} --cd='{args.cd}' --fraction_fit={args.fraction_fit} --batch_size={args.batch_size} --learning_rate={args.learning_rate} --tw={args.tw} --reduction={args.reduction} --df={args.df} --experiment_id={args.experiment_id} --compression={args.compression} --device={args.device}" + mefl_string
     print("config geral: ", general_config)
 
     docker_compose_content = f"""
