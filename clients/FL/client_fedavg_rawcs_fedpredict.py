@@ -21,12 +21,12 @@ from flwr.common import (
 )
 
 from fedpredict import fedpredict_client_torch
-from clients.FL.client_fedavg import Client
+from clients.FL.client_fedavg_rawcs import ClientRAWCS
 
 # Make TensorFlow log less verbose
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
-class ClientFedAvgRAWCSFP(Client):
+class ClientFedAvgRAWCSFP(ClientRAWCS):
     def __init__(self, args):
         try:
             super(ClientFedAvgRAWCSFP, self).__init__(args)
@@ -83,6 +83,10 @@ class ClientFedAvgRAWCSFP(Client):
             self.models_size = self._get_models_size()
             metrics["Model size"] = self.models_size
             metrics["Alpha"] = self.alpha
+            loss_train, metrics_train = test(combined_model, self.trainloader, self.device, self.client_id, t, self.dataset,
+                                             self.n_classes)
+            metrics["train_loss"] = loss_train
+            metrics["train_samples"] = len(self.trainloader.dataset)
             logger.info("eval cliente fim fp")
             return loss, len(self.valloader.dataset), metrics
         except Exception as e:
