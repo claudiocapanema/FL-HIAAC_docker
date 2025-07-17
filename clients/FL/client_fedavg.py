@@ -101,7 +101,6 @@ class Client(fl.client.NumPyClient):
                     size += param.nbytes
                 return int(size)
             else:
-                logger.info(f"tipo parametro {type(parameters)}")
                 for i in range(len(parameters)):
                     size += parameters[i].nbytes
                 return int(size)

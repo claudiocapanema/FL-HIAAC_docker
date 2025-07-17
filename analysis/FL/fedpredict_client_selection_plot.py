@@ -56,11 +56,12 @@ def read_data(read_solutions, read_dataset_order):
                 df["Selection type"] = np.array([solution_strategy_version[solution]["Selection type"]] * len(df))
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))
                 df["Version"] = np.array([solution_strategy_version[solution]["Version"]] * len(df))
+                # print("fracao2: ", len(df["Fraction fit"]), len(df))
                 df["Selection level"] = np.array([selection_level[float(df["Fraction fit"].iloc[0])]] * len(df))
 
                 if df_concat is None:
                     df_concat = df
-                else:
+                elif len(df) > 0:
                     df_concat = pd.concat([df_concat, df])
 
                 strategy = solution_strategy_version[solution]["Strategy"]
@@ -119,7 +120,7 @@ def joint_plot_acc_four_plots(df_test, dataset, write_dir):
                 df = df_test[df_test['Dataset'] == dataset]
                 df = df[df["Alpha"] == alpha]
                 df = df[df["Selection type"] == selection_types[j]]
-                df = df[df["Selection level"] == selection_levels[j]]
+                # df = df[df["Selection level"] == selection_levels[j]]
                 line_plot(df=df, base_dir=write_dir, file_name=filename, x_column=x_column, y_column=y_column,
                           title=title, hue=hue, ax=axs[i, j], tipo='', hue_order=hue_order, style=style,
                           markers=markers, size=size, sizes=sizes, y_max=y_max, y_lim=True, style_order=style_order)
@@ -137,7 +138,7 @@ def joint_plot_acc_four_plots(df_test, dataset, write_dir):
         axs[1, 2].get_legend().remove()
         axs[0, 2].get_legend().remove()
 
-        # =========================///////////================================
+        # # =========================///////////================================
         fig.suptitle(dataset, fontsize=16)
         plt.tight_layout()
         plt.subplots_adjust(wspace=0.07, hspace=0.14)
@@ -172,9 +173,9 @@ def joint_plot_acc_four_plots(df_test, dataset, write_dir):
         handles += [plt.Line2D([], [], linestyle=markers[i], color="k") for i in range(len(markers))]
         axs[1, 1].legend(handles, labels, fontsize=7)
         figure = fig.get_figure()
-        print(handles)
-        print("---")
-        print(labels)
+        # print(handles)
+        # print("---")
+        # print(labels)
         Path(write_dir + "png/").mkdir(parents=True, exist_ok=True)
         Path(write_dir + "svg/").mkdir(parents=True, exist_ok=True)
         filename = f"client_selection_{dataset}"
@@ -247,7 +248,9 @@ if __name__ == "__main__":
     print(read_solutions)
 
     df, hue_order = read_data(read_solutions, read_dataset_order)
-    print(df)
+    # print(df)
+    # print(df["Solution"].unique())
+    # exit()
 
     # table(df, write_path, "Balanced accuracy (%)", t=None)
     joint_plot_acc_four_plots(df, "CIFAR-10", write_path)
