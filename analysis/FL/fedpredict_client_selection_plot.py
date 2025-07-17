@@ -78,9 +78,6 @@ def joint_plot_acc_four_plots(df_test, dataset, write_dir):
         datast = df_test['Dataset'].unique().tolist()
         selection_types = df_test['Selection type'].unique().tolist()
         selection_levels = df_test['Selection level'].unique().tolist()
-        print("agrupou plot")
-        print(df_test[df_test['Round (t)']==20])
-        print(df_test)
         # exit()
         # figsize=(12, 9),
         sns.set(style='whitegrid')
@@ -180,7 +177,7 @@ def joint_plot_acc_four_plots(df_test, dataset, write_dir):
         print(labels)
         Path(write_dir + "png/").mkdir(parents=True, exist_ok=True)
         Path(write_dir + "svg/").mkdir(parents=True, exist_ok=True)
-        filename = f"parameters_reduction_percentage_alpha"
+        filename = f"client_selection_{dataset}"
         print(write_dir + "png/" + filename + ".png")
         figure.savefig(write_dir + "png/" + filename + ".png", bbox_inches='tight', dpi=400)
         figure.savefig(write_dir + "svg/" + filename + ".svg", bbox_inches='tight', dpi=400)
@@ -253,6 +250,7 @@ if __name__ == "__main__":
     print(df)
 
     # table(df, write_path, "Balanced accuracy (%)", t=None)
+    joint_plot_acc_four_plots(df, "CIFAR-10", write_path)
     joint_plot_acc_four_plots(df, "CIFAR-10", write_path)
     # table(df, write_path, "Balanced accuracy (%)", t=100)
     # table(df, write_path, "Accuracy (%)", t=100)
