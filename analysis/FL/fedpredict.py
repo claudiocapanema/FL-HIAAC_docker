@@ -50,6 +50,7 @@ def read_data(read_solutions, read_dataset_order):
 
 def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
+    plt.figure()
     datasets = df["Dataset"].unique().tolist()
     # datasets = ["ImageNet", "ImageNet"]
     alphas = df["Alpha"].unique().tolist()

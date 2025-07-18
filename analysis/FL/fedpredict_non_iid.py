@@ -65,22 +65,20 @@ def line(df, base_dir, x, hue=None, style=None, ci=None, hue_order=None):
 
     datasets = df["Dataset"].unique().tolist()
     # datasets = ["ImageNet", "ImageNet"]
-    alphas = df["Alpha"].unique().tolist()
-    df["FC"] = df["FC"] * 100
-    df["IL"] = df["IL"] * 100
+    alphas = df['\u03B1'].unique().tolist()
 
-    fig, axs = plt.subplots(2, sharex='all', figsize=(12, 6))
+    fig, axs = plt.subplots(2, sharex='all', figsize=(9, 6))
     # hue_order = ["FedAvg", "FedYogi", "FedKD", "FedPer"]
 
     bar_plot(df=df, base_dir=base_dir, ax=axs[0],
-              file_name="""solutions_{}""".format(datasets), x_column=x, y_column="FC",
-              hue=hue, hue_order=hue_order, title="", tipo=None, y_lim=True, y_max=100)
+              file_name="""solutions_{}""".format(datasets), x_column=x, y_column="Classes (%)",
+              hue=hue, hue_order=hue_order, title="", tipo=None, y_lim=True, y_max=110)
 
             # if i == 0:
     # axs[0].get_legend().remove()
 
     bar_plot(df=df, base_dir=base_dir, ax=axs[1],
-             file_name="""solutions_{}""".format(datasets), x_column=x, y_column="IL",
+             file_name="""solutions_{}""".format(datasets), x_column=x, y_column="Imbalance level (%)",
              hue=hue, hue_order=hue_order, title="", tipo=None, y_lim=True, y_max=100)
 
     axs[1].get_legend().remove()
@@ -94,7 +92,7 @@ def line(df, base_dir, x, hue=None, style=None, ci=None, hue_order=None):
         """{}non_iid_{}.png""".format(base_dir, datasets), bbox_inches='tight',
         dpi=400)
     fig.savefig(
-        """{}non_iid_{}.png""".format(base_dir, datasets), bbox_inches='tight',
+        """{}non_iid_{}.svg""".format(base_dir, datasets), bbox_inches='tight',
         dpi=400)
 
 
@@ -109,6 +107,10 @@ if __name__ == "__main__":
     # table(df, write_path, "Accuracy (%)")
 
     df = pd.read_csv(f"datasets_{dataset}.csv")
-    df["Dataset"] = [d.replace("CIFAR10", "CIFAR-10") for d in df["Dataset"].tolist()]
+    df["Dataset"] = np.array([d.replace("CIFAR10", "CIFAR-10") for d in df["Dataset"].tolist()])
+    df["Classes (%)"] = df["FC"] * 100
+    df["Imbalance level (%)"] = df["IL"] * 100
+    df['\u03B1'] = df["Alpha"]
     # print(df)
-    line(df, "", x="Alpha", hue="Dataset", hue_order=["EMNIST", "CIFAR-10", "GTSRB"])
+    line(df, "", x='\u03B1', hue="Dataset", hue_order=["EMNIST", "CIFAR-10", "GTSRB"])
+    line(df, "", x='\u03B1', hue="Dataset", hue_order=["EMNIST", "CIFAR-10", "GTSRB"])

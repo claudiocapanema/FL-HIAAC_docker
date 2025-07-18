@@ -54,7 +54,7 @@ def bar_plot(df, base_dir, file_name, x_column, y_column, title, hue=None, hue_o
             figure.bar_label(bars, fmt='%.2f', padding=15, fontsize=10)
         figure.set_ylim(top=115)
     figure.set_title(title)
-    figure.legend(loc='upper right')
+    figure.legend(loc='upper left')
     if tipo == "auc":
         figure.set_ylim(top=y_lim)
     if ax is None:
