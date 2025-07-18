@@ -183,7 +183,7 @@ def load_data(dataset_name: str, alpha: float, partition_id: int, num_partitions
                          , "ImageNet10": "claudiogsc/ImageNet-10_household_objects", 'wikitext': 'claudiogsc/wikitext-Window-10-Words-25'}[
                     dataset_name],
                 partitioners={"train": partitioner},
-                path=f"datasets/{dataset_name}",
+                path=f"/home/gustavo/PycharmProjects/FL-HIAAC_docker/datasets/{dataset_name}",
                 seed=42
             )
             fds[dataset_name] = fd

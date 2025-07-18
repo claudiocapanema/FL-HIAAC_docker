@@ -59,13 +59,56 @@ def read_data(total_clients, alphas, datasets):
 
     df = pd.DataFrame({"Alpha": alphas_list, "Dataset": datasets_list, "FC": fc, "IL": il})
     print(df)
+    df.to_csv(f"datasets_{datasets}.csv", index=False)
+
+def line(df, base_dir, x, hue=None, style=None, ci=None, hue_order=None):
+
+    datasets = df["Dataset"].unique().tolist()
+    # datasets = ["ImageNet", "ImageNet"]
+    alphas = df["Alpha"].unique().tolist()
+    df["FC"] = df["FC"] * 100
+    df["IL"] = df["IL"] * 100
+
+    fig, axs = plt.subplots(2, sharex='all', figsize=(12, 6))
+    # hue_order = ["FedAvg", "FedYogi", "FedKD", "FedPer"]
+
+    bar_plot(df=df, base_dir=base_dir, ax=axs[0],
+              file_name="""solutions_{}""".format(datasets), x_column=x, y_column="FC",
+              hue=hue, hue_order=hue_order, title="", tipo=None, y_lim=True, y_max=100)
+
+            # if i == 0:
+    # axs[0].get_legend().remove()
+
+    bar_plot(df=df, base_dir=base_dir, ax=axs[1],
+             file_name="""solutions_{}""".format(datasets), x_column=x, y_column="IL",
+             hue=hue, hue_order=hue_order, title="", tipo=None, y_lim=True, y_max=100)
+
+    axs[1].get_legend().remove()
+
+    # fig.suptitle("", fontsize=16)
+
+    Path(base_dir).mkdir(parents=True, exist_ok=True)
+    plt.tight_layout()
+    # plt.subplots_adjust(wspace=0.2, hspace=0.3)
+    fig.savefig(
+        """{}non_iid_{}.png""".format(base_dir, datasets), bbox_inches='tight',
+        dpi=400)
+    fig.savefig(
+        """{}non_iid_{}.png""".format(base_dir, datasets), bbox_inches='tight',
+        dpi=400)
 
 
 if __name__ == "__main__":
     total_clients = 20
-    alphas = [0.1, 1.0]
+    alphas = [0.1, 0.5, 1.0]
     dataset = ["EMNIST", "CIFAR10", "GTSRB"]
 
-    df = read_data(total_clients, alphas, dataset)
+
+    # df = read_data(total_clients, alphas, dataset)
 
     # table(df, write_path, "Accuracy (%)")
+
+    df = pd.read_csv(f"datasets_{dataset}.csv")
+    df["Dataset"] = [d.replace("CIFAR10", "CIFAR-10") for d in df["Dataset"].tolist()]
+    # print(df)
+    line(df, "", x="Alpha", hue="Dataset", hue_order=["EMNIST", "CIFAR-10", "GTSRB"])
