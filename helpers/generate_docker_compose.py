@@ -303,7 +303,7 @@ services:
                     process.terminate()
                     break
                 elif "error on line" in str(line).lower():
-                    print("Error found")
+                    print("Error found", line)
                     time.sleep(3600)
 
             # Aguarda encerramento completo

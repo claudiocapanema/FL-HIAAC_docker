@@ -43,6 +43,7 @@ class ClientFedPer(Client):
             t = config['t']
             if len(parameters) > 0:
                 set_weights(self.model, parameters)
+            self.optimizer = self._get_optimizer(dataset_name=self.dataset)
             results = train(
                 self.model,
                 self.trainloader,
@@ -56,6 +57,7 @@ class ClientFedPer(Client):
                 self.dataset,
                 self.n_classes
             )
+            self.models_size = self._get_models_size(parameters)
             results["Model size"] = self.models_size
             logger.info("fit cliente fim")
             return get_weights(self.model), len(self.trainloader.dataset), results

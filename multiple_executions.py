@@ -1,34 +1,34 @@
 import subprocess
 
 # Experiment 1
-# executions = [
-#                 "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
+executions = [
+                # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
+              # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
+              # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
+              # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
+              # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
+              # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
 
-#                "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedPer' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedPer' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedPer' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedPer' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedPer' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedPer' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
+               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedPer' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
+              "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedPer' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
+              "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedPer' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
+              "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedPer' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
+              "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedPer' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
+              "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedPer' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
 
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
+              "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
+              "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
+              "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
+              "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
 
 
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi+FP' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi+FP' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
-#               "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
-#               ]
+              "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
+              "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
+              "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi+FP' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
+              "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi+FP' --dataset='EMNIST' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
+              "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1'",
+              "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedYogi+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1'",
+              ]
 
 # Experiment 1 new clients
 # executions = [
@@ -161,7 +161,7 @@ import subprocess
             #   ]
 
 # Client seletion
-executions = [
+# executions = [
 
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1' --compression=''",
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1' --compression=''",
@@ -205,19 +205,19 @@ executions = [
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=0.1 --experiment_id='1' --compression=''",
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvg+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=1.0 --experiment_id='1' --compression=''",
     #
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.5 --alpha=0.1 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.5 --alpha=1.0 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.7 --alpha=0.1 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.7 --alpha=1.0 --experiment_id='1' --compression=''",
-
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.5 --alpha=0.1 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_comptose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.5 --alpha=1.0 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=0.1 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=1.0 --experiment_id='1' --compression=''",
+    # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1' --compression=''",
+    # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1' --compression=''",
+    # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.5 --alpha=0.1 --experiment_id='1' --compression=''",
+    # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.5 --alpha=1.0 --experiment_id='1' --compression=''",
+    # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.7 --alpha=0.1 --experiment_id='1' --compression=''",
+    # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.7 --alpha=1.0 --experiment_id='1' --compression=''",
+    #
+    # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1' --compression=''",
+    # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1' --compression=''",
+    # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.5 --alpha=0.1 --experiment_id='1' --compression=''",
+    # "python helpers/generate_docker_comptose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.5 --alpha=1.0 --experiment_id='1' --compression=''",
+    # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=0.1 --experiment_id='1' --compression=''",
+    # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgPOC+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=1.0 --experiment_id='1' --compression=''",
     #
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1' --compression=''",
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1' --compression=''",
@@ -233,20 +233,20 @@ executions = [
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=0.1 --experiment_id='1' --compression=''",
     # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=1.0 --experiment_id='1' --compression=''",
 
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.5 --alpha=0.1 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.5 --alpha=1.0 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.7 --alpha=0.1 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.7 --alpha=1.0 --experiment_id='1' --compression=''",
-
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.5 --alpha=0.1 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.5 --alpha=1.0 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=0.1 --experiment_id='1' --compression=''",
-    "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=1.0 --experiment_id='1' --compression=''",
-]
+    # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1' --compression=''",
+    # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1' --compression=''",
+    # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.5 --alpha=0.1 --experiment_id='1' --compression=''",
+    # "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.5 --alpha=1.0 --experiment_id='1' --compression=''",
+#     "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.7 --alpha=0.1 --experiment_id='1' --compression=''",
+#     "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='CIFAR10' --model='CNN_3' --fraction_fit=0.7 --alpha=1.0 --experiment_id='1' --compression=''",
+#
+#     "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=0.1 --experiment_id='1' --compression=''",
+#     "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.3 --alpha=1.0 --experiment_id='1' --compression=''",
+#     "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.5 --alpha=0.1 --experiment_id='1' --compression=''",
+#     "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.5 --alpha=1.0 --experiment_id='1' --compression=''",
+#     "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=0.1 --experiment_id='1' --compression=''",
+#     "python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy='FedAvgRAWCS+FP' --dataset='GTSRB' --model='CNN_3' --fraction_fit=0.7 --alpha=1.0 --experiment_id='1' --compression=''",
+# ]
 
 # Nome do arquivo
 filename = "execution_process.txt"

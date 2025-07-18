@@ -13,9 +13,8 @@ from sklearn import metrics
 from sklearn.preprocessing import label_binarize
 import numpy as np
 import sys
-from utils.models import CNN_2, CNN_3, CNNDistillation, GRU, LSTM
 import  datasets as dt
-from utils.custom_federated_dataset import CustomFederatedDataset
+from custom_federated_dataset import CustomFederatedDataset
 
 
 import logging
@@ -24,108 +23,7 @@ import logging
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
 
-def fedpredict_client_weight_predictions_torch(output: torch.Tensor, t: int, current_proportion: np.array, similarity: float) -> np.array:
-    """
-        This function gives more weight to the predominant classes in the current dataset. This function is part of
-        FedPredict-Dynamic
-    Args:
-        output: torch.Tensor, required
-            The output of the model after applying 'softmax' activation function.
-        t: int, required
-            The current round.
-        current_proportion:  np.array, required
-            The classes proportion in the current training data.
-        similarity: float, required
-            The similarity between the old data (i.e., the one that the local model was previously trained on) and the new
-        data. Note that s \in [0, 1].
-
-    Returns:
-        np.array containing the weighted predictions
-
-    """
-
-    try:
-        _has_torch = True
-        if similarity != 1:
-            if _has_torch:
-                output = torch.multiply(output, torch.from_numpy(current_proportion * (1 - similarity)))
-            else:
-                raise ValueError("Framework 'torch' not found")
-
-        return output
-
-    except Exception as e:
-        logger.error("FedPredict client weight prediction")
-        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
-
 DATASET_INPUT_MAP = {"CIFAR10": "img", "MNIST": "image", "EMNIST": "image", "GTSRB": "image", "Gowalla": "sequence", "WISDM-W": "sequence", "ImageNet": "image"}
-
-def load_model(model_name, dataset, strategy, device):
-    try:
-        num_classes = {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'Tiny-ImageNet': 200,
-         'ImageNet100': 15, 'ImageNet': 15, "ImageNet_v2": 15, "Gowalla": 7}[dataset]
-        if model_name == 'CNN_2':
-            if dataset in ['MNIST']:
-                input_shape = 1
-                mid_dim = 36
-                logger.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            elif dataset in ['EMNIST']:
-                input_shape = 1
-                mid_dim = 36
-                logger.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            elif dataset in ['GTSRB']:
-                input_shape = 3
-                mid_dim = 64
-                logger.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            elif dataset in ["ImageNet"]:
-                input_shape=3
-                mid_dim=64
-            elif dataset == "CIFAR10":
-                input_shape = 3
-                mid_dim = 64
-                logger.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            return CNN_2(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes)
-        elif model_name == 'CNN_3':
-            if dataset in ['MNIST']:
-                input_shape = 1
-                mid_dim = 4
-                logger.info("""leu mnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            elif dataset in ['EMNIST']:
-                input_shape = 1
-                mid_dim = 4
-                logger.info("""leu emnist com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            elif dataset in ['GTSRB']:
-                input_shape = 3
-                mid_dim = 16
-                logger.info("""leu gtsrb com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            elif dataset == "ImageNet":
-                input_shape = 3
-                mid_dim = 16
-                logger.info("""leu imagenet com {} {} {}""".format(input_shape, mid_dim, num_classes))
-            elif dataset == "CIFAR10":
-                input_shape = 3
-                mid_dim = 16
-                logger.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
-
-            if "FedKD" in strategy:
-                return CNNDistillation(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes, dataset=dataset)
-            else:
-                return CNN_3(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
-
-        elif model_name == "gru":
-            if dataset in ["WISDM-W", "WISDM-P"]:
-                return GRU(6, num_layers=1, hidden_size=2, sequence_length=200, num_classes=num_classes)
-
-        elif model_name == "lstm":
-            if dataset in ["Gowalla"]:
-                return LSTM(4, device=device, num_layers=1, hidden_size=1, sequence_length=10, num_classes=num_classes)
-
-        raise ValueError("""Model not found for model {} and dataset {}""".format(model_name, dataset))
-
-    except Exception as e:
-        logger.error("""load_model error""")
-        logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
-
 
 fds = None
 
