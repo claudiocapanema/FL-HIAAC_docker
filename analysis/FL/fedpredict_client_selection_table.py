@@ -9,6 +9,12 @@ import sys
 from base_plots import bar_plot, line_plot, ecdf_plot
 import matplotlib.pyplot as plt
 
+def calcular_eficiencia_por_rodada(accuracy, clients_used, clients_total):
+    c_norm = clients_used / clients_total
+    eficiencia = (accuracy * (1 - c_norm))
+    return eficiencia
+
+
 def read_data(read_solutions, read_dataset_order):
 
     df_concat = None
@@ -46,6 +52,7 @@ def read_data(read_solutions, read_dataset_order):
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))
                 df["Version"] = np.array([solution_strategy_version[solution]["Version"]] * len(df))
                 df["Selection level"] = np.array([selection_level[float(df["Fraction fit"].iloc[0])]] * len(df))
+                df["Efficiency (%)"] = np.array(calcular_eficiencia_por_rodada(df["Accuracy (%)"].to_numpy(), df["# training clients"].to_numpy(), 20))
 
                 if df_concat is None:
                     df_concat = df
@@ -78,7 +85,7 @@ def table(df, write_path, metric, dataset, t=None):
 
     df_test = df[
         ['Round (t)', 'Table', 'Balanced accuracy (%)', 'Accuracy (%)', 'Fraction fit', 'Dataset',
-         'Alpha', 'Selection level', 'Selection type']]
+         'Alpha', 'Selection level', 'Selection type', 'Efficiency (%)']]
 
     # df_test = df_test.query("""Round in [10, 100]""")
     print("agrupou table")
@@ -90,7 +97,7 @@ def table(df, write_path, metric, dataset, t=None):
     #     arr += [selection_type] * len(columns)
     # index = [np.array(arr),
     #          np.array(columns * len(selection_types))]
-    index = [np.array(['High'] * len(columns) * len(selection_types) + ['Medium'] * len(columns) * len(selection_types) + ['Low'] * len(columns) * len(selection_types)), np.array(['Random'] * len(columns) + ['POC'] * len(columns) + ['Random'] * len(columns) + ['POC'] * len(columns) + ['Random'] * len(columns) + ['POC'] * len(columns)),
+    index = [np.array(['High'] * len(columns) * len(selection_types) + ['Medium'] * len(columns) * len(selection_types) + ['Low'] * len(columns) * len(selection_types)), np.array(['Random'] * len(columns) + ['POC'] * len(columns) + ['RAWCS'] * len(columns) + ['Random'] * len(columns) + ['POC'] * len(columns) + ['RAWCS'] * len(columns) + ['Random'] * len(columns) + ['POC'] * len(columns) + ['RAWCS'] * len(columns)),
              np.array(columns * 3 * len(selection_types))]
 
     models_dict = {}
@@ -184,9 +191,9 @@ def table(df, write_path, metric, dataset, t=None):
 
     Path(write_path).mkdir(parents=True, exist_ok=True)
     if t is not None:
-        filename = """{}latex_round_{}_{}_client_selectipn.txt""".format(write_path, t, metric)
+        filename = """{}latex_round_{}_{}_client_selection_{}.txt""".format(write_path, t, metric, dataset)
     else:
-        filename = """{}latex_{}_client_selection.txt""".format(write_path, metric)
+        filename = """{}latex_{}_client_selection_{}.txt""".format(write_path, metric, dataset)
     pd.DataFrame({'latex': [latex]}).to_csv(filename, header=False, index=False)
 
     improvements(df_table, selection_types, metric, selection_levels)
@@ -418,6 +425,8 @@ if __name__ == "__main__":
     print(df)
 
     # table(df, write_path, "Balanced accuracy (%)", t=None)
-    table(df, write_path, "Accuracy (%)", dataset="CIFAR-10", t=None)
+    # table(df, write_path, "Accuracy (%)", dataset="CIFAR-10", t=None)
+    table(df, write_path, "Efficiency (%)", dataset="CIFAR-10", t=None)
+    # table(df, write_path, "Accuracy (%)", dataset="GTSRB", t=None)
     # table(df, write_path, "Balanced accuracy (%)", t=100)
     # table(df, write_path, "Accuracy (%)", t=100)

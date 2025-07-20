@@ -58,7 +58,7 @@ def read_data(read_solutions, read_dataset_order, read_model_order):
                 df["Solution"] = np.array([solution] * len(df))
                 df["Accuracy (%)"] = df["Accuracy"] * 100
                 df["Balanced accuracy (%)"] = df["Balanced accuracy"] * 100
-                df["Dataset"] = np.array([dataset] * len(df))
+                df["Dataset"] = np.array([dataset.replace("CIFAR10", "CIFAR-10")] * len(df))
                 df["Model"] = np.array([model.replace("CNN_2", "CNN-a").replace("CNN_3", "CNN-b")] * len(df))
                 df["Table"] = np.array([solution_strategy_version[solution]["Table"]] * len(df))
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))

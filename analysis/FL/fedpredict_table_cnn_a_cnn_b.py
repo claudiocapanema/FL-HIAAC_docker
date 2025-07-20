@@ -55,10 +55,10 @@ def read_data(read_solutions, read_dataset_order, read_model_order):
                 df["Table"] = np.array([solution_strategy_version[solution]["Table"]] * len(df))
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))
                 df["Version"] = np.array([solution_strategy_version[solution]["Version"]] * len(df))
-                df["Size (MB)"] = (df["Model size"] * 0.000001) / 20
+                df["Size (MB)"] = (df["Model size"] * 0.000001)
                 print(df["Size (MB)"])
                 if "+FP_" in solution:
-                    df["Size (MB)"] = (df["Model size (compressed)"] * 0.000001) / 20
+                    df["Size (MB)"] = (df["Model size (compressed)"] * 0.000001)
 
                 if df_concat is None:
                     df_concat = df
@@ -214,11 +214,13 @@ def table(df, write_path, metric, t=None, inverse=False):
     Path(write_path).mkdir(parents=True, exist_ok=True)
     if t is not None:
         filename = """{}latex_round_{}_{}.txt""".format(write_path, t, metric)
+        print("""{}latex_round_{}_{}.txt""".format(write_path, t, metric))
     else:
         filename = """{}latex_{}.txt""".format(write_path, metric)
+        print("""{}latex_{}.txt""".format(write_path, metric))
     pd.DataFrame({'latex': [latex]}).to_csv(filename, header=False, index=False)
 
-    improvements(df_table, datasets, metric)
+    # improvements(df_table, datasets, metric)
 
     #  df.to_latex().replace("\}", "}").replace("\{", "{").replace("\\\nRecall", "\\\n\hline\nRecall").replace("\\\nF-score", "\\\n\hline\nF1-score")
 
@@ -449,6 +451,6 @@ if __name__ == "__main__":
     print(df)
 
     table(df, write_path, "Accuracy (%)", t=None)
-    table(df, write_path, "Accuracy (%)", t=100)
+    # table(df, write_path, "Accuracy (%)", t=100)
     table(df, write_path, "Size (MB)", t=None, inverse=True)
-    table(df, write_path, "Size (MB)", t=100, inverse=True)
+    # table(df, write_path, "Size (MB)", t=100, inverse=True)

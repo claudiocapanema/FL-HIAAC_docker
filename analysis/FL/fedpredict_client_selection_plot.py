@@ -20,6 +20,12 @@ import sys
 from base_plots import bar_plot, line_plot, ecdf_plot
 import matplotlib.pyplot as plt
 
+def calcular_eficiencia_por_rodada(accuracy, clients_used, clients_total):
+    c_norm = clients_used / clients_total
+    eficiencia = (accuracy * (1 - c_norm))
+    return eficiencia
+
+
 def read_data(read_solutions, read_dataset_order):
 
     df_concat = None
@@ -56,12 +62,12 @@ def read_data(read_solutions, read_dataset_order):
                 df["Selection type"] = np.array([solution_strategy_version[solution]["Selection type"]] * len(df))
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))
                 df["Version"] = np.array([solution_strategy_version[solution]["Version"]] * len(df))
-                # print("fracao2: ", len(df["Fraction fit"]), len(df))
                 df["Selection level"] = np.array([selection_level[float(df["Fraction fit"].iloc[0])]] * len(df))
+                df["Efficiency (%)"] = np.array(calcular_eficiencia_por_rodada(df["Accuracy (%)"].to_numpy(), df["# training clients"].to_numpy(), 20))
 
                 if df_concat is None:
                     df_concat = df
-                elif len(df) > 0:
+                else:
                     df_concat = pd.concat([df_concat, df])
 
                 strategy = solution_strategy_version[solution]["Strategy"]
@@ -73,7 +79,7 @@ def read_data(read_solutions, read_dataset_order):
     return df_concat, hue_order
 
 
-def joint_plot_acc_four_plots(df_test, dataset, write_dir):
+def joint_plot_acc_four_plots(df_test, dataset, metric, write_dir):
 
         alphas = df_test["Alpha"].unique().tolist()
         datast = df_test['Dataset'].unique().tolist()
@@ -87,7 +93,7 @@ def joint_plot_acc_four_plots(df_test, dataset, write_dir):
         fig, axs = plt.subplots(rows, cols,  sharex='all', sharey='all', figsize=(9, 6))
 
         x_column = 'Round (t)'
-        y_column = 'Accuracy (%)'
+        y_column = metric
         plt.xlabel(x_column)
         plt.ylabel(y_column)
         # ====================================================================
@@ -178,7 +184,7 @@ def joint_plot_acc_four_plots(df_test, dataset, write_dir):
         # print(labels)
         Path(write_dir + "png/").mkdir(parents=True, exist_ok=True)
         Path(write_dir + "svg/").mkdir(parents=True, exist_ok=True)
-        filename = f"client_selection_{dataset}"
+        filename = f"client_selection_{dataset}_{metric}"
         print(write_dir + "png/" + filename + ".png")
         figure.savefig(write_dir + "png/" + filename + ".png", bbox_inches='tight', dpi=400)
         figure.savefig(write_dir + "svg/" + filename + ".svg", bbox_inches='tight', dpi=400)
@@ -253,7 +259,13 @@ if __name__ == "__main__":
     # exit()
 
     # table(df, write_path, "Balanced accuracy (%)", t=None)
-    joint_plot_acc_four_plots(df, "CIFAR-10", write_path)
-    joint_plot_acc_four_plots(df, "CIFAR-10", write_path)
+    joint_plot_acc_four_plots(df, "CIFAR-10", "Accuracy (%)", write_path)
+    joint_plot_acc_four_plots(df, "CIFAR-10", "Accuracy (%)", write_path)
+    joint_plot_acc_four_plots(df, "GTSRB", "Accuracy (%)", write_path)
+    joint_plot_acc_four_plots(df, "GTSRB", "Accuracy (%)", write_path)
+    joint_plot_acc_four_plots(df, "CIFAR-10", "Efficiency (%)", write_path)
+    joint_plot_acc_four_plots(df, "CIFAR-10", "Efficiency (%)", write_path)
+    joint_plot_acc_four_plots(df, "GTSRB", "Efficiency (%)", write_path)
+    joint_plot_acc_four_plots(df, "GTSRB", "Efficiency (%)", write_path)
     # table(df, write_path, "Balanced accuracy (%)", t=100)
     # table(df, write_path, "Accuracy (%)", t=100)
