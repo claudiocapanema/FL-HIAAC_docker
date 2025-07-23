@@ -97,6 +97,7 @@ def joint_plot_acc_four_plots(df_test, dataset, metric, write_dir):
         plt.xlabel(x_column)
         plt.ylabel(y_column)
         # ====================================================================
+        df_test["Strategy"] = df_test["Table"]
         for i in range(rows):
             for j in range(cols):
                 alpha = alphas[i]
@@ -110,7 +111,7 @@ def joint_plot_acc_four_plots(df_test, dataset, metric, write_dir):
                 title = """\u03B1={}; {}""".format(alpha, client_selection)
                 filename = ''
                 hue_order = ['FedAvg+FP', 'FedAvg']
-                hue = "Table"
+                hue = "Strategy"
                 # hue_order = ['FedAvg', 'CDA-FedAvg', 'FedCDM', 'FedPer']
                 # hue_order = None
                 style = 'Selection level'

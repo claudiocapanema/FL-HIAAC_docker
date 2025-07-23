@@ -329,15 +329,16 @@ class FedAvgRAWCS(FedAvg):
 
             selected_cids = self.filter_clients_to_train_by_predicted_behavior(available_clients, server_round)
 
-            if server_round > 1:
-                clients_new = []
-                for client in clients:
-                    if client.cid in selected_cids:
-                        clients_new.append(client)
-                clients = clients_new
-                clients = np.random.choice(clients, size=min([n_clients, len(clients)]), replace=False)
-            else:
-                clients = np.random.choice(clients, size=min([n_clients, len(clients)]), replace=False)
+            # if server_round > 1:
+            clients_new = []
+            for client in clients:
+                if client.cid in selected_cids:
+                    clients_new.append(client)
+            clients = clients_new
+            # clients = np.random.choice(clients, size=min([n_clients, len(clients)]), replace=False)
+            # clients = clients[:int(len(clients) * 0.5)]
+            # else:
+                # clients = np.random.choice(clients, size=min([n_clients, len(clients)]), replace=False)
 
             self.n_trained_clients = len(clients)
             self.selected_clients = [client.cid for client in clients]
@@ -449,7 +450,7 @@ class FedAvgRAWCS(FedAvg):
                 clients_with_battery.sort(key=lambda client: client[1])
 
                 selected_cids = [client[0] for client in
-                                 clients_with_battery[:round(len(clients_with_battery) * 1)]]
+                                 clients_with_battery[:round(len(clients_with_battery) * self.fraction_fit)]]
 
             return selected_cids
         except Exception as e:
