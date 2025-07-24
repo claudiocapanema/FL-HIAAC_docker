@@ -49,6 +49,7 @@ class Client(fl.client.NumPyClient):
 
             logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
             t = config['t']
+            self.lt = t
             if len(parameters) > 0:
                 set_weights(self.model, parameters)
             self.optimizer = self._get_optimizer(dataset_name=self.dataset)
@@ -84,6 +85,7 @@ class Client(fl.client.NumPyClient):
             self.models_size = self._get_models_size(parameters)
             metrics["Model size"] = self.models_size
             metrics["Alpha"] = self.alpha
+            metrics["nt"] = nt
             logger.info("eval cliente fim")
             return loss, len(self.valloader.dataset), metrics
         except Exception as e:

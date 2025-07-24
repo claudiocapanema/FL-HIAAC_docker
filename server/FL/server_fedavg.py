@@ -141,6 +141,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
                                        "# training clients", "# available clients", "training clients and models", "Model size", "Alpha"]
             self.train_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
                                        "# training clients", "# available clients", "training clients and models", "Model size", "Alpha"]
+            self.test_metrics_names_nt = ["Accuracy (%)", "Round (t)", "nt"]
             self.rs_test_acc = []
             self.rs_test_auc = []
             self.rs_train_loss = []
@@ -258,10 +259,10 @@ class FedAvg(flwr.server.strategy.FedAvg):
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def aggregate_evaluate(
-        self,
-        server_round: int,
-        results: list[tuple[ClientProxy, EvaluateRes]],
-        failures: list[Union[tuple[ClientProxy, EvaluateRes], BaseException]],
+            self,
+            server_round: int,
+            results: list[tuple[ClientProxy, EvaluateRes]],
+            failures: list[Union[tuple[ClientProxy, EvaluateRes], BaseException]],
     ) -> tuple[Optional[float], dict[str, Scalar]]:
         try:
             """Aggregate evaluation losses using weighted average."""
@@ -285,6 +286,8 @@ class FedAvg(flwr.server.strategy.FedAvg):
             if self.evaluate_metrics_aggregation_fn:
                 eval_metrics = [(res.num_examples, res.metrics) for _, res in results]
                 metrics_aggregated = self.evaluate_metrics_aggregation_fn(eval_metrics)
+                accuracies = [round(j["Accuracy"], 2) for i, j in eval_metrics]
+                nts = [i[1]["nt"] for i in eval_metrics]
             elif server_round == 1:  # Only log this warning once
                 log(WARNING, "No evaluate_metrics_aggregation_fn provided")
 
@@ -292,9 +295,10 @@ class FedAvg(flwr.server.strategy.FedAvg):
                 mode = "w"
             else:
                 mode = "w"
+            data = [[str(accuracies), server_round, str(nts)]]
             self.add_metrics(server_round, metrics_aggregated)
             self.save_results(mode)
-
+            self.save_results_nt(server_round, data)
 
             return loss_aggregated, metrics_aggregated
         except Exception as e:
@@ -431,15 +435,19 @@ class FedAvg(flwr.server.strategy.FedAvg):
 
     def _write_outputs(self, filename, data, mode='a'):
 
-        for i in range(len(data)):
-            for j in range(len(data[i])):
-                element = data[i][j]
-                if type(element) == float:
-                    element = round(element, 6)
-                    data[i][j] = element
-        with open(filename, 'a') as server_log_file:
-            writer = csv.writer(server_log_file)
-            writer.writerows(data)
+        try:
+            for i in range(len(data)):
+                for j in range(len(data[i])):
+                    element = data[i][j]
+                    if type(element) == float:
+                        element = round(element, 6)
+                        data[i][j] = element
+            with open(filename, 'a') as server_log_file:
+                writer = csv.writer(server_log_file)
+                writer.writerows(data)
+        except Exception as e:
+            logger.error("_write_outputs error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def set_experiment_config(self, experiment_id):
         try:
@@ -454,4 +462,28 @@ class FedAvg(flwr.server.strategy.FedAvg):
 
         except Exception as e:
             logger.error("set_experiment_config error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def save_results_nt(self, server_round, data):
+        try:
+            algo = self.dataset + "_" + self.strategy_name
+            result_path = """results/experiment_id_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+                self.experiment_id,
+                self.total_clients,
+                self.alpha,
+                self.dataset,
+                self.model_name,
+                self.fraction_fit,
+                self.number_of_rounds,
+                self.local_epochs,
+                "test")
+            compression = ""
+            if len(compression) > 0:
+                compression = "_" + compression
+            result_path = "{}{}{}_nt.csv".format(result_path, algo, compression)
+            if server_round == 1:
+                self._write_header(result_path, header=self.test_metrics_names_nt, mode="w")
+            self._write_outputs(result_path, data=data)
+        except Exception as e:
+            logger.error("save_results error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

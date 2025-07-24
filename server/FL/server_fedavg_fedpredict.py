@@ -234,52 +234,6 @@ class FedAvgFP(FedAvg):
             logger.error("aggregate_fit error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-    def aggregate_evaluate(
-        self,
-        server_round: int,
-        results: list[tuple[ClientProxy, EvaluateRes]],
-        failures: list[Union[tuple[ClientProxy, EvaluateRes], BaseException]],
-    ) -> tuple[Optional[float], dict[str, Scalar]]:
-        try:
-            """Aggregate evaluation losses using weighted average."""
-            if not results:
-                return None, {}
-            # Do not aggregate if there are failures and failures are not accepted
-            if not self.accept_failures and failures:
-                return None, {}
-
-            # Aggregate loss
-            logger.info("""metricas recebidas rodada {}: {}""".format(server_round, results))
-            loss_aggregated = weighted_loss_avg(
-                [
-                    (evaluate_res.num_examples, evaluate_res.loss)
-                    for _, evaluate_res in results
-                ]
-            )
-
-            # Aggregate custom metrics if aggregation fn was provided
-            metrics_aggregated = {}
-            if self.evaluate_metrics_aggregation_fn:
-                eval_metrics = [(res.num_examples, res.metrics) for _, res in results]
-                metrics_aggregated = self.evaluate_metrics_aggregation_fn(eval_metrics)
-                accuracies = [i[1]["Accuracy"] for i in results]
-                nts = [i[1]["nt"] for i in results]
-            elif server_round == 1:  # Only log this warning once
-                log(WARNING, "No evaluate_metrics_aggregation_fn provided")
-
-            if server_round == 1:
-                mode = "w"
-            else:
-                mode = "w"
-            self.add_metrics(server_round, metrics_aggregated)
-            self.save_results(mode)
-
-
-            return loss_aggregated, metrics_aggregated
-        except Exception as e:
-            logger.error("aggregate_evaluate error")
-            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
-
     def configure_evaluate(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> list[tuple[ClientProxy, EvaluateIns]]:
@@ -451,11 +405,26 @@ class FedAvgFP(FedAvg):
             logger.error("get_results error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-    def save_results_nt(self, mode):
+    def save_results_nt(self, server_round, data):
         try:
-            self.file_path, header, data = self.get_results( 'test', '')
-            self._write_header(self.file_path, header=header, mode=mode)
-            self._write_outputs(self.file_path, data=data)
+            algo = self.dataset + "_" + self.strategy_name
+            result_path = """results/experiment_id_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/{}/""".format(
+                self.experiment_id,
+                self.total_clients,
+                self.alpha,
+                self.dataset,
+                self.model_name,
+                self.fraction_fit,
+                self.number_of_rounds,
+                self.local_epochs,
+                "test")
+            compression = self.compression
+            if len(compression) > 0:
+                compression = "_" + compression
+            result_path = "{}{}{}_nt.csv".format(result_path, algo, compression)
+            if server_round == 1:
+                self._write_header(result_path, header=self.test_metrics_names_nt, mode="w")
+            self._write_outputs(result_path, data=data)
         except Exception as e:
             logger.error("save_results error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
