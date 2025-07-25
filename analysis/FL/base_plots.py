@@ -48,10 +48,10 @@ def bar_plot(df, base_dir, file_name, x_column, y_column, title, hue=None, hue_o
 
     if tipo == "original":
         for bars in figure.containers:
-            figure.bar_label(bars, fmt='%.2f', padding=40, fontsize=10)
+            figure.bar_label(bars, fmt='%.0f', padding=40, fontsize=10)
     else:
         for bars in figure.containers:
-            figure.bar_label(bars, fmt='%.2f', padding=15, fontsize=10)
+            figure.bar_label(bars, fmt='%.0f', padding=15, fontsize=10)
         figure.set_ylim(top=115)
     figure.set_title(title)
     figure.legend(loc='upper left')

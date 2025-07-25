@@ -13,13 +13,13 @@ def read_data(read_solutions, read_dataset_order):
 
     df_concat = None
     solution_strategy_version = {
-        "FedAvg+FP": {"Strategy": "FedAvg", "Version": "FP$_{dc}$", "Table": "FedAvg+FP"},
+        "FedAvg+FP": {"Strategy": "FedAvg", "Version": "FP$_{dc}$", "Table": "FedAvg+FP$_{dc}$"},
         "FedAvg": {"Strategy": "FedAvg", "Version": "Original", "Table": "FedAvg"},
-        "FedYogi+FP": {"Strategy": "FedYogi", "Version": "FP$_{dc}$", "Table": "FedYogi+FP"},
+        "FedYogi+FP": {"Strategy": "FedYogi", "Version": "FP$_{dc}$", "Table": "FedYogi+FP$_{dc}$"},
         "FedYogi": {"Strategy": "FedYogi", "Version": "Original", "Table": "FedYogi"},
         "FedPer": {"Strategy": "FedPer", "Version": "Original", "Table": "FedPer"},
         "FedKD": {"Strategy": "FedKD", "Version": "Original", "Table": "FedKD"},
-        "FedKD+FP": {"Strategy": "FedKD", "Version": "FP$_{dc}$", "Table": "FedKD+FP"}
+        "FedKD+FP": {"Strategy": "FedKD", "Version": "FP$_{dc}$", "Table": "FedKD+FP$_{dc}$"}
     }
     hue_order = []
     for solution in read_solutions:
@@ -44,6 +44,7 @@ def read_data(read_solutions, read_dataset_order):
                 df["Solution"] = np.array([solution] * len(accuracies))
                 df["Dataset"] = np.array([dataset] * len(accuracies))
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(accuracies))
+                df["Table"] = np.array([solution_strategy_version[solution]["Table"]] * len(accuracies))
                 df["Version"] = np.array([solution_strategy_version[solution]["Version"]] * len(accuracies))
 
                 if df_concat is None:
@@ -64,7 +65,7 @@ def filter(df, dataset, strategy=None):
     # df['Accuracy (%)'] = df['Accuracy (%)']*100
     if strategy is not None:
         df = df.query(
-            """Dataset=='{}' and Strategy=='{}'""".format(str(dataset), strategy))
+            """Dataset=='{}' and Table=='{}'""".format(str(dataset), strategy))
     else:
         df = df.query(
             """Dataset=='{}'""".format(dataset))
@@ -107,7 +108,7 @@ def bar(df, base_dir):
     print(df)
     df_test = df[
         ['Round (t)', 'Strategy', 'Accuracy (%)', 'Dataset',
-         'nt']].groupby(['Round (t)', 'Strategy', 'Dataset', 'nt']).apply(
+         'nt', 'Table']].groupby(['Round (t)', 'Table', 'Dataset', 'nt']).apply(
         lambda e: groupb_by_plot(e)).reset_index()
     print("agrupou plot")
     print(df_test)
@@ -125,15 +126,14 @@ def bar(df, base_dir):
     filename = 'nt'
     i = 0
     hue_order = ['FedAvg+FP$_{dc}$', 'FedAvg', 'FedYogi+FP$_{dc}$', "FedYogi", 'FedKD+FP$_{dc}$', "FedKD"]
-    colors = ["mediumblue", "lightblue", "green", "lightgreen", "red", "mistyrose"]
+    colors = ["tab:blue", "lightblue", "peru", "mistyrose", "tab:green", "limegreen"]
     palette = {i: j for i, j in zip(hue_order, colors)}
-    print(df_test['Strategy'].unique().tolist())
     hue = 'nt'
     x_order = ['Updated', 'Outdated']
     filter_and_plot(ax=axs[i], base_dir=base_dir, filename=filename, title=title, df=df_test,
                          dataset=dataset, x_column=x_column,
                          y_column=y_column,
-                         hue='Strategy', x_order=x_order, hue_order=hue_order, style=None, palette=palette)
+                         hue='Table', x_order=x_order, hue_order=hue_order, style=None, palette=palette)
     axs[i].get_legend().remove()
     axs[i].set_xlabel('')
     axs[i].set_ylabel('')
@@ -144,7 +144,7 @@ def bar(df, base_dir):
     filter_and_plot(ax=axs[i], base_dir=base_dir, filename=filename, title=title, df=df_test,
                          dataset=dataset, x_column=x_column,
                          y_column=y_column,
-                         hue='Strategy', x_order=x_order, hue_order=hue_order, style='nt', palette=palette)
+                         hue='Table', x_order=x_order, hue_order=hue_order, style='nt', palette=palette)
     axs[i].get_legend().remove()
     axs[i].set_xlabel('')
     axs[i].set_ylabel('')
@@ -155,7 +155,7 @@ def bar(df, base_dir):
     filter_and_plot(ax=axs[i], base_dir=base_dir, filename=filename, title=title, df=df_test,
                          dataset=dataset, x_column=x_column,
                          y_column=y_column,
-                         hue='Strategy', x_order=x_order, hue_order=hue_order, style='nt', palette=palette)
+                         hue='Table', x_order=x_order, hue_order=hue_order, style='nt', palette=palette)
     axs[i].get_legend().remove()
     axs[i].set_xlabel('')
     axs[i].set_ylabel('')
@@ -189,7 +189,7 @@ def bar(df, base_dir):
     # =========================///////////================================
     fig.suptitle("", fontsize=16)
     plt.tight_layout()
-    plt.subplots_adjust(wspace=0.07, hspace=0.14)
+    plt.subplots_adjust(wspace=0.07, hspace=0.24)
     # plt.subplots_adjust(right=0.9)
     # fig.legend(
     #            loc="lower right")
@@ -279,3 +279,4 @@ if __name__ == "__main__":
     print(df)
 
     bar(df,   write_path)
+    bar(df, write_path)
