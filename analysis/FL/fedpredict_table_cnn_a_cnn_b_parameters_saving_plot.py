@@ -481,7 +481,7 @@ def evaluate_client_joint_parameter_reduction(df, base_dir):
         figure = fig.get_figure()
         Path(base_dir + "png/").mkdir(parents=True, exist_ok=True)
         Path(base_dir + "svg/").mkdir(parents=True, exist_ok=True)
-        filename = f"parameters_reduction_percentage_alpha_{alpha}"
+        filename = f"parameters_reduction_percentage_alpha"
         figure.savefig(base_dir + "png/" + filename + ".png", bbox_inches='tight', dpi=400)
         figure.savefig(base_dir + "svg/" + filename + ".svg", bbox_inches='tight', dpi=400)
 

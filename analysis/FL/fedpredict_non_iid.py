@@ -94,6 +94,7 @@ def line(df, base_dir, x, hue=None, style=None, ci=None, hue_order=None):
     fig.savefig(
         """{}non_iid_{}.svg""".format(base_dir, datasets), bbox_inches='tight',
         dpi=400)
+    print("""{}non_iid_{}.svg""".format(base_dir, datasets))
 
 
 if __name__ == "__main__":

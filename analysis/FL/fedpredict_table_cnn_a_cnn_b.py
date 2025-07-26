@@ -403,7 +403,7 @@ if __name__ == "__main__":
     #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
-    solutions = ["FedAvg", "FedAvg+FP", "FedAvg+FP_compredict", "FedAvg+FP_dls_compredict", "FedAvg+FP_dls", "FedAvg+FP_fedkd", "FedAvg+FP_per", "FedAvg+FP_sparsification"]
+    solutions = ["FedAvg", "FedAvg+FP", "FedAvg+FP_dls_compredict", "FedAvg+FP_dls", "FedAvg+FP_compredict", "FedAvg+FP_fedkd", "FedAvg+FP_per", "FedAvg+FP_sparsification"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}
