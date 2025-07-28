@@ -19,6 +19,7 @@ from server.FL.server_fedavg_rawcs import FedAvgRAWCS
 from server.FL.server_fedavg_rawcs_fedpredict import FedAvgRAWCSFP
 from server.FL.server_fedyogi import FedYogi
 from server.FL.server_fedyogi_fedpredict import FedYogiFP
+from server.FL.server_fedkd import FedKD
 from server.FL.server_fedper import FedPer
 from server.MEFL.server_multifedavg import MultiFedAvg
 from server.MEFL.server_multifedefficiency import MultiFedEfficiency
@@ -194,7 +195,7 @@ def get_server(strategy_name):
     elif strategy_name == "FedPer":
         return FedPer
     elif strategy_name == "FedKD":
-        return FedAvg
+        return FedKD
     elif strategy_name == "FedKD+FP":
         return FedAvg
     elif strategy_name == "MultiFedAvg":

@@ -296,9 +296,10 @@ class CNN_student(nn.Module):
             logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 class CNNDistillation(nn.Module):
-    def __init__(self, input_shape=1, mid_dim=256, num_classes=10, dataset='CIFAR10'):
+    def __init__(self, input_shape=1, mid_dim=256, num_classes=10, dataset='CIFAR10', device="cuda:0"):
         try:
             self.dataset = dataset
+            self.device = device
             super(CNNDistillation, self).__init__()
             self.new_client = False
             if self.dataset in ['EMNIST', 'MNIST']:
@@ -315,15 +316,35 @@ class CNNDistillation(nn.Module):
             else:
                 mid_dim = 4
             self.teacher = CNN_3_proto(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes)
+            feature_dim = 512
+            self.W_h = torch.nn.Linear(feature_dim, feature_dim, bias=False).to(device)
         except Exception as e:
             logger.info("CNNDistillation")
             logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-    def forward(self, x):
+    def forward(self, x, labels):
         try:
-            out_student, proto_student = self.student(x)
-            out_teacher, proto_teacher = self.teacher(x)
-            return out_student, proto_student, out_teacher, proto_teacher
+            criterion = torch.nn.CrossEntropyLoss().to(self.device)
+            criterion2 = torch.nn.KLDivLoss(reduction='batchmean').to(self.device)
+            criterion3 = torch.nn.MSELoss().to(self.device)
+            output_student, proto_student = self.student(x)
+            output_teacher, proto_teacher = self.teacher(x)
+            outputs_S1 = F.log_softmax(output_student, dim=1)
+            outputs_S2 = F.log_softmax(output_teacher, dim=1)
+            outputs_T1 = F.softmax(output_student, dim=1)
+            outputs_T2 = F.softmax(output_teacher, dim=1)
+
+            loss_student = criterion(output_student, labels)
+            loss_teacher = criterion(output_teacher, labels)
+            loss_3 = criterion2(outputs_S1, outputs_T2) / (loss_student + loss_teacher)
+            loss_4 = criterion2(outputs_S2, outputs_T1) / (loss_student + loss_teacher)
+            L_h = criterion3(proto_teacher, self.W_h(proto_student)) / (loss_student + loss_teacher)
+            # loss = loss_student + loss_teacher
+            loss_teacher = loss_teacher + L_h + loss_4
+            loss_student = loss_student + L_h + loss_3
+            loss = loss_teacher + loss_student
+            # return output_student, proto_student, output_teacher, proto_teacher
+            return loss, output_student, output_teacher
         except Exception as e:
             logger.info("CNNDistillation forward")
             logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

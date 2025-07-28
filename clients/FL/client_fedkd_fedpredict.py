@@ -42,6 +42,7 @@ class ClientFedKDFedPredict(ClientFedKD):
             set_weights_fedkd(self.model, parameters)
             logger.info(f"lt cliente {self.lt} rodada {t}")
             loss, metrics = test_fedkd_fedpredict(self.lt, self.model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
+            self.models_size = self._get_models_size(parameters)
             metrics["Model size"] = self.models_size
             logger.info("eval cliente fim")
             metrics["Alpha"] = self.alpha

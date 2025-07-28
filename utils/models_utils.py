@@ -108,7 +108,7 @@ def load_model(model_name, dataset, strategy, device):
                 logger.info("""leu cifar com {} {} {}""".format(input_shape, mid_dim, num_classes))
 
             if "FedKD" in strategy:
-                return CNNDistillation(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes, dataset=dataset)
+                return CNNDistillation(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes, dataset=dataset, device=device)
             else:
                 return CNN_3(input_shape=input_shape, num_classes=num_classes, mid_dim=mid_dim)
 
@@ -413,12 +413,14 @@ def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, cl
         model.to(device)  # move utils to GPU if available
         # utils.teacher.to(device)
         # utils.student.to(device)
-        criterion = torch.nn.CrossEntropyLoss().to(device)
+        # criterion = torch.nn.CrossEntropyLoss().to(device)
+        # criterion2 = torch.nn.KLDivLoss().to(device)
+        # criterion3 = torch.nn.MSELoss().to(device)
         optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
         model.train()
         feature_dim = 512
-        W_h = torch.nn.Linear(feature_dim, feature_dim, bias=False).to(device)
-        MSE = torch.nn.MSELoss().to(device)
+        # W_h = torch.nn.Linear(feature_dim, feature_dim, bias=False).to(device).train()
+        # MSE = torch.nn.MSELoss().to(device)
         key = DATASET_INPUT_MAP[dataset_name]
         logger.info("""Inicio train_fedkd client {}""".format(client_id))
         for _ in range(epochs):
@@ -434,19 +436,23 @@ def train_fedkd(model, trainloader, valloader, epochs, learning_rate, device, cl
                 labels = labels.to(device)
 
                 optimizer.zero_grad()
-                output_student, rep_g, output_teacher, rep = model(x)
-                outputs_S1 = F.log_softmax(output_student, dim=1)
-                outputs_S2 = F.log_softmax(output_teacher, dim=1)
-                outputs_T1 = F.softmax(output_student, dim=1)
-                outputs_T2 = F.softmax(output_teacher, dim=1)
-
-                loss_student = criterion(output_student, labels)
-                loss_teacher = criterion(output_teacher, labels)
-                loss_1 = torch.nn.KLDivLoss()(outputs_S1, outputs_T2) / (loss_student + loss_teacher)
-                loss_2 = torch.nn.KLDivLoss()(outputs_S2, outputs_T1) / (loss_student + loss_teacher)
-                L_h = MSE(rep, W_h(rep_g)) / (loss_student + loss_teacher)
-                # loss = loss_student + loss_teacher
-                loss = loss_teacher + loss_student + L_h + loss_1 + loss_2
+                loss, output_teacher, output_student = model(x, labels)
+                # output_student, rep_g, output_teacher, rep = model(x)
+                # outputs_S1 = F.log_softmax(output_student, dim=1)
+                # outputs_S2 = F.log_softmax(output_teacher, dim=1)
+                # outputs_T1 = F.softmax(output_student, dim=1)
+                # outputs_T2 = F.softmax(output_teacher, dim=1)
+                #
+                # loss_student = criterion(output_student, labels)
+                # loss_teacher = criterion(output_teacher, labels)
+                # loss_3 = torch.nn.KLDivLoss().to(device)(outputs_S1, outputs_T2) / (loss_student + loss_teacher)
+                # loss_4 = torch.nn.KLDivLoss().to(device)(outputs_S2, outputs_T1) / (loss_student + loss_teacher)
+                # L_h = MSE(rep, W_h(rep_g)) / (loss_student + loss_teacher)
+                # # loss = loss_student + loss_teacher
+                # loss_teacher = loss_teacher + L_h + loss_4
+                # loss_student = loss_student + L_h + loss_3
+                # loss = loss_teacher + loss_student + L_h + loss_3 + loss_4
+                # loss = loss_teacher
                 loss.backward()
                 optimizer.step()
                 loss_total += loss.item() * labels.shape[0]
@@ -532,7 +538,7 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
             # utils.teacher.to(device)
             # utils.student.to(device)
             model.eval()
-            criterion = torch.nn.CrossEntropyLoss().to(device)
+            # criterion = torch.nn.CrossEntropyLoss().to(device)
 
             correct = 0
             loss = 0
@@ -547,9 +553,11 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
                     x = x.to(device)
                     labels = labels.to(device)
                     y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
-                    output, proto_student, output_teacher, proto_teacher = model(x)
+                    # output, proto_student, output_teacher, proto_teacher = model(x)
+                    model_loss, output_teacher, output_student = model(x, labels)
                     y_prob.append(output_teacher.detach().cpu().numpy())
-                    loss += criterion(output_teacher, labels).item()
+                    # loss += criterion(output_teacher, labels).item()
+                    loss += model_loss.item()
                     correct += (torch.sum(torch.argmax(output_teacher, dim=1) == labels)).item()
 
             accuracy = correct / len(testloader.dataset)
@@ -561,7 +569,6 @@ def test_fedkd(model, testloader, device, client_id, t, dataset_name, n_classes)
             y_prob = y_prob.argmax(axis=1)
             y_true = y_true.argmax(axis=1)
             balanced_accuracy = float(metrics.balanced_accuracy_score(y_true, y_prob))
-
             test_metrics = {"Accuracy": accuracy, "Balanced accuracy": balanced_accuracy, "Loss": loss, "Round (t)": t}
             # logger.info("""metricas cliente {} valores {}""".format(client_id, test_metrics))
             return loss, test_metrics
