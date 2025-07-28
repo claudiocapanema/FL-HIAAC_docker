@@ -215,6 +215,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
         try:
             """Configure the next round of evaluation."""
             # Do not configure federated evaluation if fraction eval is 0.
+            logger.info(f"Início configure evaluate {server_round}")
             if self.fraction_evaluate == 0.0:
                 return []
 
@@ -253,6 +254,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
             # for client in r:
             #     logger.info(f"antes type client {type(client)} type 0 {type(client[0])} type 1 {type(client[1])}")
             #     logger.info(f"parameters {type(client[1].parameters)} config {client[1].config}")
+            logger.info(f"Fim configure evaluate {server_round}")
             return r
         except Exception as e:
             logger.error("configure_evaluate error")
@@ -266,6 +268,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
     ) -> tuple[Optional[float], dict[str, Scalar]]:
         try:
             """Aggregate evaluation losses using weighted average."""
+            logger.info(f"Início aggregate evaluate round {server_round}")
             if not results:
                 return None, {}
             # Do not aggregate if there are failures and failures are not accepted
@@ -299,6 +302,8 @@ class FedAvg(flwr.server.strategy.FedAvg):
             self.add_metrics(server_round, metrics_aggregated)
             self.save_results(mode)
             self.save_results_nt(server_round, data)
+
+            logger.info(f"Fim aggregate evaluate round {server_round}")
 
             return loss_aggregated, metrics_aggregated
         except Exception as e:

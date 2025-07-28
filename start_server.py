@@ -9,7 +9,7 @@ from prometheus_client import start_http_server
 from typing import List, Tuple
 from flwr.common import Metrics
 
-from utils.models_utils import load_model, get_weights, load_data, set_weights, test, train
+from utils.models_utils import load_model, get_weights, get_weights_fedkd, load_data, set_weights, test, train
 
 from server.FL.server_fedavg import FedAvg
 from server.FL.server_fedavg_fedpredict import FedAvgFP
@@ -220,6 +220,12 @@ if __name__ == "__main__":
     start_http_server(8000)
 
     # Initialize Strategy Instance and Start FL Serverstart_fl_server
+    if "FedKD" in args.strategy:
+        initial_parameters = ndarrays_to_parameters(get_weights_fedkd(load_model(args.model[0], args.dataset[0], args.strategy, args.device)))
+    else:
+        initial_parameters = ndarrays_to_parameters(get_weights(load_model(args.model[0], args.dataset[0], args.strategy, args.device)))
+
+
     torch.random.manual_seed(0)
     logger.info(f"argumentos recebidos: {args}")
     # Define the strategy
@@ -231,7 +237,8 @@ if __name__ == "__main__":
         min_available_clients=args.total_clients,
         evaluate_metrics_aggregation_fn=weighted_average,
         fit_metrics_aggregation_fn=weighted_average_fit,
-        initial_parameters=ndarrays_to_parameters(get_weights(load_model(args.model[0], args.dataset[0], args.strategy, args.device))),
+        # initial_parameters=None,
+        initial_parameters=initial_parameters,
     )
 
     start_fl_server(strategy=strategy, rounds=args.number_of_rounds)
