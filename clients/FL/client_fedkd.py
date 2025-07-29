@@ -44,9 +44,9 @@ class ClientFedKD(Client):
             logger.info("""fit cliente fedkd inicio config {} device {}""".format(config, self.device))
             t = config['t']
             self.model.to(self.device)
-            if t > 1:
-                parameters = inverse_parameter_svd_reading(parameters, [i.detach().cpu().numpy().shape for i in
-                                                                        self.model.student.parameters()])
+            # if t > 1:
+            #     parameters = inverse_parameter_svd_reading(parameters, [i.detach().cpu().numpy().shape for i in
+            #                                                             self.model.student.parameters()])
             if len(parameters) > 0:
                 set_weights_fedkd(self.model, parameters)
             results = train_fedkd(

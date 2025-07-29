@@ -339,11 +339,16 @@ class CNNDistillation(nn.Module):
             loss_3 = criterion2(outputs_S1, outputs_T2) / (loss_student + loss_teacher)
             loss_4 = criterion2(outputs_S2, outputs_T1) / (loss_student + loss_teacher)
             L_h = criterion3(proto_teacher, self.W_h(proto_student)) / (loss_student + loss_teacher)
+            loss = loss_student + loss_teacher + L_h
+            # loss_teacher = loss_teacher + loss_4
+            # loss_student = loss_student + loss_3
+            # loss_teacher = loss_teacher + L_h + loss_4
+            # loss_student = loss_student + L_h + loss_3
             # loss = loss_student + loss_teacher
-            loss_teacher = loss_teacher + L_h + loss_4
-            loss_student = loss_student + L_h + loss_3
-            loss = loss_teacher + loss_student
+            # loss_teacher = loss_teacher
+            # loss = loss_teacher
             # return output_student, proto_student, output_teacher, proto_teacher
+            # output_student = 0
             return loss, output_student, output_teacher
         except Exception as e:
             logger.info("CNNDistillation forward")
