@@ -23,6 +23,7 @@ from flwr.common import (
 from flwr.common.logger import log
 from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
+from flwr.server.strategy.aggregate import aggregate, aggregate_inplace, weighted_loss_avg
 
 import sys
 import flwr
@@ -52,6 +53,25 @@ from flwr.common import (
     ndarrays_to_parameters,
     parameters_to_ndarrays,
 )
+
+from server.FL.server_fedavg import FedAvg
+
+def aggregate(results: list[tuple[NDArrays, int]], original_parameters: list) -> NDArrays:
+    """Compute weighted average."""
+    # Calculate the total number of examples used during training
+    num_examples_total = sum(num_examples for (_, num_examples) in results)
+
+    # Create a list of weights, each multiplied by the related number of examples
+    weighted_weights = [
+        [(original_layer + layer) * num_examples for layer, original_layer in zip(weights, original_parameters)] for weights, num_examples in results
+    ]
+
+    # Compute average weights of each layer
+    weights_prime: NDArrays = [
+        reduce(np.add, layer_updates) / num_examples_total
+        for layer_updates in zip(*weighted_weights)
+    ]
+    return weights_prime
 
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
@@ -90,7 +110,7 @@ def if_reduces_size(shape, n_components, dtype=np.float64):
 
     except Exception as e:
         logger.info("svd")
-        logger.info('Error on line {} client id {}'.format(sys.exc_info()[-1].tb_lineno, 0), type(e).__name__, e)
+        logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 def layer_compression_range(model_shape):
 
@@ -115,7 +135,7 @@ def layer_compression_range(model_shape):
 
     except Exception as e:
         logger.info("layer_compression_range")
-        logger.info('Error on line {} client id {}'.format(sys.exc_info()[-1].tb_lineno, 0), type(e).__name__, e)
+        logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 def svd(layer, n_components, svd_type='tsvd'):
 
@@ -141,7 +161,7 @@ def svd(layer, n_components, svd_type='tsvd'):
 
     except Exception as e:
         logger.info("svd")
-        logger.info('Error on line {} client id {}'.format(sys.exc_info()[-1].tb_lineno, 0), type(e).__name__, e)
+        logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 def parameter_svd(layer, n_components, svd_type='tsvd'):
 
@@ -164,7 +184,7 @@ def parameter_svd(layer, n_components, svd_type='tsvd'):
 
     except Exception as e:
         logger.info("parameter_svd")
-        logger.info('Error on line {} client id {}'.format(sys.exc_info()[-1].tb_lineno, 0), type(e).__name__, e)
+        logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 def parameter_svd_write(arrays, n_components_list, svd_type='tsvd'):
 
@@ -187,10 +207,10 @@ def parameter_svd_write(arrays, n_components_list, svd_type='tsvd'):
 
     except Exception as e:
         logger.info("paramete_svd")
-        logger.info('Error on line {} client id {}'.format(sys.exc_info()[-1].tb_lineno, 0), type(e).__name__, e)
+        logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 # pylint: disable=line-too-long
-class FedKD(flwr.server.strategy.FedAvg):
+class FedKD(FedAvg):
     """Federated Averaging strategy.
 
     Implementation based on https://arxiv.org/abs/1602.05629
@@ -253,40 +273,14 @@ class FedKD(flwr.server.strategy.FedAvg):
         evaluate_metrics_aggregation_fn: Optional[MetricsAggregationFn] = None,
         inplace: bool = True,
     ) -> None:
-        super().__init__(fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate, min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients, min_available_clients=min_available_clients, evaluate_fn=evaluate_fn, on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn, accept_failures=accept_failures, initial_parameters=initial_parameters, fit_metrics_aggregation_fn=fit_metrics_aggregation_fn, evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
         try:
-            self.local_epochs = args.local_epochs
-            self.fraction_new_clients = args.fraction_new_clients
-            self.round_new_clients = args.round_new_clients
-            self.alpha = args.alpha[0]
-            self.number_of_rounds = args.number_of_rounds
-            self.total_clients = args.total_clients
-            self.experiment_id = args.experiment_id
-            self.experiment_config = self.set_experiment_config(self.experiment_id)
-
-            self.current_total_clients = self.experiment_config["initial_number_of_clients"]
-            logger.info(f"config inicial {self.experiment_config}")
-            self.dataset = args.dataset[0]
-            self.model_name = args.model[0]
-            self.model_shape = None
-            self.clients_lt = {}
-
-            self.cd = args.cd
-            self.strategy_name = args.strategy
-            self.test_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
-                                       "# training clients", "# available clients", "training clients and models", "Model size", "Alpha"]
-            self.train_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
-                                       "# training clients", "# available clients", "training clients and models", "Model size", "Alpha"]
-            self.test_metrics_names_nt = ["Accuracy (%)", "Round (t)", "nt"]
-            self.rs_test_acc = []
-            self.rs_test_auc = []
-            self.rs_train_loss = []
-            self.results_train_metrics = {metric: [] for metric in self.train_metrics_names}
-            self.results_train_metrics_w = {metric: [] for metric in self.train_metrics_names}
-            self.results_test_metrics = {metric: [] for metric in self.test_metrics_names}
-            self.results_test_metrics_w = {metric: [] for metric in self.test_metrics_names}
-            self.clients_results_test_metrics = {metric: [] for metric in self.test_metrics_names}
-            self.file_path = None
+            super().__init__(args=args, fraction_fit=fraction_fit, fraction_evaluate=fraction_evaluate,
+                             min_fit_clients=min_fit_clients, min_evaluate_clients=min_evaluate_clients,
+                             min_available_clients=min_available_clients, evaluate_fn=evaluate_fn,
+                             on_fit_config_fn=on_fit_config_fn, on_evaluate_config_fn=on_evaluate_config_fn,
+                             accept_failures=accept_failures, initial_parameters=initial_parameters,
+                             fit_metrics_aggregation_fn=fit_metrics_aggregation_fn,
+                             evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
             self.model = get_weights_fedkd(load_model(args.model[0], args.dataset[0], args.strategy, args.device))
             self.model_shape = [i.shape for i in self.model]
             self.layers_compression_range = layer_compression_range(self.model_shape)
@@ -309,21 +303,22 @@ class FedKD(flwr.server.strategy.FedAvg):
                 config = self.on_fit_config_fn(server_round)
             n_components_list = []
             initial_parameters = parameters_to_ndarrays(parameters)
-            # if server_round > 1:
-            #     for i in range(len(initial_parameters)):
-            #         compression_range = self.layers_compression_range[i]
-            #         if compression_range > 0:
-            #             compression_range = self.fedkd_formula(server_round, self.number_of_rounds, compression_range)
-            #         else:
-            #             compression_range = None
-            #         n_components_list.append(compression_range)
-            #
-            #     logger.info(f"n_components_list: {n_components_list}")
-            #     parameters = ndarrays_to_parameters(
-            #         parameter_svd_write(initial_parameters, n_components_list, 'svd'))
-            #     # parameters, layers_fraction = fedkd_compression(0, self.layers_compression_range, self.number_of_rounds, server_round, len(self.layers_compression_range),
-            #     #                                                         parameters_to_ndarrays(parameters))
-            #     # parameters = self.compress(server_round, parameters_to_ndarrays(parameters))
+            self.original_parameters = parameters_to_ndarrays(parameters)
+            if server_round > 1:
+                for i in range(len(initial_parameters)):
+                    compression_range = self.layers_compression_range[i]
+                    if compression_range > 0:
+                        compression_range = self.fedkd_formula(server_round, self.number_of_rounds, compression_range)
+                    else:
+                        compression_range = None
+                    n_components_list.append(compression_range)
+
+                logger.info(f"n_components_list: {n_components_list}")
+                parameters = ndarrays_to_parameters(
+                    parameter_svd_write(initial_parameters, n_components_list, 'svd'))
+                # parameters, layers_fraction = fedkd_compression(0, self.layers_compression_range, self.number_of_rounds, server_round, len(self.layers_compression_range),
+                #                                                         parameters_to_ndarrays(parameters))
+                # parameters = self.compress(server_round, parameters_to_ndarrays(parameters))
 
             config["t"] = server_round
             fit_ins = FitIns(parameters, config)
@@ -366,6 +361,48 @@ class FedKD(flwr.server.strategy.FedAvg):
             logger.error("configure_fit error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
+    def aggregate_fit(
+        self,
+        server_round: int,
+        results: list[tuple[ClientProxy, FitRes]],
+        failures: list[Union[tuple[ClientProxy, FitRes], BaseException]],
+    ) -> tuple[Optional[Parameters], dict[str, Scalar]]:
+        """Aggregate fit results using weighted average."""
+
+        try:
+            if not results:
+                return None, {}
+            # Do not aggregate if there are failures and failures are not accepted
+            if not self.accept_failures and failures:
+                return None, {}
+
+            if self.inplace:
+                # Does in-place weighted average of results
+                aggregated_ndarrays = aggregate_inplace(results)
+            else:
+                # Convert results
+                weights_results = [
+                    (inverse_parameter_svd_reading(parameters_to_ndarrays(fit_res.parameters)), fit_res.num_examples)
+                    for _, fit_res in results
+                ]
+                aggregated_ndarrays = aggregate(weights_results, self.original_parameters)
+
+            parameters_aggregated = ndarrays_to_parameters(aggregated_ndarrays)
+
+            # Aggregate custom metrics if aggregation fn was provided
+            metrics_aggregated = {}
+            if self.fit_metrics_aggregation_fn:
+                fit_metrics = [(res.num_examples, res.metrics) for _, res in results]
+                metrics_aggregated = self.fit_metrics_aggregation_fn(fit_metrics)
+            elif server_round == 1:  # Only log this warning once
+                log(WARNING, "No fit_metrics_aggregation_fn provided")
+
+            return parameters_aggregated, metrics_aggregated
+
+        except Exception as e:
+            logger.error("aggregate_fit error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
     def configure_evaluate(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> list[tuple[ClientProxy, EvaluateIns]]:
@@ -381,6 +418,22 @@ class FedKD(flwr.server.strategy.FedAvg):
             if self.on_evaluate_config_fn is not None:
                 # Custom evaluation config function provided
                 config = self.on_evaluate_config_fn(server_round)
+
+            parameters_to_send = parameters_to_ndarrays(parameters)
+            n_components_list = []
+            if server_round > 1:
+                for i in range(len(parameters_to_send)):
+                    compression_range = self.layers_compression_range[i]
+                    if compression_range > 0:
+                        compression_range = self.fedkd_formula(server_round, self.number_of_rounds, compression_range)
+                    else:
+                        compression_range = None
+                    n_components_list.append(compression_range)
+
+                parameters_to_send = ndarrays_to_parameters(
+                    parameter_svd_write(parameters_to_send, n_components_list, 'svd'))
+                parameters = parameters_to_send
+
             config["t"] = server_round
             evaluate_ins = EvaluateIns(parameters, config)
 
@@ -654,6 +707,7 @@ class FedKD(flwr.server.strategy.FedAvg):
 
         frac = max(1, abs(1 - server_round)) / num_rounds
         compression_range = max(round(frac * compression_range), 1)
+        logger.info(f"compression range: {compression_range} rounds: {server_round}")
         return compression_range
 
     def compress(self, server_round, parameters):
