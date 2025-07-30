@@ -156,7 +156,7 @@ def set_weights(net, parameters):
 def set_weights_fedkd(net, parameters):
     try:
         params_dict = zip(net.student.state_dict().keys(), parameters)
-        state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
+        state_dict = OrderedDict({k: torch.tensor(v).clone().detach() for k, v in params_dict})
         net.student.load_state_dict(state_dict, strict=True)
     except Exception as e:
         logger.error("set_weights_fedkd error")

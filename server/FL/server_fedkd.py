@@ -314,11 +314,11 @@ class FedKD(FedAvg):
                     n_components_list.append(compression_range)
 
                 logger.info(f"n_components_list: {n_components_list}")
-                parameters = ndarrays_to_parameters(
-                    parameter_svd_write(initial_parameters, n_components_list, 'svd'))
-                # parameters, layers_fraction = fedkd_compression(0, self.layers_compression_range, self.number_of_rounds, server_round, len(self.layers_compression_range),
-                #                                                         parameters_to_ndarrays(parameters))
-                # parameters = self.compress(server_round, parameters_to_ndarrays(parameters))
+                # parameters = ndarrays_to_parameters(
+                #     parameter_svd_write(initial_parameters, n_components_list, 'svd'))
+                parameters, layers_fraction = fedkd_compression(0, self.layers_compression_range, self.number_of_rounds, server_round, len(self.layers_compression_range),
+                                                                        parameters_to_ndarrays(parameters))
+                parameters = self.compress(server_round, parameters_to_ndarrays(parameters))
 
             config["t"] = server_round
             fit_ins = FitIns(parameters, config)
@@ -725,7 +725,7 @@ class FedKD(FedAvg):
                 n_components_list.append(compression_range)
 
             parameters_to_send = parameter_svd_write(parameters, n_components_list)
-            return parameters_to_send
+            return [Parameter(torch.Tensor(i.tolist())) for i in parameters_to_send]
 
         except Exception as e:
             logger.info("compress")

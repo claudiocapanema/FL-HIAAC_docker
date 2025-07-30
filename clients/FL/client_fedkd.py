@@ -136,7 +136,9 @@ def inverse_parameter_svd_reading(arrays, model_shape, M=0):
             if i.shape != j:
                 flag = False
         if flag:
+            logger.info("nao descomprimiu cliente")
             return arrays
+        logger.info("descomprimiu cliente")
         sketched_paramters = []
         reconstructed_model = []
         parameter_index = 0
@@ -230,9 +232,11 @@ class ClientFedKD(Client):
             self.model.to(self.device)
             if t > 1:
                 # logger.info(f"shape original {[i.detach().cpu().numpy().shape for i in self.model.student.parameters()]} \nshape recebido {[i.shape for i in parameters]}")
+                logger.info(f"treino cliente {self.client_id} rodada: {t}")
                 parameters = inverse_parameter_svd_reading(parameters, [i.detach().cpu().numpy().shape for i in
                                                                         self.model.student.parameters()], M=len([i.detach().cpu().numpy().shape for i in
                                                                         self.model.student.parameters()]))
+                parameters = [Parameter(torch.Tensor(i.tolist())) for i in parameters]
             original_parameters = parameters
             if len(parameters) > 0:
                 set_weights_fedkd(self.model, parameters)
@@ -251,10 +255,21 @@ class ClientFedKD(Client):
             self.models_size = self._get_models_size(parameters)
             results["Model size"] = self.models_size
             logger.info("fim fedkd client fit {results}")
-            parameters = [trained - original for trained, original in
-                                  zip(get_weights_fedkd(self.model), original_parameters)]
-            # return get_weights_fedkd(self.model), len(self.trainloader.dataset), results
-            return parameters, len(self.trainloader.dataset), results
+            # parameters = [trained.detach().cpu().numpy() - original for trained, original in
+            #                       zip(self.model.student.parameters(), original_parameters)]
+            return get_weights_fedkd(self.model), len(self.trainloader.dataset), results
+            # n_components_list = []
+            # for i in range(len(parameters)):
+            #     compression_range = self.layers_compression_range[i]
+            #     if compression_range > 0:
+            #         compression_range = self.fedkd_formula(t, self.number_of_rounds, compression_range)
+            #     else:
+            #         compression_range = None
+            #     n_components_list.append(compression_range)
+            #
+            # parameters_to_send = parameter_svd_write(parameters, n_components_list, 'svd')
+            # parameters = parameters_to_send
+            # return parameters, len(self.trainloader.dataset), results
 
         except Exception as e:
             logger.info("fit")
@@ -269,6 +284,7 @@ class ClientFedKD(Client):
             nt = t - self.lt
             # logger.info(
             #     f"shape original {[i.detach().cpu().numpy().shape for i in self.model.student.parameters()]} \nshape recebido {[i.shape for i in parameters]}")
+            logger.info(f"teste cliente {self.client_id} rodada: {t}")
             parameters = inverse_parameter_svd_reading(parameters, [i.detach().cpu().numpy().shape for i in
                                                                                   self.model.student.parameters()])
             parameters = [Parameter(torch.Tensor(i.tolist())) for i in parameters]
@@ -284,15 +300,22 @@ class ClientFedKD(Client):
             logger.info("evaluate")
             logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
+    def fedkd_formula(self, server_round, num_rounds, compression_range):
+
+        frac = max(1, abs(1 - server_round)) / num_rounds
+        compression_range = max(round(frac * compression_range), 1)
+        logger.info(f"compression range: {compression_range} rounds: {server_round}")
+        return compression_range
+
     def compress(self, server_round, parameters):
 
         try:
-            layers_compression_range = self.layer_compression_range([i.shape for i in parameters])
+            layers_compression_range = self.layers_compression_range([i.shape for i in parameters])
             n_components_list = []
             for i in range(len(parameters)):
                 compression_range = layers_compression_range[i]
                 if compression_range > 0:
-                    frac = 1 - server_round / self.n_rounds
+                    frac = 1 - server_round / self.number_of_rounds
                     compression_range = max(round(frac * compression_range), 1)
                 else:
                     compression_range = None

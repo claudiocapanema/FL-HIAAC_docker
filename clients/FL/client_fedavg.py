@@ -16,6 +16,7 @@ class Client(fl.client.NumPyClient):
             self.dataset = self.args.dataset[0]
             self.model = load_model(args.model[0], self.dataset, args.strategy, args.device)
             self.alpha = float(self.args.alpha[0])
+            self.number_of_rounds = args.number_of_rounds
             logger.info("Preparing data...")
             logger.info("""args do cliente: {} {}""".format(self.args.client_id, self.alpha))
             self.client_id = args.client_id
