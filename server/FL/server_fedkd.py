@@ -2,6 +2,7 @@ import logging
 
 import csv
 import os
+import copy
 
 import torch
 import numpy as np
@@ -10,6 +11,7 @@ from flwr.common import Metrics
 
 from sklearn.utils.extmath import randomized_svd
 from typing import Callable, Optional, Union
+from functools import partial, reduce
 
 from flwr.common import (
     EvaluateIns,
@@ -33,13 +35,15 @@ import random
 from itertools import islice
 
 from fedpredict.utils.compression_methods.parameters_svd import parameter_svd_write, inverse_parameter_svd_reading
-from fedpredict.fedpredict_core import layer_compression_range
-from fedpredict.utils.compression_methods.fedkd import fedkd_compression
 from utils.models_utils import load_model, get_weights_fedkd, load_data, set_weights, test, train
 from logging import WARNING
 from flwr.common import FitIns
 from flwr.server.strategy.aggregate import aggregate, weighted_loss_avg
 from flwr.common.logger import log
+
+from fedpredict.utils.compression_methods.fedkd import fedkd_compression
+from fedpredict import layer_compression_range, decompress_global_parameters
+from fedpredict.fedpredict_core import layer_compression_range
 
 from flwr.common import (
     EvaluateIns,
@@ -55,6 +59,7 @@ from flwr.common import (
 )
 
 from server.FL.server_fedavg import FedAvg
+from torch.nn.parameter import Parameter
 
 def aggregate(results: list[tuple[NDArrays, int]], original_parameters: list) -> NDArrays:
     """Compute weighted average."""
@@ -95,119 +100,119 @@ def weighted_loss_avg(results: list[tuple[int, float]]) -> float:
     weighted_losses = [num_examples * loss for num_examples, loss in results]
     return sum(weighted_losses) / num_total_evaluation_examples
 
-def if_reduces_size(shape, n_components, dtype=np.float64):
-
-    try:
-        size = np.array([1], dtype=dtype)
-        p = shape[0]
-        q = shape[1]
-        k = n_components
-
-        if p*k + k*k + k*q < p*q:
-            return True
-        else:
-            return False
-
-    except Exception as e:
-        logger.info("svd")
-        logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
-
-def layer_compression_range(model_shape):
-
-    try:
-        layers_range = []
-        for shape in model_shape:
-
-            layer_range = 0
-            if len(shape) >= 2:
-                shape = shape[-2:]
-
-                col = shape[1]
-                for n_components in range(1, col+1):
-                    if if_reduces_size(shape, n_components):
-                        layer_range = n_components
-                    else:
-                        break
-
-            layers_range.append(layer_range)
-
-        return layers_range
-
-    except Exception as e:
-        logger.info("layer_compression_range")
-        logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
-
-def svd(layer, n_components, svd_type='tsvd'):
-
-    try:
-        np.random.seed(0)
-        # print("ola: ", int(len(layer) * n_components), layer.shape, layer)
-        if n_components > 0 and n_components < 1:
-            n_components = int(len(layer) * n_components)
-
-        if svd_type == 'tsvd':
-            U, Sigma, VT = randomized_svd(layer,
-                                          n_components=n_components,
-                                          n_iter=5,
-                                          random_state=0)
-        else:
-            U, Sigma, VT = np.linalg.svd(layer, full_matrices=False)
-            U = U[:, :n_components]
-            Sigma = Sigma[:n_components]
-            VT = VT[:n_components, :]
-
-        # print(U.shape, Sigma.shape, VT.T.shape)
-        return [U, VT, Sigma]
-
-    except Exception as e:
-        logger.info("svd")
-        logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
-
-def parameter_svd(layer, n_components, svd_type='tsvd'):
-
-    try:
-        if np.ndim(layer) == 1 or n_components is None:
-            return [layer, np.array([]), np.array([])]
-        elif np.ndim(layer) == 2:
-            r = svd(layer, n_components, svd_type)
-            return r
-        elif np.ndim(layer) >= 3:
-            u = []
-            v = []
-            sig = []
-            for i in range(len(layer)):
-                r = parameter_svd(layer[i], n_components, svd_type)
-                u.append(r[0])
-                v.append(r[1])
-                sig.append(r[2])
-            return [np.array(u), np.array(v), np.array(sig)]
-
-    except Exception as e:
-        logger.info("parameter_svd")
-        logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
-
-def parameter_svd_write(arrays, n_components_list, svd_type='tsvd'):
-
-    try:
-
-        u = []
-        vt = []
-        sigma_parameters = []
-        arrays_compre = []
-        for i in range(len(arrays)):
-            if type(n_components_list) == list:
-                n_components = n_components_list[i]
-            else:
-                n_components = n_components_list
-            # logger.info("Indice da camada: ", i)
-            r = parameter_svd(arrays[i], n_components, svd_type)
-            arrays_compre += r
-
-        return arrays_compre
-
-    except Exception as e:
-        logger.info("paramete_svd")
-        logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+# def if_reduces_size(shape, n_components, dtype=np.float64):
+#
+#     try:
+#         size = np.array([1], dtype=dtype)
+#         p = shape[0]
+#         q = shape[1]
+#         k = n_components
+#
+#         if p*k + k*k + k*q < p*q:
+#             return True
+#         else:
+#             return False
+#
+#     except Exception as e:
+#         logger.info("svd")
+#         logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+#
+# def layer_compression_range(model_shape):
+#
+#     try:
+#         layers_range = []
+#         for shape in model_shape:
+#
+#             layer_range = 0
+#             if len(shape) >= 2:
+#                 shape = shape[-2:]
+#
+#                 col = shape[1]
+#                 for n_components in range(1, col+1):
+#                     if if_reduces_size(shape, n_components):
+#                         layer_range = n_components
+#                     else:
+#                         break
+#
+#             layers_range.append(layer_range)
+#
+#         return layers_range
+#
+#     except Exception as e:
+#         logger.info("layer_compression_range")
+#         logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+#
+# def svd(layer, n_components, svd_type='tsvd'):
+#
+#     try:
+#         np.random.seed(0)
+#         # print("ola: ", int(len(layer) * n_components), layer.shape, layer)
+#         if n_components > 0 and n_components < 1:
+#             n_components = int(len(layer) * n_components)
+#
+#         if svd_type == 'tsvd':
+#             U, Sigma, VT = randomized_svd(layer,
+#                                           n_components=n_components,
+#                                           n_iter=5,
+#                                           random_state=0)
+#         else:
+#             U, Sigma, VT = np.linalg.svd(layer, full_matrices=False)
+#             U = U[:, :n_components]
+#             Sigma = Sigma[:n_components]
+#             VT = VT[:n_components, :]
+#
+#         # print(U.shape, Sigma.shape, VT.T.shape)
+#         return [U, VT, Sigma]
+#
+#     except Exception as e:
+#         logger.info("svd")
+#         logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+#
+# def parameter_svd(layer, n_components, svd_type='tsvd'):
+#
+#     try:
+#         if np.ndim(layer) == 1 or n_components is None:
+#             return [layer, np.array([]), np.array([])]
+#         elif np.ndim(layer) == 2:
+#             r = svd(layer, n_components, svd_type)
+#             return r
+#         elif np.ndim(layer) >= 3:
+#             u = []
+#             v = []
+#             sig = []
+#             for i in range(len(layer)):
+#                 r = parameter_svd(layer[i], n_components, svd_type)
+#                 u.append(r[0])
+#                 v.append(r[1])
+#                 sig.append(r[2])
+#             return [np.array(u), np.array(v), np.array(sig)]
+#
+#     except Exception as e:
+#         logger.info("parameter_svd")
+#         logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+#
+# def parameter_svd_write(arrays, n_components_list, svd_type='tsvd'):
+#
+#     try:
+#
+#         u = []
+#         vt = []
+#         sigma_parameters = []
+#         arrays_compre = []
+#         for i in range(len(arrays)):
+#             if type(n_components_list) == list:
+#                 n_components = n_components_list[i]
+#             else:
+#                 n_components = n_components_list
+#             # logger.info("Indice da camada: ", i)
+#             r = parameter_svd(arrays[i], n_components, svd_type)
+#             arrays_compre += r
+#
+#         return arrays_compre
+#
+#     except Exception as e:
+#         logger.info("paramete_svd")
+#         logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 # pylint: disable=line-too-long
 class FedKD(FedAvg):
@@ -292,6 +297,7 @@ class FedKD(FedAvg):
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
     ) -> list[tuple[ClientProxy, FitIns]]:
         try:
+            logger.info(f"begin configure fit round: {server_round}")
             torch.random.manual_seed(server_round)
             random.seed(server_round)
             np.random.seed(server_round)
@@ -301,25 +307,15 @@ class FedKD(FedAvg):
             if self.on_fit_config_fn is not None:
                 # Custom fit config function provided
                 config = self.on_fit_config_fn(server_round)
+            parameters_to_send = parameters_to_ndarrays(parameters)
+            if server_round == 1:
+                self.original_parameters = copy.deepcopy(parameters_to_send)
             n_components_list = []
-            initial_parameters = parameters_to_ndarrays(parameters)
-            self.original_parameters = parameters_to_ndarrays(parameters)
             if server_round > 1:
-                for i in range(len(initial_parameters)):
-                    compression_range = self.layers_compression_range[i]
-                    if compression_range > 0:
-                        compression_range = self.fedkd_formula(server_round, self.number_of_rounds, compression_range)
-                    else:
-                        compression_range = None
-                    n_components_list.append(compression_range)
-
-                logger.info(f"n_components_list: {n_components_list}")
-                # parameters = ndarrays_to_parameters(
-                #     parameter_svd_write(initial_parameters, n_components_list, 'svd'))
-                parameters, layers_fraction = fedkd_compression(0, self.layers_compression_range, self.number_of_rounds, server_round, len(self.layers_compression_range),
-                                                                        parameters_to_ndarrays(parameters))
-                parameters = self.compress(server_round, parameters_to_ndarrays(parameters))
-
+                logger.info(f"shape antes {[i.shape for i in parameters_to_send]}")
+                layers_compression_range = layer_compression_range([i.shape for i in parameters_to_send])
+                parameters_to_send = ndarrays_to_parameters(fedkd_compression(layers_compression_range, self.number_of_rounds, server_round, parameters_to_send))
+                parameters = parameters_to_send
             config["t"] = server_round
             fit_ins = FitIns(parameters, config)
 
@@ -376,17 +372,20 @@ class FedKD(FedAvg):
             if not self.accept_failures and failures:
                 return None, {}
 
-            if self.inplace:
-                # Does in-place weighted average of results
-                aggregated_ndarrays = aggregate_inplace(results)
-            else:
-                # Convert results
-                weights_results = [
-                    (inverse_parameter_svd_reading(parameters_to_ndarrays(fit_res.parameters)), fit_res.num_examples)
-                    for _, fit_res in results
-                ]
-                aggregated_ndarrays = aggregate(weights_results, self.original_parameters)
-
+            # if self.inplace:
+            #     # Does in-place weighted average of results
+            #     aggregated_ndarrays = aggregate_inplace(results)
+            # else:
+            #     # Convert results
+            weights_results = [
+                (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples)
+                for _, fit_res in results
+                # (inverse_parameter_svd_reading(parameters_to_ndarrays(fit_res.parameters), [i.shape for i in self.original_parameters]), fit_res.num_examples)
+                # for _, fit_res in results
+            ]
+            aggregated_ndarrays = aggregate(weights_results, self.original_parameters)
+            logger.info(f"saiu do agg {[i.shape for i in aggregated_ndarrays]}")
+            self.initial_parameters == aggregated_ndarrays
             parameters_aggregated = ndarrays_to_parameters(aggregated_ndarrays)
 
             # Aggregate custom metrics if aggregation fn was provided
@@ -421,18 +420,11 @@ class FedKD(FedAvg):
 
             parameters_to_send = parameters_to_ndarrays(parameters)
             n_components_list = []
-            if server_round > 1:
-                for i in range(len(parameters_to_send)):
-                    compression_range = self.layers_compression_range[i]
-                    if compression_range > 0:
-                        compression_range = self.fedkd_formula(server_round, self.number_of_rounds, compression_range)
-                    else:
-                        compression_range = None
-                    n_components_list.append(compression_range)
-
-                parameters_to_send = ndarrays_to_parameters(
-                    parameter_svd_write(parameters_to_send, n_components_list, 'svd'))
-                parameters = parameters_to_send
+            # if server_round > 1:
+            #     layers_compression_range = layer_compression_range([i.shape for i in parameters_to_send])
+            #     parameters_to_send = ndarrays_to_parameters(fedkd_compression(layers_compression_range, self.number_of_rounds, server_round,
+            #                                            parameters_to_send))
+            #     parameters = parameters_to_send
 
             config["t"] = server_round
             evaluate_ins = EvaluateIns(parameters, config)
@@ -702,31 +694,31 @@ class FedKD(FedAvg):
         except Exception as e:
             logger.error("save_results error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
-
-    def fedkd_formula(self, server_round, num_rounds, compression_range):
-
-        frac = max(1, abs(1 - server_round)) / num_rounds
-        compression_range = max(round(frac * compression_range), 1)
-        logger.info(f"compression range: {compression_range} rounds: {server_round}")
-        return compression_range
-
-    def compress(self, server_round, parameters):
-
-        try:
-            layers_compression_range = self.layers_compression_range([i.shape for i in parameters])
-            n_components_list = []
-            for i in range(len(parameters)):
-                compression_range = layers_compression_range[i]
-                if compression_range > 0:
-                    frac = 1 - server_round / self.number_of_rounds
-                    compression_range = max(round(frac * compression_range), 1)
-                else:
-                    compression_range = None
-                n_components_list.append(compression_range)
-
-            parameters_to_send = parameter_svd_write(parameters, n_components_list)
-            return [Parameter(torch.Tensor(i.tolist())) for i in parameters_to_send]
-
-        except Exception as e:
-            logger.info("compress")
-            logger.info('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
+    #
+    # def fedkd_formula(self, server_round, num_rounds, compression_range):
+    #
+    #     frac = max(1, abs(1 - server_round)) / num_rounds
+    #     compression_range = max(round(frac * compression_range), 1)
+    #     logger.info(f"compression range: {compression_range} rounds: {server_round}")
+    #     return compression_range
+    #
+    # def compress(self, server_round, parameters):
+    #
+    #     try:
+    #         layers_compression_range = self.layers_compression_range([i.shape for i in parameters])
+    #         n_components_list = []
+    #         for i in range(len(parameters)):
+    #             compression_range = layers_compression_range[i]
+    #             if compression_range > 0:
+    #                 frac = 1 - server_round / self.number_of_rounds
+    #                 compression_range = max(round(frac * compression_range), 1)
+    #             else:
+    #                 compression_range = None
+    #             n_components_list.append(compression_range)
+    #
+    #         parameters_to_send = parameter_svd_write(parameters, n_components_list)
+    #         return [Parameter(torch.Tensor(i.tolist())) for i in parameters_to_send]
+    #
+    #     except Exception as e:
+    #         logger.info("compress")
+    #         logger.info('Error on line {}'.format(sys.exc_info()[-1].tb_lineno), type(e).__name__, e)
