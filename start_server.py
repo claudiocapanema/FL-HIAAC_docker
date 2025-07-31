@@ -197,7 +197,7 @@ def get_server(strategy_name):
     elif strategy_name == "FedKD":
         return FedKD
     elif strategy_name == "FedKD+FP":
-        return FedAvg
+        return FedKD
     elif strategy_name == "MultiFedAvg":
         return MultiFedAvg
     elif strategy_name == "MultiFedEfficiency":

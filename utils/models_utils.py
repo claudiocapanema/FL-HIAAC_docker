@@ -646,9 +646,9 @@ def test_fedkd_fedpredict(lt, model, testloader, device, client_id, t, dataset_n
                 x = x.to(device)
                 labels = labels.to(device)
                 y_true.append(label_binarize(labels.detach().cpu().numpy(), classes=np.arange(n_classes)))
-                output, proto_student, output_teacher, proto_teacher = model(x)
-                if lt == 0 and t > 6:
-                    output_teacher = output
+                model_loss, output_student, output_teacher = model(x, labels)
+                if lt == 0:
+                    output_teacher = output_student
                 y_prob.append(output_teacher.detach().cpu().numpy())
                 loss += criterion(output_teacher, labels).item()
                 correct += (torch.sum(torch.argmax(output_teacher, dim=1) == labels)).item()
