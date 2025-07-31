@@ -232,9 +232,9 @@ class ClientFedKD(Client):
             self.model.to(self.device)
             if t > 1:
                 # logger.info(f"shape original {[i.detach().cpu().numpy().shape for i in self.model.student.parameters()]} \nshape recebido {[i.shape for i in parameters]}")
-                logger.info(f"treino cliente {self.client_id} rodada: {t}")
-                parameters = [i.detach().cpu().numpy() for i in decompress_global_parameters(parameters, [i.shape for i in get_weights_fedkd(self.model)], self.model.student).to(
-                    self.device).parameters()]
+                # logger.info(f"treino cliente {self.client_id} rodada: {t}")
+                # parameters = [i.detach().cpu().numpy() for i in decompress_global_parameters(parameters, [i.shape for i in get_weights_fedkd(self.model)], self.model.student).to(
+                #     self.device).parameters()]
                 parameters = [Parameter(torch.Tensor(i.tolist())) for i in parameters]
                 original_parameters = [i.detach().cpu().numpy() for i in parameters]
             else:

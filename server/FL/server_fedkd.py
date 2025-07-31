@@ -311,11 +311,11 @@ class FedKD(FedAvg):
             if server_round == 1:
                 self.original_parameters = copy.deepcopy(parameters_to_send)
             n_components_list = []
-            if server_round > 1:
-                logger.info(f"shape antes {[i.shape for i in parameters_to_send]}")
-                layers_compression_range = layer_compression_range([i.shape for i in parameters_to_send])
-                parameters_to_send = ndarrays_to_parameters(fedkd_compression(layers_compression_range, self.number_of_rounds, server_round, parameters_to_send))
-                parameters = parameters_to_send
+            # if server_round > 1:
+            #     logger.info(f"shape antes {[i.shape for i in parameters_to_send]}")
+            #     layers_compression_range = layer_compression_range([i.shape for i in parameters_to_send])
+            #     parameters_to_send = ndarrays_to_parameters(fedkd_compression(layers_compression_range, self.number_of_rounds, server_round, parameters_to_send))
+            #     parameters = parameters_to_send
             config["t"] = server_round
             fit_ins = FitIns(parameters, config)
 
