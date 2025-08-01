@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import seaborn.objects as so
 import numpy as np
-
+import pandas as pd
 # sns.color_palette()
 
 def bar_plot(df, base_dir, file_name, x_column, y_column, title, hue=None, hue_order=None, y_lim=False, y_min=0, y_max=100, log_scale=False, sci=False, x_order=None, ax=None, tipo=None, palette=None):
@@ -14,7 +14,8 @@ def bar_plot(df, base_dir, file_name, x_column, y_column, title, hue=None, hue_o
     plt.rcParams.update(params)
     max_value = df[y_column].max()
 
-    sns.set(style='whitegrid')
+    sns.set_theme(style='whitegrid')
+    sns.color_palette()
     log = ""
     file_name = """{}_barplot""".format(file_name)
     # df[y_column] = df[y_column].round(2)
@@ -39,20 +40,21 @@ def bar_plot(df, base_dir, file_name, x_column, y_column, title, hue=None, hue_o
 
     # errorbar=('ci', 0.95),
     figure = sns.barplot(ax=ax, x=x_column, y=y_column, hue=hue, data=df, hue_order=hue_order,  order=x_order, palette=palette)
-    if tipo == "classes":
-        for bars in figure.containers:
-            figure.bar_label(bars, fmt='%.f', padding=12, fontsize=9)
-        figure.set_ylim(top=115)
+    # if tipo == "classes":
+    #     for bars in figure.containers:
+    #         figure.bar_label(bars, fmt='%.f', padding=12, fontsize=9)
+    #     figure.set_ylim(top=115)
     # if tipo == "e":
-    for bars in figure.containers:
-        figure.bar_label(bars, fmt='%.1f', padding=22, fontsize=9)
-    figure.set_ylim(top=115)
-    if tipo == "nt":
+
+    if tipo == "original":
         for bars in figure.containers:
-            figure.bar_label(bars, fmt='%.f', padding=9, fontsize=9)
-        figure.set_ylim(top=119)
+            figure.bar_label(bars, fmt='%.2f', padding=40, fontsize=10)
+    else:
+        for bars in figure.containers:
+            figure.bar_label(bars, fmt='%.2f', padding=15, fontsize=10)
+        figure.set_ylim(top=115)
     figure.set_title(title)
-    figure.legend(loc='upper left')
+    figure.legend(loc='upper right')
     if tipo == "auc":
         figure.set_ylim(top=y_lim)
     if ax is None:

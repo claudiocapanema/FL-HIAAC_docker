@@ -41,6 +41,45 @@ logger = logging.getLogger(__name__)  # Create logger for the module
 #         x = F.relu(self.fc2(x))
 #         return self.fc3(x)
 
+class CNN_2(torch.nn.Module):
+    def __init__(self, input_shape, mid_dim=64, num_classes=10):
+        try:
+            super().__init__()
+            self.model = torch.nn.Sequential(
+                # Input = 3 x 32 x 32, Output = 32 x 32 x 32
+                torch.nn.Conv2d(in_channels=input_shape, out_channels=32, kernel_size=3, padding=1),
+                torch.nn.ReLU(),
+                # Input = 32 x 32 x 32, Output = 32 x 16 x 16
+                torch.nn.MaxPool2d(kernel_size=2),
+
+                # Input = 32 x 16 x 16, Output = 64 x 16 x 16
+                torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
+                torch.nn.ReLU(),
+                # Input = 64 x 16 x 16, Output = 64 x 8 x 8
+                torch.nn.MaxPool2d(kernel_size=2),
+
+                # Input = 64 x 8 x 8, Output = 64 x 8 x 8
+                torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
+                torch.nn.ReLU(),
+                # Input = 64 x 8 x 8, Output = 64 x 4 x 4
+                torch.nn.MaxPool2d(kernel_size=2),
+
+                torch.nn.Flatten(),
+                torch.nn.Linear(mid_dim * 4 * 4, 512),
+                torch.nn.ReLU(),
+                torch.nn.Linear(512, num_classes)
+            )
+        except Exception as e:
+            logger.info("CNN_2 __init__")
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def forward(self, x):
+        try:
+            return self.model(x)
+        except Exception as e:
+            logger.info("CNN_2 forward")
+            logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
 class CNN(nn.Module):
     def __init__(self, input_shape=1, mid_dim=256, num_classes=10):
         try:
@@ -91,29 +130,30 @@ class CNN_3(nn.Module):
     def __init__(self, input_shape=1, mid_dim=256, num_classes=10):
         try:
             super(CNN_3, self).__init__()
-            self.conv1 = torch.nn.Sequential(torch.nn.Conv2d(in_channels=input_shape, out_channels=32, kernel_size=3, padding=1),
+            self.conv1 = torch.nn.Sequential(
+                torch.nn.Conv2d(in_channels=input_shape, out_channels=32, kernel_size=3, padding=1),
                 torch.nn.ReLU(),
                 # Input = 32 x 32 x 32, Output = 32 x 16 x 16
                 torch.nn.MaxPool2d(kernel_size=2))
 
-                # Input = 32 x 16 x 16, Output = 64 x 16 x 16
+            # Input = 32 x 16 x 16, Output = 64 x 16 x 16
             self.conv2 = torch.nn.Sequential(torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
-                torch.nn.ReLU(),
-                # Input = 64 x 16 x 16, Output = 64 x 8 x 8
-                torch.nn.MaxPool2d(kernel_size=2))
+                                             torch.nn.ReLU(),
+                                             # Input = 64 x 16 x 16, Output = 64 x 8 x 8
+                                             torch.nn.MaxPool2d(kernel_size=2))
 
-                # Input = 64 x 8 x 8, Output = 64 x 8 x 8
+            # Input = 64 x 8 x 8, Output = 64 x 8 x 8
             self.conv3 = torch.nn.Sequential(torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
-                torch.nn.ReLU(),
-                # Input = 64 x 8 x 8, Output = 64 x 4 x 4
-                torch.nn.MaxPool2d(kernel_size=2))
+                                             torch.nn.ReLU(),
+                                             # Input = 64 x 8 x 8, Output = 64 x 4 x 4
+                                             torch.nn.MaxPool2d(kernel_size=2))
             self.conv4 = torch.nn.Sequential(torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
-                torch.nn.ReLU(),
-                # Input = 64 x 8 x 8, Output = 64 x 4 x 4
-                torch.nn.MaxPool2d(kernel_size=2))
+                                             torch.nn.ReLU(),
+                                             # Input = 64 x 8 x 8, Output = 64 x 4 x 4
+                                             torch.nn.MaxPool2d(kernel_size=2))
 
             self.fc1 = torch.nn.Sequential(torch.nn.Linear(mid_dim * 4 * 4, 512),
-                torch.nn.ReLU())
+                                           torch.nn.ReLU())
             self.fc2 = torch.nn.Linear(512, num_classes)
 
         except Exception as e:
@@ -256,9 +296,10 @@ class CNN_student(nn.Module):
             logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 class CNNDistillation(nn.Module):
-    def __init__(self, input_shape=1, mid_dim=256, num_classes=10, dataset='CIFAR10'):
+    def __init__(self, input_shape=1, mid_dim=256, num_classes=10, dataset='CIFAR10', device="cuda:0"):
         try:
             self.dataset = dataset
+            self.device = device
             super(CNNDistillation, self).__init__()
             self.new_client = False
             if self.dataset in ['EMNIST', 'MNIST']:
@@ -275,15 +316,42 @@ class CNNDistillation(nn.Module):
             else:
                 mid_dim = 4
             self.teacher = CNN_3_proto(input_shape=input_shape, mid_dim=mid_dim, num_classes=num_classes)
+            feature_dim = 512
+            self.W_h = torch.nn.Linear(feature_dim, feature_dim, bias=False).to(device)
         except Exception as e:
             logger.info("CNNDistillation")
             logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-    def forward(self, x):
+    def forward(self, x, labels):
         try:
-            out_student, proto_student = self.student(x)
-            out_teacher, proto_teacher = self.teacher(x)
-            return out_student, proto_student, out_teacher, proto_teacher
+            criterion = torch.nn.CrossEntropyLoss().to(self.device)
+            criterion2 = torch.nn.KLDivLoss(reduction='batchmean').to(self.device)
+            criterion3 = torch.nn.MSELoss().to(self.device)
+            output_student, proto_student = self.student(x)
+            output_teacher, proto_teacher = self.teacher(x)
+            outputs_S1 = F.log_softmax(output_student, dim=1)
+            outputs_S2 = F.log_softmax(output_teacher, dim=1)
+            outputs_T1 = F.softmax(output_student, dim=1)
+            outputs_T2 = F.softmax(output_teacher, dim=1)
+
+            loss_student = criterion(output_student, labels)
+            loss_teacher = criterion(output_teacher, labels)
+            loss_3 = criterion2(outputs_S1, outputs_T2) / (loss_student + loss_teacher)
+            loss_4 = criterion2(outputs_S2, outputs_T1) / (loss_student + loss_teacher)
+            L_h = criterion3(proto_teacher, self.W_h(proto_student)) / (loss_student + loss_teacher)
+            # loss = loss_student + loss_teacher + L_h
+            # loss = loss_student + loss_teacher + loss_3 + loss_4 + L_h
+            loss = loss_student + loss_teacher
+            # loss_teacher = loss_teacher + loss_4
+            # loss_student = loss_student + loss_3
+            # loss_teacher = loss_teacher + L_h + loss_4
+            # loss_student = loss_student + L_h + loss_3
+            # loss = loss_student + loss_teacher
+            # loss_teacher = loss_teacher
+            # loss = loss_teacher
+            # return output_student, proto_student, output_teacher, proto_teacher
+            # output_student = 0
+            return loss, output_student, output_teacher
         except Exception as e:
             logger.info("CNNDistillation forward")
             logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

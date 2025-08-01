@@ -4,6 +4,7 @@ import json
 import pickle
 import logging
 import numpy as np
+import torch
 
 from clients.MEFL.client_multifedavg import ClientMultiFedAvg
 from fedpredict import fedpredict_client_torch
@@ -40,7 +41,7 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
                 self.global_model[me] = copy.deepcopy(self.model[me])
             self.previous_alpha = self.alpha
 
-            self.p_ME, self.fc_ME, self.il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes)
+            self.p_ME, self.fc_ME, self.il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes, self.concept_drift_window)
         except Exception as e:
             logger.error("__init__ error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
@@ -49,8 +50,14 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
         """Train the model with data of this client."""
         try:
             # Update the metrics that characterize the local dataset that the client will train
-            self.p_ME, self.fc_ME, self.il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id, self.n_classes)
             parameters, size, results = super().fit(parameters, config)
+            p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
+                                                                           self.n_classes, self.concept_drift_window)
+            me = config['me']
+            self.p_ME[me] = p_ME[me]
+            self.fc_ME[me] = fc_ME[me]
+            self.il_ME[me] = il_ME[me]
+
             return parameters, size, results
         except Exception as e:
             logger.error("fit error")
@@ -68,28 +75,50 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
             for me in evaluate_models:
                 me = int(me)
                 me_str = str(me)
+                nt = t - self.lt[me]
                 alpha_me = self._get_current_alpha(t, me)
-                if self.alpha[me] != alpha_me:
-                    self.alpha[me] = alpha_me
-                    self.trainloader[me], self.valloader[me] = load_data(
-                        dataset_name=self.args.dataset[me],
-                        alpha=self.alpha[me],
-                        data_sampling_percentage=self.args.data_percentage,
-                        partition_id=self.args.client_id,
-                        num_partitions=self.args.total_clients + 1,
-                        batch_size=self.args.batch_size,
-                    )
-                    p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
-                                                                    self.n_classes)
+                # Comment to simulate the `Delayed labeling`
+                # self.trainloader[me] = self.recent_trainloader[me]
+                if self.data_shift_config != {}:
+                    if self.alpha[me] != alpha_me or (t in self.data_shift_config[me][
+                        "concept_drift_rounds"] and self.data_shift_config[me]["type"] in [
+                                                          "label_shift"] and nt > 0):
+                        self.alpha[me] = alpha_me
+                        index = 0
+                        self.recent_trainloader[me], self.valloader[me] = load_data(
+                            dataset_name=self.args.dataset[me],
+                            alpha=self.alpha[me],
+                            data_sampling_percentage=self.args.data_percentage,
+                            partition_id=int((self.args.client_id + index) % self.args.total_clients),
+                            num_partitions=self.args.total_clients + 1,
+                            batch_size=self.args.batch_size,
+                        )
+                        p_ME, fc_ME, il_ME = self.p_ME, self.fc_ME, self.il_ME
+                    elif t in self.data_shift_config[me][
+                        "concept_drift_rounds"] and self.data_shift_config[me]["type"] in ["concept_drift"] and t - \
+                            self.lt[me] > 0:
+                        self.concept_drift_window[me] += 1
+                        # p_ME, fc_ME, il_ME = self._get_datasets_metrics(self.trainloader, self.ME, self.client_id,
+                        #                                             self.n_classes, self.concept_drift_window)
+                        p_ME, fc_ME, il_ME = self.p_ME, self.fc_ME, self.il_ME
+                    else:
+                        p_ME, fc_ME, il_ME = self.p_ME, self.fc_ME, self.il_ME
                 else:
                     p_ME, fc_ME, il_ME = self.p_ME, self.fc_ME, self.il_ME
                 nt = t - self.lt[me]
                 parameters_me = parameters[me_str]
                 set_weights(self.global_model[me], parameters_me)
                 similarity = cosine_similarity(self.p_ME[me], p_ME[me])
+                # similarity = 1
+                logger.info(f"check rodada {t} cliente {self.client_id} window {self.concept_drift_window} similarit {similarity}")
                 combined_model = fedpredict_client_torch(local_model=self.model[me], global_model=self.global_model[me],
                                                          t=t, T=100, nt=nt, similarity=similarity, device=self.device)
-                loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t, self.args.dataset[me], self.n_classes[me], similarity, p_ME[me])
+                loss, metrics = test_fedpredict(combined_model, self.valloader[me], self.device, self.client_id, t,
+                                                self.args.dataset[me], self.n_classes[me], similarity, p_ME[me], self.concept_drift_window[me])
+                # loss, metrics = test(combined_model, self.valloader[me], self.device, self.client_id, t,
+                #                                 self.args.dataset[me], self.n_classes[me], self.concept_drift_window[me])
+                # if t == 25:
+                #     exit()
                 metrics["Model size"] = self.models_size[me]
                 metrics["Dataset size"] = len(self.valloader[me].dataset)
                 metrics["me"] = me
@@ -101,28 +130,39 @@ class ClientMultiFedAvgFedPredictDynamic(ClientMultiFedAvg):
             logger.error("evaluate error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-    def _get_datasets_metrics(self, trainloader, ME, client_id, n_classes):
+    def _get_datasets_metrics(self, trainloader, ME, client_id, n_classes, concept_drift_window=None):
 
-        p_ME = []
-        fc_ME = []
-        il_ME = []
-        for me in range(ME):
-            labels_me = []
-            n_classes_me = n_classes[me]
-            p_me = {i: 0 for i in range(n_classes_me)}
-            for batch in trainloader[me]:
-                labels = batch["label"]
-                labels_me += labels.detach().cpu().numpy().tolist()
-            unique, count = np.unique(labels_me, return_counts=True)
-            data_unique_count_dict = dict(zip(np.array(unique).tolist(), np.array(count).tolist()))
-            for label in data_unique_count_dict:
-                p_me[label] = data_unique_count_dict[label]
-            p_me = np.array(list(p_me.values()))
-            fc_me = len(np.argwhere(p_me > 0)) / n_classes_me
-            il_me = len(np.argwhere(p_me < np.sum(p_me) / n_classes_me)) / n_classes_me
-            p_me = p_me / np.sum(p_me)
-            p_ME.append(p_me)
-            fc_ME.append(fc_me)
-            il_ME.append(il_me)
-            logger.info(f"p_me {p_me} fc_me {fc_me} il_me {il_me} model {me} client {client_id}")
-        return p_ME, fc_ME, il_ME
+        try:
+            p_ME = []
+            fc_ME = []
+            il_ME = []
+            for me in range(ME):
+                labels_me = []
+                n_classes_me = n_classes[me]
+                p_me = {i: 0 for i in range(n_classes_me)}
+                with (torch.no_grad()):
+                    for batch in trainloader[me]:
+                        labels = batch["label"]
+                        labels = labels.to("cuda:0")
+
+                        if concept_drift_window is not None:
+                            labels = (labels + concept_drift_window[me])
+                            labels = labels % n_classes[me]
+                        labels = labels.detach().cpu().numpy()
+                        labels_me += labels.tolist()
+                    unique, count = np.unique(labels_me, return_counts=True)
+                    data_unique_count_dict = dict(zip(np.array(unique).tolist(), np.array(count).tolist()))
+                    for label in data_unique_count_dict:
+                        p_me[label] = data_unique_count_dict[label]
+                    p_me = np.array(list(p_me.values()))
+                    fc_me = len(np.argwhere(p_me > 0)) / n_classes_me
+                    il_me = len(np.argwhere(p_me < np.sum(p_me) / n_classes_me)) / n_classes_me
+                    p_me = p_me / np.sum(p_me)
+                    p_ME.append(p_me)
+                    fc_ME.append(fc_me)
+                    il_ME.append(il_me)
+                    logger.info(f"p_me {p_me} fc_me {fc_me} il_me {il_me} model {me} client {client_id}")
+            return p_ME, fc_ME, il_ME
+        except Exception as e:
+            logger.error("_get_datasets_metrics error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

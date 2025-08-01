@@ -19,10 +19,9 @@ This project uses the Flower framework for Federated Learning (FL) simulation. I
 ### Highlights
 
 FL-H.IAAC highlights are presented as follows:
-- Reproducibility: run experiments with only one command.
+- Reproductibility: run experiments with only one command.
 - Data heterogeneity: simulate non-IID data across devices.
 - System heterogeneity: simulate devices with heterogeneous resources.
-- Concept drift: simulate concept drift in clients' data.
 - MEFL: support for Multi-model Federated Learning.
 - GPU usage: it is configured to use GPU when available.
 
@@ -72,7 +71,7 @@ For each additional task, add the fields `dataset`, `model`, and `alpha`:
 
 ```bash
 
-python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy="MultiFedAvg" --dataset="CIFAR10" --dataset="EMNIST" --model="CNN" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=0.1
+python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=10 --strategy="MultiFedAvg" --dataset="CIFAR10" --dataset="EMNIST" --model="CNN" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=0.1 > execution_log/experiment.txt 2>&1
 
 ```
 
@@ -80,7 +79,7 @@ or with more clients to accommodate 3 models:
 
 ```bash
 
-python helpers/generate_docker_compose.py --total_clients=30 --number_of_rounds=100 --strategy="MultiFedAvg" --dataset="Gowalla" --dataset="WISDM-W" --dataset="ImageNet" --model="lstm" --model="gru" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=0.1 --alpha=0.1
+python helpers/generate_docker_compose.py --total_clients=30 --number_of_rounds=40 --strategy="MultiFedAvg" --dataset="Gowalla" --dataset="WISDM-W" --dataset="ImageNet" --model="lstm" --model="gru" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=0.1 --alpha=0.1 > execution_log/experiment.txt 2>&1
 
 ```
 
@@ -90,7 +89,7 @@ Optionally, you can simulate global concept drift informing the configuration id
 
 ```bash
 
-python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy="MultiFedAvg" --dataset="WISDM-W" --dataset="ImageNet" --model="gru" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=10.0 --concept_drift_experiment_id=1
+python helpers/generate_docker_compose.py --total_clients=20 --number_of_rounds=100 --strategy="MultiFedAvg" --dataset="WISDM-W" --dataset="ImageNet" --model="gru" --model="CNN" --fraction_fit=0.3 --alpha=0.1 --alpha=10.0 --concept_drift_experiment_id=1 > execution_log/experiment.txt 2>&1
 ```
 
 ## Saving the results locally:

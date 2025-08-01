@@ -12,7 +12,8 @@ WORKDIR /app
 
 # Copy the requirements file into the container
 COPY ./requirements.txt /app/requirements.txt
-
+# Copy the datasets file into the container to avoid sucessive downloads
+COPY ./datasets/ /app/datasets/
 # Install gcc and other dependencies
 RUN apt-get update && apt-get install -y \
     gcc \

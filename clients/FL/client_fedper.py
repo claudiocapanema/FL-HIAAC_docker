@@ -43,10 +43,12 @@ class ClientFedPer(Client):
             t = config['t']
             if len(parameters) > 0:
                 set_weights(self.model, parameters)
+            self.optimizer = self._get_optimizer(dataset_name=self.dataset)
             results = train(
                 self.model,
                 self.trainloader,
                 self.valloader,
+                self.optimizer,
                 self.local_epochs,
                 self.lr,
                 self.device,
@@ -55,6 +57,7 @@ class ClientFedPer(Client):
                 self.dataset,
                 self.n_classes
             )
+            self.models_size = self._get_models_size(parameters)
             results["Model size"] = self.models_size
             logger.info("fit cliente fim")
             return get_weights(self.model), len(self.trainloader.dataset), results
@@ -70,21 +73,11 @@ class ClientFedPer(Client):
             nt = t - self.lt
             set_weights(self.model, parameters)
             loss, metrics = test(self.model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
+            self.models_size = self._get_models_size(parameters)
             metrics["Model size"] = self.models_size
             metrics["Alpha"] = self.alpha
             logger.info("eval cliente fim")
             return loss, len(self.valloader.dataset), metrics
         except Exception as e:
             logger.error("evaluate error")
-            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
-
-    def _get_models_size(self):
-        try:
-            parameters = [i.detach().cpu().numpy() for i in self.model.parameters()]
-            size = 0
-            for i in range(len(parameters)-2):
-                size += parameters[i].nbytes
-            return int(size)
-        except Exception as e:
-            logger.error("_get_models_size error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

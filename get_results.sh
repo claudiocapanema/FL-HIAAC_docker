@@ -29,7 +29,8 @@ echo "ID do contêiner encontrado: $CONTAINER_ID"
 # Copia a pasta do contêiner para a máquina local
 docker cp "$CONTAINER_ID:$CONTAINER_DIR" "./"
 
-sudo chmod -R 777 "/results"
+sudo chmod -R u+rw "/results"
+sudo chown -R gustavo:gustavo results/
 
 echo "aqui" $LOCAL_DIR
 

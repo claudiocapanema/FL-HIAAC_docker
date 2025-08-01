@@ -16,6 +16,7 @@ class Client(fl.client.NumPyClient):
             self.dataset = self.args.dataset[0]
             self.model = load_model(args.model[0], self.dataset, args.strategy, args.device)
             self.alpha = float(self.args.alpha[0])
+            self.number_of_rounds = args.number_of_rounds
             logger.info("Preparing data...")
             logger.info("""args do cliente: {} {}""".format(self.args.client_id, self.alpha))
             self.client_id = args.client_id
@@ -34,7 +35,7 @@ class Client(fl.client.NumPyClient):
             self.lr = self.args.learning_rate
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
             self.lt = 0
-            self.models_size = self._get_models_size()
+            self.models_size = None
             self.n_classes = \
             {'EMNIST': 47, 'MNIST': 10, 'CIFAR10': 10, 'GTSRB': 43, 'WISDM-W': 12, 'WISDM-P': 12, 'ImageNet': 15,
              "ImageNet_v2": 15, "Gowalla": 7}[self.args.dataset[0]]
@@ -49,6 +50,7 @@ class Client(fl.client.NumPyClient):
 
             logger.info("""fit cliente inicio config {} device {}""".format(config, self.device))
             t = config['t']
+            self.lt = t
             if len(parameters) > 0:
                 set_weights(self.model, parameters)
             self.optimizer = self._get_optimizer(dataset_name=self.dataset)
@@ -66,6 +68,7 @@ class Client(fl.client.NumPyClient):
                 self.n_classes
             )
             logger.info("fit cliente fim")
+            self.models_size = self._get_models_size(parameters)
             results["Model size"] = self.models_size
             return get_weights(self.model), len(self.trainloader.dataset), results
         except Exception as e:
@@ -80,21 +83,30 @@ class Client(fl.client.NumPyClient):
             nt = t - self.lt
             set_weights(self.model, parameters)
             loss, metrics = test(self.model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
+            self.models_size = self._get_models_size(parameters)
             metrics["Model size"] = self.models_size
             metrics["Alpha"] = self.alpha
+            metrics["nt"] = nt
             logger.info("eval cliente fim")
             return loss, len(self.valloader.dataset), metrics
         except Exception as e:
             logger.error("evaluate error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-    def _get_models_size(self):
+    def _get_models_size(self, parameters=None):
         try:
-            parameters = [i.detach().cpu().numpy() for i in self.model.parameters()]
+            if self.models_size is not None:
+                return self.models_size
             size = 0
-            for i in range(len(parameters)):
-                size += parameters[i].nbytes
-            return int(size)
+            if parameters is None:
+                parameters = [i.detach().cpu().numpy() for i in self.model.parameters()]
+                for param in parameters:
+                    size += param.nbytes
+                return int(size)
+            else:
+                for i in range(len(parameters)):
+                    size += parameters[i].nbytes
+                return int(size)
         except Exception as e:
             logger.error("_get_models_size error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))

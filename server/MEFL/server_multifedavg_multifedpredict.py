@@ -146,12 +146,35 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
                              accept_failures=accept_failures, initial_parameters=initial_parameters,
                              fit_metrics_aggregation_fn=fit_metrics_aggregation_fn,
                              evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn, inplace=inplace)
-            self.need_for_training = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
+            self.homogeneity_degree = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
+            self.fc = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
+            self.il = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
+            self.similarity = {round_: [None] * self.ME for round_ in range(1, self.number_of_rounds + 1)}
+            self.client_metrics = {cid: {me: {alpha: {"fc": None, "il": None, "similarity": None} for alpha in [0.1, 1.0, 10.0]} for me in range(self.ME)} for cid in range(1, self.total_clients + 1)}
             self.min_training_clients_per_model = 3
             self.free_budget = int(self.fraction_fit * self.total_clients) - self.min_training_clients_per_model * self.ME
             self.ME_round_loss = {me: [] for me in range(self.ME)}
             self.checkpoint_models = {me: {} for me in range(self.ME)}
             self.round_initial_parameters = [None] * self.ME
+            self.last_drift = 0
+
+            self.test_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
+                                       "# training clients", "training clients and models", "Model size", "Alpha", "fc", "il", "dh", "ps"]
+            self.train_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
+                                        "# training clients", "training clients and models", "Model size", "Alpha"]
+            self.rs_test_acc = {me: [] for me in range(self.ME)}
+            self.rs_test_auc = {me: [] for me in range(self.ME)}
+            self.rs_train_loss = {me: [] for me in range(self.ME)}
+            self.results_train_metrics = {me: {metric: [] for metric in self.train_metrics_names} for me in
+                                          range(self.ME)}
+            self.results_train_metrics_w = {me: {metric: [] for metric in self.train_metrics_names} for me in
+                                            range(self.ME)}
+            self.results_test_metrics = {me: {metric: [] for metric in self.test_metrics_names} for me in
+                                         range(self.ME)}
+            self.results_test_metrics_w = {me: {metric: [] for metric in self.test_metrics_names} for me in
+                                           range(self.ME)}
+            self.clients_results_test_metrics = {me: {metric: [] for metric in self.test_metrics_names} for me in
+                                                 range(self.ME)}
         except Exception as e:
             logger.error("__init__ error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
@@ -163,6 +186,7 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             torch.random.manual_seed(server_round)
             random.seed(server_round)
             np.random.seed(server_round)
+            client_manager.wait_for(self.total_clients, 1000)
             """Configure the next round of training."""
             config = {}
             if self.on_fit_config_fn is not None:
@@ -188,29 +212,15 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
 
             n = len(clients) // self.ME
             selected_clients_m = np.array_split(clients, self.ME)
-            # train_more_models = []
-            # for i, v in enumerate(self.need_for_training):
-            #     if v == True:
-            #         train_more_models.append(i)
-            #
-            # if len(train_more_models) > 0:
-            #     distributed_budget = self.free_budget // len(train_more_models)
-            # else:
-            #     distributed_budget = 0
-            # training_intensity_me = [self.min_training_clients_per_model] * self.ME
-            #
-            # for me in train_more_models:
-            #     if me in train_more_models:
-            #         training_intensity_me[me] += distributed_budget
-            #
-            # logger.info(f"training intensity me {training_intensity_me} rodada {server_round} free budget {self.free_budget} train more models {train_more_models} need for training {self.need_for_training}")
-            # i = 0
-            # selected_clients_m = []
-            # for me in range(self.ME):
-            #     training_intensity = training_intensity_me[me]
-            #     j = i + training_intensity
-            #     selected_clients_m.append(clients[i:j])
-            #     i = j
+            training_intensity_me = [int((self.fraction_fit * self.total_clients)/self.ME)] * self.ME
+
+            selected_clients_m = []
+            i = 0
+            for me in range(self.ME):
+                training_intensity = training_intensity_me[me]
+                j = i + training_intensity
+                selected_clients_m.append(clients[i:j])
+                i = j
 
 
 
@@ -255,21 +265,45 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             self.selected_clients_m = [[] for me in range(self.ME)]
 
             results_mefl = {me: [] for me in range(self.ME)}
+            num_samples = {me: [] for me in range(self.ME)}
             fc = {me: [] for me in range(self.ME)}
             il = {me: [] for me in range(self.ME)}
+            similarity = {me: [] for me in range(self.ME)}
+            dh = {me: [] for me in range(self.ME)}
             for i in range(len(results)):
                 _, result = results[i]
                 me = result.metrics["me"]
+                num_samples[me].append(result.num_examples)
                 client_id = result.metrics["client_id"]
                 fc[me].append(result.metrics["fc"])
                 il[me].append(result.metrics["il"])
+                similarity[me].append(result.metrics["similarity"])
+                alpha = result.metrics["alpha"]
+                self.client_metrics[client_id][me][alpha]["fc"] = result.metrics["fc"]
+                self.client_metrics[client_id][me][alpha]["il"] = result.metrics["il"]
+                self.client_metrics[client_id][me][alpha]["similarity"] = result.metrics["similarity"]
+                s = result.metrics["similarity"]
+                logger.info(f"similaridade do cliente {client_id} e {s} rodada {server_round}")
+
                 self.selected_clients_m[me].append(client_id)
                 results_mefl[me].append(results[i])
 
+            logger.info(f"antes fc {fc} il {il} rodada {server_round}")
             for me in range(self.ME):
-                fc[me] = np.mean(fc[me])
-                il[me] = np.mean(il[me])
-                self.need_for_training[server_round][me] = round((fc[me] + (1 - il[me]))/2, 1)
+                fc[me] = self._weighted_average(fc[me], num_samples[me])
+                il[me] = self._weighted_average(il[me], num_samples[me])
+                similarity[me] = self._weighted_average(similarity[me], num_samples[me])
+                similarity[me] = 1 if similarity[me] >= 0.98 else similarity[me]
+                logger.info(f"fc {fc} il {il}  homogeneity degree {self.homogeneity_degree[server_round]}")
+                self.homogeneity_degree[server_round][me] = (fc[me] + (1 - il[me])) / 2
+                self.fc[server_round][me] = fc[me]
+                self.il[server_round][me] = il[me]
+                self.similarity[server_round][me] = similarity[me]
+
+            logger.info(f"need {self.homogeneity_degree[server_round]} rodada {server_round}")
+            self.homogeneity_degree[server_round] = self.homogeneity_degree[server_round]
+
+            # logger.info(f"need normalizado {self.need_for_training} rodada {server_round}")
 
             aggregated_ndarrays_mefl = {me: None for me in range(self.ME)}
             aggregated_ndarrays_mefl = {me: [] for me in range(self.ME)}
@@ -318,17 +352,16 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             self.parameters_aggregated_mefl = parameters_aggregated_mefl
             self.metrics_aggregated_mefl = metrics_aggregated_mefl
 
-            if server_round > 1:
-                if self.round_initial_parameters[me] is not None:
-                    self.checkpoint_models[me][self.need_for_training[server_round - 1][me]] = self.round_initial_parameters[me]
+            if server_round > 10:
+                self._save_data_metrics()
 
-                if abs(self.need_for_training[server_round][me] - self.need_for_training[server_round - 1][me]) >= 0.1:
-                    keys = self.checkpoint_models[me].keys()
-                    logger.info(f"keys {keys} server round {server_round} me {me} need for training {self.need_for_training[server_round][me]} {self.need_for_training[server_round - 1][me]}")
-                    if len(keys) > 0:
-                        key = min(keys, key=lambda num: abs(num - self.need_for_training[server_round][me]))
-                        model = self.checkpoint_models[me][key]
-                        parameters_aggregated_mefl[me] = model
+            layers = {0: -1, 1: -2}
+
+            if server_round > 10:
+                for me in range(self.ME):
+                    if self.round_initial_parameters[me] is not None:
+                        # self.checkpoint_models[me][self.need_for_training[server_round - 1][me]] = parameters_to_ndarrays(self.round_initial_parameters[me])[layers:]
+                        self.checkpoint_models[me][server_round] = parameters_to_ndarrays(parameters_aggregated_mefl[me])[layers[me]:]
 
             return parameters_aggregated_mefl, metrics_aggregated_mefl
         except Exception as e:
@@ -366,6 +399,10 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             config["t"] = server_round
             logger.info("""config evaluate antes {}""".format(config))
             config["parameters"] = dict_ME
+            config["homogeneity_degree"] = pickle.dumps(self.homogeneity_degree[server_round])
+            config["fc"] = pickle.dumps(self.fc[server_round])
+            config["il"] = pickle.dumps(self.il[server_round])
+            config["similarity"] = pickle.dumps(self.similarity[server_round])
             evaluate_ins = EvaluateIns(parameters[0], config)
 
 
@@ -386,6 +423,22 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
             logger.error("configure_evaluate error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
+    def add_metrics(self, server_round, metrics_aggregated, me):
+        try:
+            metrics_aggregated[me]["Fraction fit"] = self.fraction_fit
+            metrics_aggregated[me]["# training clients"] = self.n_trained_clients
+            metrics_aggregated[me]["training clients and models"] = self.selected_clients_m[me]
+            metrics_aggregated[me]["fc"] = self.fc[server_round][me]
+            metrics_aggregated[me]["il"] = self.il[server_round][me]
+            metrics_aggregated[me]["ps"] = self.similarity[server_round][me]
+            metrics_aggregated[me]["dh"] = self.homogeneity_degree[server_round][me]
+
+            for metric in metrics_aggregated[me]:
+                self.results_test_metrics[me][metric].append(metrics_aggregated[me][metric])
+        except Exception as e:
+            logger.error("add_metrics error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
     def calculate_pseudo_t(self, t, losses):
 
         try:
@@ -400,3 +453,46 @@ class MultiFedAvgMultiFedPredict(MultiFedAvg):
         except Exception as e:
             logger.error("calculate_pseudo_t error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def _save_data_metrics(self):
+
+        try:
+            for me in range(self.ME):
+                algo = self.dataset[me] + "_" + self.strategy_name
+                result_path = self.get_result_path("test")
+                file_path = result_path + "{}_metrics.csv".format(algo)
+                rows = []
+                head = ["cid", "me", "Alpha", "fc", "il", "ps", "dh"]
+                self._write_header(file_path, head, mode='w')
+                for cid in range(1, self.total_clients + 1):
+                    for alpha in [0.1, 1.0, 10.0]:
+                        fc = self.client_metrics[cid][me][alpha]["fc"]
+                        il = self.client_metrics[cid][me][alpha]["il"]
+                        if fc is not None and il is not None:
+                            dh = (fc + (1 - il)) / 2
+                        else:
+                            dh = None
+                        row = [cid, me, alpha, fc, il, self.client_metrics[cid][me][alpha]["similarity"], dh]
+                        rows.append(row)
+
+                self._write_outputs(file_path, rows)
+
+            logger.info(f"rows {rows}")
+
+        except Exception as e:
+            logger.error("_save_data_metrics error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+            exit()
+
+    def _weighted_average(self, values, weights):
+
+        try:
+            values = np.array([i * j for i, j in zip(values, weights)])
+            values = np.sum(values) / np.sum(weights)
+            return float(values)
+
+        except Exception as e:
+            logger.error("_weighted_average error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+

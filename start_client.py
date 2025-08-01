@@ -4,6 +4,10 @@ import logging
 
 import flwr as fl
 from clients.FL.client_fedavg import Client
+from clients.FL.client_fedavg_poc import ClientPOC
+from clients.FL.client_fedavg_poc_fedpredict import ClientPOCFP
+from clients.FL.client_fedavg_rawcs import ClientRAWCS
+from clients.FL.client_fedavg_rawcs_fedpredict import ClientFedAvgRAWCSFP
 from clients.FL.client_fedavg_fedpredict import ClientFedAvgFP
 from clients.FL.client_fedper import ClientFedPer
 from clients.FL.client_fedkd import ClientFedKD
@@ -16,6 +20,7 @@ from clients.MEFL.client_multifedavgrr import ClientMultiFedAvgRR
 from clients.MEFL.client_fedfairmmfl import ClientFedFairMMFL
 from clients.MEFL.client_multifedavg_multifedpredict import ClientMultiFedAvgMultiFedPredict
 from clients.MEFL.client_multifedavg_fedpredict_dynamic import ClientMultiFedAvgFedPredictDynamic
+from clients.MEFL.client_multifedavg_fedpredict import ClientMultiFedAvgFedPredict
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
@@ -45,7 +50,7 @@ parser.add_argument(
     "--alpha", action="append", help="Dirichlet alpha"
 )
 parser.add_argument(
-    "--concept_drift_experiment_id", type=int, default=0, help=""
+    "--experiment_id", type=str, default="", help=""
 )
 parser.add_argument(
     "--round_new_clients", type=float, default=0.1, help=""
@@ -93,6 +98,9 @@ parser.add_argument(
 parser.add_argument(
     "--df", type=float, default=0, help="Free budget redistribution factor used in MultiFedEfficiency"
 )
+parser.add_argument(
+    "--compression", type=str, default=""
+)
 
 
 args = parser.parse_args()
@@ -101,6 +109,14 @@ def get_client(strategy_name):
 
     if strategy_name in "FedAvg":
         return Client
+    elif strategy_name == "FedAvgPOC":
+        return ClientPOC
+    elif strategy_name == "FedAvgPOC+FP":
+        return ClientPOCFP
+    elif strategy_name == "FedAvgRAWCS":
+        return ClientRAWCS
+    elif strategy_name == "FedAvgRAWCS+FP":
+        return ClientFedAvgRAWCSFP
     elif strategy_name == "FedAvg+FP":
         return ClientFedAvgFP
     elif strategy_name == "FedYogi":
@@ -125,6 +141,8 @@ def get_client(strategy_name):
         return ClientMultiFedAvgFedPredictDynamic
     elif strategy_name == "MultiFedAvg+MFP":
         return ClientMultiFedAvgMultiFedPredict
+    elif strategy_name == "MultiFedAvg+FP":
+        return ClientMultiFedAvgFedPredict
 
 # Function to Start the Client
 def start_fl_client():

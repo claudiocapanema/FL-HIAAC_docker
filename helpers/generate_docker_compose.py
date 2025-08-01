@@ -1,5 +1,9 @@
 import subprocess
 import argparse
+import time
+
+from download_dataset import download_datasets
+import os
 
 parser = argparse.ArgumentParser(description="Generated Docker Compose")
 parser.add_argument(
@@ -25,7 +29,7 @@ parser.add_argument(
     "--alpha", action="append", help="Dirichlet alpha"
 )
 parser.add_argument(
-    "--concept_drift_experiment_id", type=int, default=0, help=""
+    "--experiment_id", type=str, default="", help=""
 )
 parser.add_argument(
     "--round_new_clients", type=float, default=0.1, help=""
@@ -65,6 +69,13 @@ parser.add_argument(
 )
 parser.add_argument(
     "--df", type=float, default=0, help="Free budget redistribution factor used in MultiFedEfficiency"
+)
+parser.add_argument(
+    "--compression", type=str, default=""
+)
+
+parser.add_argument(
+    "--device", type=str, default="cuda"
 )
 
 def assert_args(args, strategy_name):
@@ -111,6 +122,7 @@ def load_fedpredict_project():
 
 def create_docker_compose(args):
     assert_args(args, args.strategy)
+    download_datasets(args.dataset, args.alpha, args.total_clients)
     # cpus is used to set the number of CPUs available to the container as a fraction of the total number of CPUs on the host machine.
     # mem_limit is used to set the memory limit for the container.
     client_configs = [
@@ -131,7 +143,7 @@ def create_docker_compose(args):
     for me  in range(ME):
         mefl_string += f" --dataset='{args.dataset[me]}' --model='{args.model[me]}' --alpha={float(args.alpha[me])} "
 
-    general_config = f"--total_clients={args.total_clients} --number_of_rounds={args.number_of_rounds} --data_percentage={args.data_percentage} --strategy='{strategy_name}' --round_new_clients={args.round_new_clients} --fraction_new_clients={args.fraction_new_clients} --cd='{args.cd}' --fraction_fit={args.fraction_fit} --batch_size={args.batch_size} --learning_rate={args.learning_rate} --tw={args.tw} --reduction={args.reduction} --df={args.df} --concept_drift_experiment_id={args.concept_drift_experiment_id}" + mefl_string
+    general_config = f"--total_clients={args.total_clients} --number_of_rounds={args.number_of_rounds} --data_percentage={args.data_percentage} --strategy='{strategy_name}' --round_new_clients={args.round_new_clients} --fraction_new_clients={args.fraction_new_clients} --cd='{args.cd}' --fraction_fit={args.fraction_fit} --batch_size={args.batch_size} --learning_rate={args.learning_rate} --tw={args.tw} --reduction={args.reduction} --df={args.df} --experiment_id={args.experiment_id} --compression={args.compression} --device={args.device}" + mefl_string
     print("config geral: ", general_config)
 
     docker_compose_content = f"""
@@ -265,20 +277,49 @@ services:
         file.write(docker_compose_content)
 
     # Caminho para o seu script bash
-    script_up = f"sudo docker compose -f {filename} up --build && docker image prune -f"
+    script_up = f"sudo docker compose -f {filename} up"
 
     script_down = f"sudo docker compose -f {filename} down"
-    subprocess.Popen(script_up, shell=True).wait()
+
     try:
         # Chamar o script bash usando subprocess
-        subprocess.Popen(script_up, shell=True).wait()
-        subprocess.Popen("sudo docker compose down", shell=True).wait()
-        # subprocess.Popen("sudo bash get_results.sh", shell=True).wait()
+        subprocess.Popen(script_down, shell=True).wait()
+        # subprocess.Popen("sudo docker container prune -f", shell=True).wait()
+        # process = subprocess.Popen(script_up, text=True, shell=True)
+        try:
+            process = subprocess.Popen(
+                script_up,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                shell=True
+            )
+            print("🚀 Docker Compose iniciado. Monitorando saída...")
+            for line in process.stdout:
+                print(line, end="")  # Imprime a saída em tempo real
+
+                if "exited with code 0" in line:
+                    print("✅ Container finalizou com sucesso. Encerrando processo.")
+                    process.terminate()
+                    break
+                elif "error on line" in str(line).lower():
+                    print("Error found", line)
+                    time.sleep(3600)
+
+            # Aguarda encerramento completo
+            process.wait()
+            print("🛑 Processo encerrado.")
+
+        except KeyboardInterrupt:
+            print("❌ Interrompido pelo usuário.")
+            process.terminate()
+            process.wait()
+        subprocess.Popen("sudo bash get_results.sh", shell=True).wait()
     except Exception as e:
         # print(e)
-        subprocess.Popen("sudo docker compose down", shell=True)
+        # subprocess.Popen(script_down, shell=True)
         pass
-    print(script_down)
+    subprocess.Popen(script_down, shell=True).wait()
 
 
 
@@ -286,4 +327,27 @@ services:
 if __name__ == "__main__":
     # subprocess.Popen(load_fedpredict_project()).wait()
     args = parser.parse_args()
+    log_name = args.strategy
+    result_path = """results/experiment_id_{}/clients_{}/alpha_{}/{}/{}/fc_{}/rounds_{}/epochs_{}/log_{}.txt""".format(
+        args.experiment_id,
+        args.total_clients,
+        [float(i) for i in args.alpha][0],
+        args.dataset[0],
+        args.model[0],
+        args.fraction_fit,
+        args.number_of_rounds,
+        args.local_epochs,
+        log_name)
+    print("log: ", result_path)
+    import sys
+
+    # Abra um arquivo para gravação
+    os.makedirs(os.path.dirname(result_path), exist_ok=True)
+    # with open(result_path, 'w') as f:
+    #     # Redirecione a saída padrão para o arquivo
+    #     original = sys.stdout
+    #     sys.stdout = f
     create_docker_compose(args)
+        # sys.stdout = original
+
+

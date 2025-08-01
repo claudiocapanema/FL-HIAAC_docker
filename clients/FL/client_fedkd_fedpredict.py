@@ -4,7 +4,7 @@ import sys
 
 from clients.FL.client_fedkd import ClientFedKD
 
-from utils.models_utils import test_fedkd_fedpredict
+from utils.models_utils import test_fedkd_fedpredict, set_weights_fedkd
 
 logging.basicConfig(level=logging.INFO)  # Configure logging
 logger = logging.getLogger(__name__)  # Create logger for the module
@@ -39,11 +39,14 @@ class ClientFedKDFedPredict(ClientFedKD):
             logger.info("""eval cliente inicio""".format(config))
             t = config["t"]
             nt = t - self.lt
-            # set_weights_fedkd(self.utils, parameters)
+            set_weights_fedkd(self.model, parameters)
+            logger.info(f"lt cliente {self.lt} rodada {t}")
             loss, metrics = test_fedkd_fedpredict(self.lt, self.model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
+            self.models_size = self._get_models_size(parameters)
             metrics["Model size"] = self.models_size
             logger.info("eval cliente fim")
             metrics["Alpha"] = self.alpha
+            metrics["nt"] = nt
             return loss, len(self.valloader.dataset), metrics
         except Exception as e:
             logger.error("evaluate")

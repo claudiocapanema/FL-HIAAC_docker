@@ -20,6 +20,7 @@ def read_data(read_solutions, read_dataset_order):
         "FedKD+FP": {"Strategy": "FedKD", "Version": "FP", "Table": "FedKD+FP"},
         "MultiFedAvg+MFP": {"Strategy": "MultiFedAvg", "Version": "MFP", "Table": "MultiFedAvg+MFP"},
         "MultiFedAvg+FPD": {"Strategy": "MultiFedAvg", "Version": "FPD", "Table": "MultiFedAvg+FPD"},
+        "MultiFedAvg+FP": {"Strategy": "MultiFedAvg", "Version": "FP", "Table": "MultiFedAvg+FP"},
         "MultiFedAvg": {"Strategy": "MultiFedAvg", "Version": "Original", "Table": "MultiFedAvg"},
         "MultiFedAvgRR": {"Strategy": "MultiFedAvgRR", "Version": "Original", "Table": "MultiFedAvgRR"}
     }
@@ -35,7 +36,7 @@ def read_data(read_solutions, read_dataset_order):
                 df["Solution"] = np.array([solution] * len(df))
                 df["Accuracy (%)"] = df["Accuracy"] * 100
                 df["Balanced accuracy (%)"] = df["Balanced accuracy"] * 100
-                df["Dataset"] = np.array([dataset] * len(df))
+                df["Dataset"] = np.array([dataset.replace("WISDM-W", "WISDM").replace("ImageNet", "ImageNet-15")] * len(df))
                 df["Table"] = np.array([solution_strategy_version[solution]["Table"]] * len(df))
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))
                 df["Version"] = np.array([solution_strategy_version[solution]["Version"]] * len(df))
@@ -57,7 +58,7 @@ def read_data(read_solutions, read_dataset_order):
 
 def table(df, write_path, metric, t=None):
     datasets = df["Dataset"].unique().tolist()
-    alphas = df["Alpha"].unique().tolist()
+    alphas = sorted(df["Alpha"].unique().tolist())
     columns = df["Table"].unique().tolist()
     n_strategies = str(len(columns))
 
@@ -166,7 +167,7 @@ def table(df, write_path, metric, t=None):
         "&  \\", "& - \\").replace(" - " + r"\textbf", " " + r"\textbf").replace("_{dc}", r"_{\text{dc}}").replace(
         "\multirow[t]{" + n_strategies + "}{*}{EMNIST}", "EMNIST").replace(
         "\multirow[t]{" + n_strategies + "}{*}{CIFAR10}", "CIFAR10").replace(
-        "\multirow[t]{" + n_strategies + "}{*}{GTSRB}", "GTSRB").replace("\cline{1-4}", "\hline")
+        "\multirow[t]{" + n_strategies + "}{*}{GTSRB}", "GTSRB").replace("\cline{1-4}", "\hline").replace("\cline{1-5}", "\hline").replace("\multirow[t]", "\multirow")
 
     Path(write_path).mkdir(parents=True, exist_ok=True)
     if t is not None:
@@ -332,11 +333,13 @@ def idmax(df, n_solutions):
 
 
 if __name__ == "__main__":
-    concept_drift_experiment_id = 1
+    concept_drift_experiment_id = 8
     cd = "false" if concept_drift_experiment_id == 0 else f"true_experiment_id_{concept_drift_experiment_id}"
     total_clients = 20
-    alphas = [0.1, 10.0]
-    concept_drift_experiment_id = 1
+    # alphas = [0.1, 10.0]
+    alphas = {6: [10.0, 10.0], 7: [0.1, 0.1], 8: [10.0, 10.0], 9: [0.1, 0.1], 10: [1.0, 1.0]}[
+        concept_drift_experiment_id]
+    # dataset = ["WISDM-W", "CIFAR10"]
     dataset = ["WISDM-W", "ImageNet"]
     # dataset = ["EMNIST", "CIFAR10"]
     # models_names = ["cnn_c"]
@@ -347,13 +350,8 @@ if __name__ == "__main__":
     fraction_new_clients = alphas[0]
     round_new_clients = 0
     train_test = "test"
-    # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg",
-    #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedAvgGlobalModelEval",
-    #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
-    # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
-    #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
+    # solutions = ["MultiFedAvg+MFP", "MultiFedAvg+FPD", "MultiFedAvg+FP", "MultiFedAvg", "MultiFedAvgRR"]
     solutions = ["MultiFedAvg+MFP", "MultiFedAvg+FPD", "MultiFedAvg"]
-    # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}
     read_dataset_order = []
@@ -395,9 +393,9 @@ if __name__ == "__main__":
     df, hue_order = read_data(read_solutions, read_dataset_order)
     print(df)
 
-    cp_rounds = [40, 80]
+    cp_rounds = [20, 50, 80]
     cp_window = []
-    window = 5
+    window = 1
     for i in range(len(cp_rounds)):
         cp_round = cp_rounds[i]
         cp_window += [round_ for round_ in range(cp_round, cp_round + window + 1)]
