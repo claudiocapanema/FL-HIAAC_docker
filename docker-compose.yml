@@ -1,0 +1,597 @@
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - 9090:9090
+    deploy:
+      restart_policy:
+        condition: on-failure
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - cadvisor
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: cadvisor
+    privileged: true
+    deploy:
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - 3000:3000
+    deploy:
+      restart_policy:
+        condition: on-failure
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./config/grafana.ini:/etc/grafana/grafana.ini
+      - ./config/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./config/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+    depends_on:
+      - prometheus
+      - cadvisor
+    command:
+      - --config=/etc/grafana/grafana.ini
+
+  server:
+    container_name: server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_server.py --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    environment:
+      FLASK_RUN_PORT: 6000
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6000:6000"
+      - "8265:8265"
+      - "8000:8000"
+    stop_signal: SIGINT
+    depends_on:
+      - prometheus
+      - grafana
+
+  client1:
+    container_name: client1
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=1 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6001:6001"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6001
+      container_name: client1
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client2:
+    container_name: client2
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=2 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6002:6002"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6002
+      container_name: client2
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client3:
+    container_name: client3
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=3 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6003:6003"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6003
+      container_name: client3
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client4:
+    container_name: client4
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=4 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6004:6004"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6004
+      container_name: client4
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client5:
+    container_name: client5
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=5 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6005:6005"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6005
+      container_name: client5
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client6:
+    container_name: client6
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=6 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6006:6006"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6006
+      container_name: client6
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client7:
+    container_name: client7
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=7 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6007:6007"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6007
+      container_name: client7
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client8:
+    container_name: client8
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=8 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6008:6008"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6008
+      container_name: client8
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client9:
+    container_name: client9
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=9 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6009:6009"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6009
+      container_name: client9
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client10:
+    container_name: client10
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=10 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6010:6010"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6010
+      container_name: client10
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client11:
+    container_name: client11
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=11 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6011:6011"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6011
+      container_name: client11
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client12:
+    container_name: client12
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=12 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6012:6012"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6012
+      container_name: client12
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client13:
+    container_name: client13
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=13 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6013:6013"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6013
+      container_name: client13
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client14:
+    container_name: client14
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=14 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6014:6014"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6014
+      container_name: client14
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client15:
+    container_name: client15
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=15 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6015:6015"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6015
+      container_name: client15
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client16:
+    container_name: client16
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=16 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6016:6016"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6016
+      container_name: client16
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client17:
+    container_name: client17
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=17 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6017:6017"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6017
+      container_name: client17
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client18:
+    container_name: client18
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=18 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6018:6018"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6018
+      container_name: client18
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client19:
+    container_name: client19
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=19 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6019:6019"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6019
+      container_name: client19
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+
+  client20:
+    container_name: client20
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime: nvidia
+    command: python3 start_client.py --server_address=server:8080 --client_id=20 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=1.0 
+    deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: "0.8g"
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "6020:6020"
+    depends_on:
+      - server
+    environment:
+      FLASK_RUN_PORT: 6020
+      container_name: client20
+      DOCKER_HOST_IP: host.docker.internal
+      NVIDIA_VISIBLE_DEVICES: all
+    stop_signal: SIGINT
+volumes:
+  grafana-storage:

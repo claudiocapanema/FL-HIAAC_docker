@@ -1,7 +1,7 @@
 sudo swapon --show
 sudo swapoff -a
 sudo rm /swapfile
-sudo dd if=/dev/zero of=/swapfile bs=1M count=23000
+sudo dd if=/dev/zero of=/swapfile bs=1M count=16000
 sudo chmod 600 /swapfile
 sudo mkswap /swapfile
 sudo swapon /swapfile
