@@ -263,7 +263,7 @@ def accuracy_improvement(df, datasets):
     # ,
     #                            "FedKD+FP": "FedKD"
     # reference_solutions = {"FedAvg+FP": "FedAvg", "FedYogi+FP": "FedYogi", "FedKD+FP": "FedKD"}
-    reference_solutions = {"FedAvg+FP$_{dc}$": "FedAvg", "FedYogi+FP$_{dc}$": "FedYogi"}
+    reference_solutions = {"FedAvg+FP$_{dc}$": "FedAvg", "FedYogi+FP$_{dc}$": "FedYogi", "FedKD+FP$_{dc}$": "FedKD"}
 
     print(df_difference)
     # exit()
@@ -353,7 +353,7 @@ if __name__ == "__main__":
     #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
-    solutions = ["FedAvg+FP", "FedYogi+FP", "FedAvg", "FedYogi", "FedPer"]
+    solutions = ["FedAvg+FP", "FedYogi+FP", "FedKD+FP", "FedAvg", "FedYogi", "FedKD", "FedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}

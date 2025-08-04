@@ -88,11 +88,7 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
     handles = [f("o", colors[i]) for i in range(len(hue_order) + 1)]
     handles += [plt.Line2D([], [], linestyle=markers[i], color="k") for i in range(3)]
 
-    for i in range(len(alphas)):
-        if i == 0:
-            continue
-        for j in range(len(datasets)):
-            axs[i, j].legend(handles, labels, fontsize=7)
+    axs[0, 0].legend(handles, labels, fontsize=7)
 
     # fig.suptitle("", fontsize=16)
 
@@ -109,8 +105,8 @@ def line(df, base_dir, x, y, hue=None, style=None, ci=None, hue_order=None):
 
 
 if __name__ == "__main__":
-    experiment_id = "1_new_clients"
-    # experiment_id = "1"
+    # experiment_id = "1_new_clients"
+    experiment_id = "1"
     cd = "false"
     total_clients = 20
     alphas = [0.1, 1.0]
@@ -151,7 +147,7 @@ if __name__ == "__main__":
                     "test")
                 read_dataset_order.append(dt)
                 solution_file = solution
-                if solution in ["FedAvg+FP", "FedYogi+FP"]:
+                if solution in ["FedAvg+FP", "FedYogi+FP", "FedKD+FP"]:
                     solution_file = f"{solution}_dls_compredict"
                 read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution_file))
 

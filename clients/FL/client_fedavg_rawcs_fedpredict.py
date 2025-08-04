@@ -1,0 +1,94 @@
+import sys
+import logging
+import os
+import pickle
+
+from utils.models_utils import load_model, get_weights, set_weights, test, train
+
+logging.basicConfig(level=logging.INFO)  # Configure logging
+logger = logging.getLogger(__name__)  # Create logger for the module
+from flwr.common import (
+    EvaluateIns,
+    EvaluateRes,
+    FitIns,
+    FitRes,
+    MetricsAggregationFn,
+    NDArrays,
+    Parameters,
+    Scalar,
+    ndarrays_to_parameters,
+    parameters_to_ndarrays,
+)
+
+from fedpredict import fedpredict_client_torch
+from clients.FL.client_fedavg_rawcs import ClientRAWCS
+
+# Make TensorFlow log less verbose
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
+class ClientFedAvgRAWCSFP(ClientRAWCS):
+    def __init__(self, args):
+        try:
+            super(ClientFedAvgRAWCSFP, self).__init__(args)
+            self.T = args.number_of_rounds
+            self.global_model = load_model(args.model[0], self.dataset, args.strategy, args.device)
+            self.lt = 0
+            self.model_shape = [param.shape for name, param in self.global_model.named_parameters()]
+        except Exception as e:
+            logger.error("__init__ error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def fit(self, parameters, config):
+        """Train the utils with data of this client."""
+        try:
+            logger.info("""fit cliente inicio fp config {}""".format(config))
+            t = config['t']
+            self.lt = t
+            if len(parameters) > 0:
+                set_weights(self.model, parameters)
+            results = train(
+                self.model,
+                self.trainloader,
+                self.valloader,
+                self.optimizer,
+                self.local_epochs,
+                self.lr,
+                self.device,
+                self.client_id,
+                t,
+                self.dataset,
+                self.n_classes
+            )
+            logger.info("fit cliente fim fp")
+            self.models_size = self._get_models_size()
+            results["Model size"] = self.models_size
+            logger.info(f"model size: {self.models_size}")
+            results["lt"] = self.lt
+            return get_weights(self.model), len(self.trainloader.dataset), results
+        except Exception as e:
+            logger.error("fit error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+
+    def evaluate(self, parameters, config):
+        """Evaluate the utils on the data this client has."""
+        try:
+            logger.info("""eval cliente inicio fp""".format(config))
+            t = config["t"]
+            nt = t - self.lt
+            # parameters = pickle.loads(config["parameters"])
+            # set_weights(self.global_model, parameters)
+            combined_model = fedpredict_client_torch(local_model=self.model, global_model=parameters,
+                                      t=t, T=self.T, nt=nt, device=self.device, global_model_original_shape=self.model_shape)
+            loss, metrics = test(combined_model, self.valloader, self.device, self.client_id, t, self.dataset, self.n_classes)
+            self.models_size = self._get_models_size()
+            metrics["Model size"] = self.models_size
+            metrics["Alpha"] = self.alpha
+            loss_train, metrics_train = test(combined_model, self.trainloader, self.device, self.client_id, t, self.dataset,
+                                             self.n_classes)
+            metrics["train_loss"] = loss_train
+            metrics["train_samples"] = len(self.trainloader.dataset)
+            logger.info("eval cliente fim fp")
+            return loss, len(self.valloader.dataset), metrics
+        except Exception as e:
+            logger.error("evaluate error")
+            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
