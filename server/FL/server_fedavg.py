@@ -138,7 +138,7 @@ class FedAvg(flwr.server.strategy.FedAvg):
             self.cd = args.cd
             self.strategy_name = args.strategy
             self.test_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
-                                       "# training clients", "# available clients", "training clients and models", "Model size", "Alpha"]
+                                       "# training clients", "# available clients", "training clients and models", "Model size", "Alpha", "Confidence interval"]
             self.train_metrics_names = ["Accuracy", "Balanced accuracy", "Loss", "Round (t)", "Fraction fit",
                                        "# training clients", "# available clients", "training clients and models", "Model size", "Alpha"]
             self.test_metrics_names_nt = ["Accuracy (%)", "Round (t)", "nt"]

@@ -147,7 +147,7 @@ if __name__ == "__main__":
                     "test")
                 read_dataset_order.append(dt)
                 solution_file = solution
-                if solution in ["FedAvg+FP", "FedYogi+FP", "FedKD+FP"]:
+                if solution in ["FedAvg+FP", "FedYogi+FP"]:
                     solution_file = f"{solution}_dls_compredict"
                 read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution_file))
 

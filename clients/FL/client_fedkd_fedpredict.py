@@ -3,6 +3,7 @@ import os
 import sys
 
 from clients.FL.client_fedkd import ClientFedKD
+from fedpredict import fedpredict_client_torch
 
 from utils.models_utils import test_fedkd_fedpredict, set_weights_fedkd
 
@@ -26,7 +27,9 @@ class ClientFedKDFedPredict(ClientFedKD):
         try:
             t = config['t']
             self.lt = t
-            return super().fit(parameters, config)
+            parameters, size, results = super().fit(parameters, config)
+            results["lt"] = self.lt
+            return parameters, size, results
 
         except Exception as e:
             logger.error("fit")

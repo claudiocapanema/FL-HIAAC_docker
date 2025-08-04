@@ -43,6 +43,9 @@ from flwr.common import (
     parameters_to_ndarrays,
 )
 
+import numpy as np
+import scipy.stats as stats
+
 # Initialize Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -123,19 +126,44 @@ parser.add_argument(
 args = parser.parse_args()
 
 
+
+
 # Define metric aggregation function
 def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
     try:
+        def weighted_confidence_interval(values, weights, confidence=0.95):
+            values = np.array(values)
+            weights = np.array(weights)
+
+            # Weighted average
+            average = np.average(values, weights=weights)
+
+            # Effective sample size (Kish's approximation)
+            eff_n = np.sum(weights) ** 2 / np.sum(weights ** 2)
+
+            # Weighted variance
+            variance = np.average((values - average) ** 2, weights=weights)
+            std_error = np.sqrt(variance / eff_n)
+
+            # Confidence interval
+            z = stats.norm.ppf(1 - (1 - confidence) / 2)  # for 95%, z ≈ 1.96
+            ci_lower = average - z * std_error
+            ci_upper = average + z * std_error
+
+            return float(average), float(z * std_error)
+
         # Multiply accuracy of each client by number of examples used
         accuracies = [num_examples * m["Accuracy"] for num_examples, m in metrics]
+        list_accuracies = [m["Accuracy"] for num_examples, m in metrics]
         balanced_accuracies = [num_examples * m["Balanced accuracy"] for num_examples, m in metrics]
         loss = [num_examples * m["Loss"] for num_examples, m in metrics]
         examples = [num_examples for num_examples, _ in metrics]
         model_size = int(np.mean([m["Model size"] for num_examples, m in metrics]))
+        ci = weighted_confidence_interval(list_accuracies, examples)[1]
 
         # Aggregate and return custom metric (weighted average)
         return {"Accuracy": sum(accuracies) / sum(examples), "Balanced accuracy": sum(balanced_accuracies) / sum(examples),
-                "Loss": sum(loss) / sum(examples), "Round (t)": metrics[0][1]["Round (t)"], "Model size": model_size, "Alpha": metrics[0][1]["Alpha"]}
+                "Loss": sum(loss) / sum(examples), "Round (t)": metrics[0][1]["Round (t)"], "Model size": model_size, "Alpha": metrics[0][1]["Alpha"], "Confidence interval": ci}
     except Exception as e:
         logger.error("weighted_average error")
         logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
@@ -198,7 +226,7 @@ def get_server(strategy_name):
     elif strategy_name == "FedKD":
         return FedKD
     elif strategy_name == "FedKD+FP":
-        return FedKDFP
+        return FedKD
     elif strategy_name == "MultiFedAvg":
         return MultiFedAvg
     elif strategy_name == "MultiFedEfficiency":

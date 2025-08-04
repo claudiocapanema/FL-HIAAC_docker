@@ -164,7 +164,7 @@ def table(df, write_path, metric, t=None):
         "&  &", "& - &").replace("\_", "_").replace(
         "&  \\", "& - \\").replace(" - " + r"\textbf", " " + r"\textbf").replace("_{dc}", r"_{\text{dc}}").replace(
         "\multirow[t]{" + n_strategies + "}{*}{EMNIST}", "EMNIST").replace(
-        "\multirow[t]{" + n_strategies + "}{*}{CIFAR10}", "CIFAR10").replace(
+        "\multirow[t]{" + n_strategies + "}{*}{CIFAR10}", "CIFAR-10").replace(
         "\multirow[t]{" + n_strategies + "}{*}{GTSRB}", "GTSRB").replace("\cline{1-4}", "\hline")
 
     Path(write_path).mkdir(parents=True, exist_ok=True)
@@ -175,6 +175,7 @@ def table(df, write_path, metric, t=None):
     pd.DataFrame({'latex': [latex]}).to_csv(filename, header=False, index=False)
 
     improvements(df_table, datasets, metric)
+    print(filename)
 
     #  df.to_latex().replace("\}", "}").replace("\{", "{").replace("\\\nRecall", "\\\n\hline\nRecall").replace("\\\nF-score", "\\\n\hline\nF1-score")
 
@@ -333,8 +334,8 @@ def idmax(df, n_solutions):
 
 
 if __name__ == "__main__":
-    # experiment_id = "1_new_clients"
-    experiment_id = "1"
+    experiment_id = "1_new_clients"
+    # experiment_id = "1"
     cd = "false"
     total_clients = 20
     alphas = [0.1, 1.0]
@@ -353,7 +354,7 @@ if __name__ == "__main__":
     #              "MultiFedYogiWithFedPredict", "MultiFedYogi", "MultiFedYogiGlobalModelEval", "MultiFedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg", "MultiFedAvgGlobalModelEval",
     #              "MultiFedAvgGlobalModelEvalWithFedPredict", "MultiFedPer"]
-    solutions = ["FedAvg+FP", "FedYogi+FP", "FedKD+FP", "FedAvg", "FedYogi", "FedKD", "FedPer"]
+    solutions = ["FedAvg+FP", "FedAvg","FedYogi+FP",  "FedYogi", "FedKD+FP", "FedKD", "FedPer"]
     # solutions = ["MultiFedAvgWithFedPredict", "MultiFedAvg"]
 
     read_solutions = {solution: [] for solution in solutions}

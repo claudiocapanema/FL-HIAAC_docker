@@ -61,7 +61,7 @@ from flwr.common import (
     parameters_to_ndarrays,
 )
 
-from server.FL.server_fedavg import FedAvg
+from server.FL.server_fedkd import FedKD
 from torch.nn.parameter import Parameter
 
 def aggregate(results: list[tuple[NDArrays, int]], original_parameters: list) -> NDArrays:
@@ -218,7 +218,7 @@ def weighted_loss_avg(results: list[tuple[int, float]]) -> float:
 #         logger.info('Error on line {} {} {}'.format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
 # pylint: disable=line-too-long
-class FedKDFP(FedAvg):
+class FedKDFP(FedKD):
     """Federated Averaging strategy.
 
     Implementation based on https://arxiv.org/abs/1602.05629
@@ -435,68 +435,68 @@ class FedKDFP(FedAvg):
             logger.error("aggregate_fit error")
             logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
-    def configure_evaluate(
-            self, server_round: int, parameters: Parameters, client_manager: ClientManager
-    ) -> list[tuple[ClientProxy, EvaluateIns]]:
-        try:
-            client_evaluate_list = super().configure_evaluate(server_round, parameters, client_manager)
-            logger.info(f"selected clients {self.selected_clients} round {server_round} df {self.df}")
-            nts = []
-            new_client_evaluate_list = []
-            for i in range(len(client_evaluate_list)):
-                client_tuple = client_evaluate_list[i]
-                config = client_tuple[1].config
-                client_id = client_tuple[0].cid
-                lt = 0
-
-                if client_id in self.clients_lt:
-                    lt = self.clients_lt[client_id]
-                nt = server_round - lt
-                config["nt"] = nt
-                config["lt"] = lt
-                nts.append(nt)
-                # logger.info(f"evaluating client {client_id} round {server_round} lt {lt}")
-                client_evaluate_list[i][1].config = config
-                # client_evaluate_list[i][1].parameters = ndarrays_to_parameters([])
-
-                client_dict = {}
-                client_dict["client"] = 0
-                client_dict["cid"] = client_id
-                client_dict["nt"] = nt
-                client_dict["lt"] = lt
-                client_dict["t"] = server_round
-                new_client_evaluate_list.append(
-                    (client_tuple[0], EvaluateIns(parameters, client_dict)))
-
-            # logger.info(f"model shape: {self.model_shape} path {self.file_path} {len(parameters_to_ndarrays(client_evaluate_list[0][1].parameters))}")
-            # logger.info(f"submetidos t: {server_round} T: {self.number_of_rounds} df: {self.df} nts: {nts}")
-            client_evaluate_list = fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters),
-                                                     client_evaluate_list=new_client_evaluate_list, df=self.df,
-                                                     t=server_round,
-                                                     T=self.number_of_rounds, compression=self.compression,
-                                                     fl_framework="flwr", k_ratio=0.3)
-            original_size = sum([j.nbytes for j in parameters_to_ndarrays(parameters)]) * len(client_evaluate_list)
-            if self.compression == "sparsification":
-                compressed_size = []
-                for client in client_evaluate_list:
-                    parameters = parameters_to_ndarrays(client[1].parameters)
-                    # for p in parameters:
-                    #     aux = p[p == 0]
-                    # logger.info(f"quantidade zeros: {len(aux)}")
-                    # sparse = sparse_matrix(p)
-                    # print("Tamanho original: ", p.nbytes)
-                    sparse = [sparse_matrix(i) for i in parameters]
-                    size = sparse_bytes(sparse)
-                    compressed_size.append(size)
-                compressed_size = int(np.mean(compressed_size))
-            else:
-                compressed_size = int(np.mean(
-                    [sum([j.nbytes for j in parameters_to_ndarrays(i[1].parameters)]) for i in client_evaluate_list]))
-            self.compressed_size = compressed_size
-            return client_evaluate_list
-        except Exception as e:
-            logger.error("configure_evaluate error")
-            logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
+    # def configure_evaluate(
+    #         self, server_round: int, parameters: Parameters, client_manager: ClientManager
+    # ) -> list[tuple[ClientProxy, EvaluateIns]]:
+    #     try:
+    #         client_evaluate_list = super().configure_evaluate(server_round, parameters, client_manager)
+    #         logger.info(f"selected clients {self.selected_clients} round {server_round} df {self.df}")
+    #         nts = []
+    #         new_client_evaluate_list = []
+    #         for i in range(len(client_evaluate_list)):
+    #             client_tuple = client_evaluate_list[i]
+    #             config = client_tuple[1].config
+    #             client_id = client_tuple[0].cid
+    #             lt = 0
+    #
+    #             if client_id in self.clients_lt:
+    #                 lt = self.clients_lt[client_id]
+    #             nt = server_round - lt
+    #             config["nt"] = nt
+    #             config["lt"] = lt
+    #             nts.append(nt)
+    #             # logger.info(f"evaluating client {client_id} round {server_round} lt {lt}")
+    #             client_evaluate_list[i][1].config = config
+    #             # client_evaluate_list[i][1].parameters = ndarrays_to_parameters([])
+    #
+    #             client_dict = {}
+    #             client_dict["client"] = 0
+    #             client_dict["cid"] = client_id
+    #             client_dict["nt"] = nt
+    #             client_dict["lt"] = lt
+    #             client_dict["t"] = server_round
+    #             new_client_evaluate_list.append(
+    #                 (client_tuple[0], EvaluateIns(parameters, client_dict)))
+    #
+    #         # logger.info(f"model shape: {self.model_shape} path {self.file_path} {len(parameters_to_ndarrays(client_evaluate_list[0][1].parameters))}")
+    #         # logger.info(f"submetidos t: {server_round} T: {self.number_of_rounds} df: {self.df} nts: {nts}")
+    #         client_evaluate_list = fedpredict_server(global_model_parameters=parameters_to_ndarrays(parameters),
+    #                                                  client_evaluate_list=new_client_evaluate_list, df=self.df,
+    #                                                  t=server_round,
+    #                                                  T=self.number_of_rounds, compression=self.compression,
+    #                                                  fl_framework="flwr", k_ratio=0.3)
+    #         original_size = sum([j.nbytes for j in parameters_to_ndarrays(parameters)]) * len(client_evaluate_list)
+    #         if self.compression == "sparsification":
+    #             compressed_size = []
+    #             for client in client_evaluate_list:
+    #                 parameters = parameters_to_ndarrays(client[1].parameters)
+    #                 # for p in parameters:
+    #                 #     aux = p[p == 0]
+    #                 # logger.info(f"quantidade zeros: {len(aux)}")
+    #                 # sparse = sparse_matrix(p)
+    #                 # print("Tamanho original: ", p.nbytes)
+    #                 sparse = [sparse_matrix(i) for i in parameters]
+    #                 size = sparse_bytes(sparse)
+    #                 compressed_size.append(size)
+    #             compressed_size = int(np.mean(compressed_size))
+    #         else:
+    #             compressed_size = int(np.mean(
+    #                 [sum([j.nbytes for j in parameters_to_ndarrays(i[1].parameters)]) for i in client_evaluate_list]))
+    #         self.compressed_size = compressed_size
+    #         return client_evaluate_list
+    #     except Exception as e:
+    #         logger.error("configure_evaluate error")
+    #         logger.error("""Error on line {} {} {}""".format(sys.exc_info()[-1].tb_lineno, type(e).__name__, e))
 
     def aggregate_evaluate(
             self,

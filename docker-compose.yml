@@ -57,7 +57,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_server.py --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_server.py --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     environment:
       FLASK_RUN_PORT: 6000
       DOCKER_HOST_IP: host.docker.internal
@@ -80,7 +80,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=1 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=1 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -106,7 +106,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=2 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=2 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -132,7 +132,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=3 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=3 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -158,7 +158,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=4 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=4 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -184,7 +184,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=5 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=5 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -210,7 +210,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=6 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=6 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -236,7 +236,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=7 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=7 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -262,7 +262,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=8 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=8 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -288,7 +288,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=9 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=9 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -314,7 +314,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=10 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=10 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -340,7 +340,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=11 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=11 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -366,7 +366,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=12 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=12 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -392,7 +392,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=13 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=13 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -418,7 +418,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=14 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=14 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -444,7 +444,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=15 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=15 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -470,7 +470,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=16 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=16 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -496,7 +496,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=17 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=17 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -522,7 +522,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=18 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=18 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -548,7 +548,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=19 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=19 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:
@@ -574,7 +574,7 @@ services:
       context: .
       dockerfile: Dockerfile
     runtime: nvidia
-    command: python3 start_client.py --server_address=server:8080 --client_id=20 --total_clients=20 --number_of_rounds=100 --data_percentage=0.8 --strategy='FedKD+FP' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression=dls_compredict --device=cuda  --dataset='GTSRB' --model='CNN_3' --alpha=1.0 
+    command: python3 start_client.py --server_address=server:8080 --client_id=20 --total_clients=20 --number_of_rounds=10 --data_percentage=0.8 --strategy='FedPer' --round_new_clients=0.1 --fraction_new_clients=0.1 --cd='false' --fraction_fit=0.3 --batch_size=32 --learning_rate=0.01 --tw=15 --reduction=3 --df=0 --experiment_id=1_new_clients --compression= --device=cuda  --dataset='EMNIST' --model='CNN_3' --alpha=0.1 
     deploy:
           resources:
             limits:

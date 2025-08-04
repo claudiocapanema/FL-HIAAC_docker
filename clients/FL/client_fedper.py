@@ -76,6 +76,7 @@ class ClientFedPer(Client):
             self.models_size = self._get_models_size(parameters)
             metrics["Model size"] = self.models_size
             metrics["Alpha"] = self.alpha
+            metrics["nt"] = nt
             logger.info("eval cliente fim")
             return loss, len(self.valloader.dataset), metrics
         except Exception as e:
