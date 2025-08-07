@@ -28,6 +28,9 @@ def read_data(read_solutions, read_dataset_order):
         for i in range(len(paths)):
             try:
                 dataset = read_dataset_order[i]
+                if dataset not in paths[i]:
+                    print("Dataset not found in path")
+                    exit()
                 path = paths[i]
                 df = pd.read_csv(path)
                 df["Solution"] = np.array([solution] * len(df))
@@ -37,6 +40,11 @@ def read_data(read_solutions, read_dataset_order):
                 df["Table"] = np.array([solution_strategy_version[solution]["Table"]] * len(df))
                 df["Strategy"] = np.array([solution_strategy_version[solution]["Strategy"]] * len(df))
                 df["Version"] = np.array([solution_strategy_version[solution]["Version"]] * len(df))
+
+                # if dataset == "GTSRB" and df["Alpha"].tolist()[0] == 0.1 and solution_strategy_version[solution]["Table"] == "FedKD":
+                #     print(path)
+                #     print(df[['Loss', 'Round (t)', 'Alpha', 'Confidence interval', 'Solution', 'Accuracy (%)', 'Dataset', 'Table', 'Strategy', 'Version']])
+                #     exit()
 
                 if df_concat is None:
                     df_concat = df
@@ -65,13 +73,14 @@ def table(df, write_path, metric, t=None):
         df = df[df['Round (t)'] == t]
 
     df_test = df[
-        ['Round (t)', 'Table', 'Balanced accuracy (%)', 'Accuracy (%)', 'Fraction fit', 'Dataset',
-         'Alpha']]
+        ['Round (t)', 'Table', 'Accuracy (%)', 'Dataset',
+         'Alpha', 'Confidence interval']]
 
     # df_test = df_test.query("""Round in [10, 100]""")
     print("agrupou table")
     experiment = 1
     print(df_test)
+    # exit()
 
     arr = []
     for dt in datasets:
@@ -88,9 +97,10 @@ def table(df, write_path, metric, t=None):
             for dt in datasets:
 
                 print(alpha, column, dt)
-                models_datasets_dict[dt][column] = t_distribution((filter(df_test, dt,
-                                                                          alpha=float(alpha), strategy=column)[
-                    metric]).tolist(), ci)
+                filtered = filter(df_test, dt, alpha=float(alpha), strategy=column)
+                filtered_metric = filtered[metric]
+                filtered_ci = filtered["Confidence interval"]
+                models_datasets_dict[dt][column] = t_distribution(filtered_metric.tolist(), ci, filtered_ci.tolist()[0])
 
         model_metrics = []
 
@@ -239,7 +249,7 @@ def filter(df, dataset, alpha, strategy=None):
     return df
 
 
-def t_distribution(data, ci):
+def t_distribution(data, ci, calculated_ci):
     if len(data) > 1:
         min_ = st.t.interval(confidence=ci, df=len(data) - 1,
                              loc=np.mean(data),
@@ -251,7 +261,7 @@ def t_distribution(data, ci):
 
         return str(mean) + u"\u00B1" + str(average_variation)
     else:
-        return str(round(data[0], 1)) + u"\u00B1" + str(0.0)
+        return str(round(data[0], 1)) + u"\u00B1" + str(round(calculated_ci, 1))
 
 
 def accuracy_improvement(df, datasets):
@@ -380,6 +390,9 @@ if __name__ == "__main__":
                     solution_file = f"{solution}_dls_compredict"
                 read_solutions[solution].append("""{}{}_{}.csv""".format(read_path, dt, solution_file))
 
+    # print(len(read_solutions["FedKD"]))
+    # exit()
+
     write_path = """plots/FL/experiment_id_{}/new_clients_fraction_{}_round_{}/clients_{}/alpha_{}/alpha_end_{}_{}/{}/concept_drift_rounds_{}_{}/{}/fc_{}/rounds_{}/epochs_{}/""".format(
         experiment_id,
         fraction_new_clients,
@@ -401,7 +414,7 @@ if __name__ == "__main__":
     df, hue_order = read_data(read_solutions, read_dataset_order)
     print(df)
 
-    table(df, write_path, "Balanced accuracy (%)", t=None)
+    # table(df, write_path, "Balanced accuracy (%)", t=None)
     table(df, write_path, "Accuracy (%)", t=None)
-    table(df, write_path, "Balanced accuracy (%)", t=100)
+    # table(df, write_path, "Balanced accuracy (%)", t=100)
     table(df, write_path, "Accuracy (%)", t=100)

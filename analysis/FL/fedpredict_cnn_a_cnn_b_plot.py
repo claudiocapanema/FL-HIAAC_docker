@@ -204,7 +204,7 @@ if __name__ == "__main__":
     experiment_id = "1"
     cd = "false"
     total_clients = 20
-    alpha = 1.0
+    alpha = 0.1
     dataset = ["EMNIST", "CIFAR10", "GTSRB"]
     # dataset = ["EMNIST", "CIFAR10"]
     # models_names = ["cnn_c"]

@@ -341,7 +341,8 @@ class CNNDistillation(nn.Module):
             L_h = criterion3(proto_teacher, self.W_h(proto_student)) / (loss_student + loss_teacher)
             # loss = loss_student + loss_teacher + L_h
             # loss = loss_student + loss_teacher + loss_3 + loss_4 + L_h
-            loss = loss_student + loss_teacher
+            # loss = loss_student + loss_teacher
+            loss = loss_teacher
             # loss_teacher = loss_teacher + loss_4
             # loss_student = loss_student + loss_3
             # loss_teacher = loss_teacher + L_h + loss_4

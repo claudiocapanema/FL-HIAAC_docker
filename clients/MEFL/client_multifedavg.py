@@ -246,11 +246,6 @@ class ClientMultiFedAvg(fl.client.NumPyClient):
             if self.data_shift_config != {}:
                 if self.alpha[me] != alpha_me or (t in self.data_shift_config[me]["concept_drift_rounds"] and self.data_shift_config[me]["type"] in ["label_shift"]):
                     self.alpha[me] = alpha_me
-                    # self.index = {0: 1, 1: 2, 2: 0}[self.index]
-                    # index = self.index
-                    # if t in self.concept_drift_config[me]["concept_drift_rounds"] and self.experiment_id == 2:
-                    #     # index = np.argwhere(np.array(self.concept_drift_config[me]["concept_drift_rounds"]) == t)[0][0] + 1
-                    #     index = 0
                     index = 0
                     self.recent_trainloader[me], self.valloader[me] = load_data(
                         dataset_name=self.args.dataset[me],
