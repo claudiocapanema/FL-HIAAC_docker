@@ -187,7 +187,7 @@ def table(df, write_path, metric, dataset, t=None):
         "&  \\", "& - \\").replace(" - " + r"\textbf", " " + r"\textbf").replace("_{dc}", r"_{\text{dc}}").replace(
         "\multirow[t]{" + n_strategies + "}{*}{EMNIST}", "EMNIST").replace(
         "\multirow[t]{" + n_strategies + "}{*}{CIFAR-10}", "CIFAR-10").replace(
-        "\multirow[t]{" + n_strategies + "}{*}{GTSRB}", "GTSRB").replace("\cline{1-4}", "\hline")
+        "\multirow[t]{" + n_strategies + "}{*}{GTSRB}", "GTSRB").replace("\cline{1-4}", "\hline").replace("\cline{2-5}", "\cline{2-7}").replace("\cline{1-5}", "\hline").replace("\multirow[t]", "\multirow").replace("& - &", "&   &").replace("\hline \cline{2-7}", "\hline")
 
     Path(write_path).mkdir(parents=True, exist_ok=True)
     if t is not None:
