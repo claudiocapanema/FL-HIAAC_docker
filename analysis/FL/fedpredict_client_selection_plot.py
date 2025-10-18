@@ -184,11 +184,11 @@ def joint_plot_acc_four_plots(df_test, dataset, metric, write_dir):
         # print("---")
         # print(labels)
         Path(write_dir + "png/").mkdir(parents=True, exist_ok=True)
-        Path(write_dir + "svg/").mkdir(parents=True, exist_ok=True)
-        filename = f"client_selection_{dataset}_{metric}"
+        Path(write_dir + "pdf/").mkdir(parents=True, exist_ok=True)
+        filename = f"client_selection_{dataset}_{metric}".replace(" (%)", "")
         print(write_dir + "png/" + filename + ".png")
         figure.savefig(write_dir + "png/" + filename + ".png", bbox_inches='tight', dpi=400)
-        figure.savefig(write_dir + "svg/" + filename + ".svg", bbox_inches='tight', dpi=400)
+        figure.savefig(write_dir + "pdf/" + filename + ".pdf", bbox_inches='tight', dpi=400)
 
 if __name__ == "__main__":
     # experiment_id = "1_new_clients"

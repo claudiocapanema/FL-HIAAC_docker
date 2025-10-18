@@ -27,7 +27,7 @@ FL-H.IAAC highlights are presented as follows:
 
 ## Enabling containers to access GPU
 
-Follow this tutorial (`https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html`) to install nvidia-container-toolkit
+Follow this tutorial https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html to install nvidia-container-toolkit
 
 ## Handling Device Heterogeneity
 

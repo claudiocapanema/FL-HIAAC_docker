@@ -121,6 +121,7 @@ def evaluate_client_joint_parameter_reduction(df, base_dir, alpha=0.1):
     style = None
     y_min = 0
     compression = ["FedAvg+FP$_{dc}$", "FedAvg+FP$_{d}$", "FedAvg+FP$_{c}$", "FedAvg+FP$_{kd}$", "FedAvg+FP$_{s}$", "FedAvg+FP$_{per}$", "FedAvg+FP", "FedAvg"]
+    fig_title = {"00": "(A)", "01": "(B)", "10": "(C)", "11": "(D)", "20": "(E)", "21": "(F)"}
 
     y_max = 100
 
@@ -136,7 +137,7 @@ def evaluate_client_joint_parameter_reduction(df, base_dir, alpha=0.1):
         for j in range(2):
             dataset = datasets[i]
             model = models[j]
-            title = f"{dataset}; {model}"
+            title = f"{fig_title[str(i)+str(j)]}: {dataset} and {model}"
             # if dataset == "CIFAR10" and model == "CNN-a":
             #     df_aux = df.query(f"Dataset == '{dataset}' and Model == '{model}'")
             #     df_aux = df_aux[df_aux["Table"].isin(["FedAvg+FP$_{d}$"])]
@@ -190,12 +191,15 @@ def evaluate_client_joint_parameter_reduction(df, base_dir, alpha=0.1):
     fig.legend(handles, labels, loc='upper center', ncol=4, title="""\u03B1={}""".format(alpha),
                bbox_to_anchor=(0.5, 1.06), fontsize=9)
 
+    fig.supylabel('Accuracy (%)')
+    fig.supxlabel('Round (t)')
+
     figure = fig.get_figure()
     Path(base_dir + "png/").mkdir(parents=True, exist_ok=True)
-    Path(base_dir + "svg/").mkdir(parents=True, exist_ok=True)
+    Path(base_dir + "pdf/").mkdir(parents=True, exist_ok=True)
     filename = f"cnn_a_cnn_b_alpha_{alpha}"
     figure.savefig(base_dir + "png/" + filename + ".png", bbox_inches='tight', dpi=400)
-    figure.savefig(base_dir + "svg/" + filename + ".svg", bbox_inches='tight', dpi=400)
+    figure.savefig(base_dir + "pdf/" + filename + ".pdf", bbox_inches='tight', dpi=400)
     print(base_dir + "png/" + filename + ".png")
 
 

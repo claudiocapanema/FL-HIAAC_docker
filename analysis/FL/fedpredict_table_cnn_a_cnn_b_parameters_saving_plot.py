@@ -401,7 +401,8 @@ def evaluate_client_joint_parameter_reduction(df, base_dir):
     style = "Alpha"
     y_min = 0
     compression = ["FedAvg+FP$_{dc}$", "FedAvg+FP$_{d}$", "FedAvg+FP$_{c}$", "FedAvg+FP$_{kd}$", "FedAvg+FP$_{s}$", "FedAvg+FP$_{per}$"]
-
+    fig_title = {"00": "(A)", "01": "(B)", "10": "(C)", "11": "(D)", "20": "(E)", "21": "(F)"}
+    
     y_max = 100
 
     fig, ax = plt.subplots(3, 2, sharex='all', sharey='all', figsize=(6, 6))
@@ -416,7 +417,7 @@ def evaluate_client_joint_parameter_reduction(df, base_dir):
         for j in range(2):
             dataset = datasets[i]
             model = models[j]
-            title = f"{dataset}; {model}"
+            title = f"{fig_title[str(i)+str(j)]}: {dataset} and {model}"
             # if dataset == "CIFAR10" and model == "CNN-a":
             #     df_aux = df.query(f"Dataset == '{dataset}' and Model == '{model}'")
             #     df_aux = df_aux[df_aux["Table"].isin(["FedAvg+FP$_{d}$"])]
@@ -478,12 +479,14 @@ def evaluate_client_joint_parameter_reduction(df, base_dir):
 
         handles += [plt.Line2D([], [], linestyle=markers[i], color="k") for i in range(len(markers))]
         fig.legend(handles[1:], new_labels, fontsize=9, ncols=4, bbox_to_anchor=(0.91, 1.02))
+        fig.supylabel('Accuracy (%)')
+        fig.supxlabel('Round (t)')
         figure = fig.get_figure()
         Path(base_dir + "png/").mkdir(parents=True, exist_ok=True)
-        Path(base_dir + "svg/").mkdir(parents=True, exist_ok=True)
+        Path(base_dir + "pdf/").mkdir(parents=True, exist_ok=True)
         filename = f"parameters_reduction_percentage_alpha"
         figure.savefig(base_dir + "png/" + filename + ".png", bbox_inches='tight', dpi=400)
-        figure.savefig(base_dir + "svg/" + filename + ".svg", bbox_inches='tight', dpi=400)
+        figure.savefig(base_dir + "pdf/" + filename + ".pdf", bbox_inches='tight', dpi=400)
 
 
 if __name__ == "__main__":

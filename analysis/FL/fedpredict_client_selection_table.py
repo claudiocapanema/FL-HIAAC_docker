@@ -428,6 +428,6 @@ if __name__ == "__main__":
     table(df, write_path, "Accuracy (%)", dataset="CIFAR-10", t=None)
     table(df, write_path, "Efficiency (%)", dataset="CIFAR-10", t=None)
     table(df, write_path, "Accuracy (%)", dataset="GTSRB", t=None)
-    # table(df, write_path, "Efficiency (%)", dataset="GTSRB", t=None)
+    table(df, write_path, "Efficiency (%)", dataset="GTSRB", t=None)
     # table(df, write_path, "Balanced accuracy (%)", t=100)
     # table(df, write_path, "Accuracy (%)", t=100)
